@@ -1,4 +1,5 @@
 // FILEPATH: Assets/Scripts/Gate/ForceGate.cs
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -22,14 +23,17 @@ public class ForceGate : MonoBehaviour
     [Tooltip("How many meters of drawing are needed to reduce the gate from base to zero force.")]
     [SerializeField] private float metersToFullyOpen = 8f;
 
-    [Tooltip("If true, painting reduces strength globally (anywhere on the trigger). If false, we weaken only near the painted point.")]
+    [Tooltip("If true, painting reduces strength globally (anywhere on the trigger). If false, we weaken only near painted points.")]
     [SerializeField] private bool globalWeakening = true;
 
-    [Tooltip("Radius (meters) for local weakening around the paint hit when globalWeakening = false.")]
+    [Tooltip("Radius (meters) for local weakening around each paint hit when globalWeakening = false.")]
     [SerializeField] private float localWeakeningRadius = 1.0f;
 
-    [Tooltip("Falloff sharpness for local weakening.")]
+    [Tooltip("Falloff sharpness for local weakening (higher = tighter blob).")]
     [SerializeField] private float localFalloffSharpness = 3.0f;
+
+    [Tooltip("Max number of local paint blobs to keep (older/weak ones get replaced).")]
+    [SerializeField] private int maxLocalBlobs = 64;
 
     [Header("Physics")]
     [Tooltip("Continuous push mode. Force is applied every FixedUpdate while a body is inside.")]
@@ -41,23 +45,33 @@ public class ForceGate : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool showGizmo = true;
     [SerializeField] private Color gizmoColor = new Color(1, 0.4f, 0.2f, 0.15f);
+    [SerializeField] private Color blobGizmoColor = new Color(1, 0.1f, 0.1f, 0.25f);
 
     // ---- internal state ----
     private BoxCollider _col;
-    private float _paintAccumMeters; // global accumulation
 
-    // simple local map: we keep a fading center point & intensity
-    private Vector3 _lastPaintPointWS;
-    private float _localWeakAccum; // meters near last paint
+    // Global accumulation (when globalWeakening = true)
+    private float _paintAccumMeters;
+
+    // Local accumulation (when globalWeakening = false): small set of “blobs”
+    private struct Blob
+    {
+        public Vector3 posWS;   // center
+        public float   meters;  // accumulated meters (0..metersToFullyOpen)
+    }
+    private readonly List<Blob> _blobs = new List<Blob>(32);
 
     void Awake()
     {
         _col = GetComponent<BoxCollider>();
-        _col.isTrigger = true; // we’re a force volume, not a solid collider
+        _col.isTrigger = true; // force volume
 
         if (metersToFullyOpen < 0.001f) metersToFullyOpen = 0.001f;
         if (baseOpposeForce < 0f) baseOpposeForce = 0f;
         if (minForceToStop < 0f) minForceToStop = 0f;
+        if (maxLocalBlobs < 1) maxLocalBlobs = 1;
+        if (localWeakeningRadius < 1e-4f) localWeakeningRadius = 1e-4f;
+        if (localFalloffSharpness < 1e-3f) localFalloffSharpness = 1e-3f;
     }
 
     /// <summary>
@@ -70,12 +84,57 @@ public class ForceGate : MonoBehaviour
         if (globalWeakening)
         {
             _paintAccumMeters = Mathf.Min(metersToFullyOpen, _paintAccumMeters + metersDrawn);
+            return;
+        }
+
+        // --- Localized mode: deposit into nearest blob or spawn a new one ---
+        // Merge threshold: paint within this distance joins an existing blob
+        float mergeDist = Mathf.Max(brushRadius, localWeakeningRadius * 0.5f);
+        int bestIdx = -1;
+        float bestDist = float.PositiveInfinity;
+
+        for (int i = 0; i < _blobs.Count; i++)
+        {
+            float d = Vector3.Distance(worldPoint, _blobs[i].posWS);
+            if (d < bestDist)
+            {
+                bestDist = d;
+                bestIdx = i;
+            }
+        }
+
+        if (bestIdx >= 0 && bestDist <= mergeDist)
+        {
+            // Extend existing blob (and gently nudge its center toward the new point)
+            var b = _blobs[bestIdx];
+            b.meters = Mathf.Min(metersToFullyOpen, b.meters + metersDrawn);
+            // Small center follow to where the user keeps drawing
+            b.posWS = Vector3.Lerp(b.posWS, worldPoint, 0.35f);
+            _blobs[bestIdx] = b;
         }
         else
         {
-            // keep a simple local influence blob around the last hit
-            _lastPaintPointWS = worldPoint;
-            _localWeakAccum = Mathf.Min(metersToFullyOpen, _localWeakAccum + metersDrawn);
+            // Create or replace a blob
+            var newBlob = new Blob { posWS = worldPoint, meters = Mathf.Min(metersToFullyOpen, metersDrawn) };
+            if (_blobs.Count < maxLocalBlobs)
+            {
+                _blobs.Add(newBlob);
+            }
+            else
+            {
+                // Replace the weakest (smallest meters) blob to keep the field useful
+                int weakest = 0;
+                float minMeters = _blobs[0].meters;
+                for (int i = 1; i < _blobs.Count; i++)
+                {
+                    if (_blobs[i].meters < minMeters)
+                    {
+                        minMeters = _blobs[i].meters;
+                        weakest = i;
+                    }
+                }
+                _blobs[weakest] = newBlob;
+            }
         }
     }
 
@@ -86,18 +145,29 @@ public class ForceGate : MonoBehaviour
     {
         if (globalWeakening)
         {
-            float t = Mathf.Clamp01(_paintAccumMeters / metersToFullyOpen);
+            float t = Mathf.Clamp01(_paintAccumMeters / metersToFullyOpen); // 0..1
             return Mathf.Max(0f, baseOpposeForce * (1f - t));
         }
         else
         {
-            // Local weakening: gaussian falloff around last paint
-            float dist = Vector3.Distance(samplePointWS, _lastPaintPointWS);
-            float sigma2 = Mathf.Max(1e-5f, (localWeakeningRadius * localWeakeningRadius) / localFalloffSharpness);
-            float w = Mathf.Exp(-(dist * dist) / (2f * sigma2)); // 0..1
-            float tLocal = Mathf.Clamp01(_localWeakAccum / metersToFullyOpen);
-            float localReduction = tLocal * w; // 0..1 fraction
-            float force = baseOpposeForce * (1f - localReduction);
+            // Sum contributions from all blobs with Gaussian falloff
+            if (_blobs.Count == 0) return baseOpposeForce;
+
+            // sigma^2 controls the softness; derived from radius & sharpness
+            float sigma2 = Mathf.Max(1e-6f, (localWeakeningRadius * localWeakeningRadius) / localFalloffSharpness);
+
+            float reduction = 0f; // 0..1
+            for (int i = 0; i < _blobs.Count; i++)
+            {
+                float dist = Vector3.Distance(samplePointWS, _blobs[i].posWS);
+                float w = Mathf.Exp(-(dist * dist) / (2f * sigma2)); // 0..1
+                float tLocal = Mathf.Clamp01(_blobs[i].meters / metersToFullyOpen); // 0..1
+                reduction += tLocal * w;
+            }
+
+            // Cap so we never exceed full opening
+            reduction = Mathf.Clamp01(reduction);
+            float force = baseOpposeForce * (1f - reduction);
             return Mathf.Max(0f, force);
         }
     }
@@ -123,24 +193,20 @@ public class ForceGate : MonoBehaviour
         // If still strong enough to stop
         if (opposeForce >= minForceToStop)
         {
-            // Determine if the body is trying to go through (velocity projects forward)
             float vDot = Vector3.Dot(rb.velocity, pushDir);
 
-            // Constant opposing force to resist entry. Optionally scale by mass.
             float forceToApply = opposeForce;
             if (scaleByMass && (forceMode == ForceMode.Force || forceMode == ForceMode.Acceleration))
                 forceToApply *= rb.mass;
 
-            // Always push opposite to gate forward, stronger if moving into it
             Vector3 forceWS = -pushDir * (forceToApply * Mathf.Max(0.5f, 1f + Mathf.Max(0f, vDot)));
 
             rb.AddForce(forceWS, forceMode);
 
-            // Optional light position correction to avoid jitter inside the trigger
-            // project the point out slightly opposite to forward
+            // small nudge out of the volume to reduce jitter
             rb.position += -pushDir * 0.0001f;
         }
-        // else: too weak to stop → do nothing, passage allowed
+        // else: too weak to stop → passage allowed at this local region
     }
 
     void OnDrawGizmos()
@@ -149,17 +215,33 @@ public class ForceGate : MonoBehaviour
         var col = GetComponent<BoxCollider>();
         if (!col) return;
 
+        // gate volume
         Gizmos.color = gizmoColor;
         Matrix4x4 m = Matrix4x4.TRS(transform.TransformPoint(col.center), transform.rotation, Vector3.one);
         Gizmos.matrix = m;
         Gizmos.DrawCube(Vector3.zero, col.size);
 
-        // draw arrow
+        // direction arrow
         Gizmos.matrix = Matrix4x4.identity;
         Vector3 p = transform.TransformPoint(col.center);
         Vector3 dir = (overrideBlockDirectionWS.sqrMagnitude > 1e-8f ? overrideBlockDirectionWS.normalized : transform.forward);
         Gizmos.color = new Color(1, 0.2f, 0.1f, 1f);
         Gizmos.DrawLine(p, p + dir * 0.75f);
         Gizmos.DrawSphere(p + dir * 0.75f, 0.03f);
+
+        // local blobs (editor-only visualization)
+        if (!Application.isPlaying || _blobs.Count > 0)
+        {
+            Gizmos.color = blobGizmoColor;
+#if UNITY_EDITOR
+            if (_blobs.Count > 0)
+            {
+                foreach (var b in _blobs)
+                {
+                    Gizmos.DrawSphere(b.posWS, Mathf.Min(0.05f, localWeakeningRadius * 0.2f));
+                }
+            }
+#endif
+        }
     }
 }
