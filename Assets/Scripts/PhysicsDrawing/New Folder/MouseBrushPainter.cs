@@ -2,10 +2,10 @@
 using UnityEngine;
 
 /// <summary>
-/// Builds StrokeMesh and stamps its full thickness into VolumeMap (additive).
-/// Keeps the stroke material width synced, informs GateGrid, ForceGate and GrowableCube on paint.
+/// Builds StrokeMesh and feeds it points while the mouse is down.
+/// Keeps the stroke material width synced, informs GateGrid / ForceGate / GrowableCube on paint,
+/// and supports painting on TRIGGER colliders that have a PaintSurfaceMarker.
 /// Auto-includes any referenced GateGrid layers into surfaceMask.
-/// Now supports painting on TRIGGER colliders that have a PaintSurfaceMarker.
 /// </summary>
 public class MouseBrushPainter : MonoBehaviour
 {
@@ -13,9 +13,8 @@ public class MouseBrushPainter : MonoBehaviour
     [SerializeField] private Camera cam;
     [SerializeField] private LayerMask toolMask;
     [SerializeField] private LayerMask surfaceMask;
-    [SerializeField] private VolumeMap volumeMap;
 
-    // Include gates so their cubes are paintable
+    // Include gates so their cells are paintable
     [SerializeField] private GateGrid[] knownGates;
 
     [Header("Stroke Settings")]
@@ -83,18 +82,20 @@ public class MouseBrushPainter : MonoBehaviour
         float brushDiameter = Mathf.Max(0.0005f, _held.BrushDiameter);
         float brushRadius   = brushDiameter * 0.5f;
 
+        // --- Mouse down: start stroke IF enabled, always do gameplay hooks once ---
         if (Input.GetMouseButtonDown(0))
         {
-            StartNewStroke(brushDiameter, _held.StrokeMaterial, _held.BrushColor);
+            if (_held.StrokeEnabled)
+            {
+                StartNewStroke(brushDiameter, _held.StrokeMaterial, _held.BrushColor);
 
-            if (stampDotOnClick)
-                _currentStroke.StampDot(p, n, brushDiameter);
+                if (stampDotOnClick)
+                    _currentStroke.StampDot(p, n, brushDiameter);
 
-            _currentStroke.AddPoint(p, n, brushDiameter);
+                _currentStroke.AddPoint(p, n, brushDiameter);
+            }
 
-            if (volumeMap != null)
-                volumeMap.AddStamp(hit.point, brushRadius, Mathf.Abs(_currentStroke.ThicknessMeters));
-
+            // Gameplay hooks (always)
             TryPaintGate(hit, brushRadius, 0.0001f);
             TryPaintForceGate(hit, 0.0001f);
             TryPaintGrowableCube(hit, 0.0001f);
@@ -107,22 +108,26 @@ public class MouseBrushPainter : MonoBehaviour
             return;
         }
 
-        if (Input.GetMouseButton(0) && _currentStroke != null)
+        // --- Mouse held: ALWAYS run gameplay hooks & wear; only add stroke points if we have a stroke ---
+        if (Input.GetMouseButton(0))
         {
             float minSq = (minPointSpacing * minPointSpacing);
-            float sq = _hasLast ? (p - _lastPaintPos).sqrMagnitude : float.PositiveInfinity;
+
+            // FIX: don't use Infinity on the first frame (that caused instant full wear)
+            float sq = _hasLast ? (p - _lastPaintPos).sqrMagnitude : 0f;
 
             if (!_hasLast || sq >= minSq)
             {
-                _currentStroke.AddPoint(p, n, brushDiameter);
+                // Add stroke geometry only if drawing is enabled & stroke exists
+                if (_currentStroke != null)
+                    _currentStroke.AddPoint(p, n, brushDiameter);
 
                 float stepMeters = Mathf.Sqrt(Mathf.Max(0f, sq));
 
-                if (volumeMap != null)
-                    volumeMap.AddStamp(hit.point, brushRadius, Mathf.Abs(_currentStroke.ThicknessMeters));
-
+                // Wear the brush geometry as we draw (always)
                 _held.ApplyWearAlongPlane(stepMeters, hit.point, hit.normal);
 
+                // Gameplay hooks (always)
                 TryPaintGate(hit, brushRadius, stepMeters);
                 TryPaintForceGate(hit, stepMeters);
                 TryPaintGrowableCube(hit, stepMeters);
@@ -137,7 +142,7 @@ public class MouseBrushPainter : MonoBehaviour
 
         if (Input.GetMouseButtonUp(0)) EndStroke();
 
-        // keep shader width in sync
+        // keep shader width in sync (only matters if a stroke exists)
         if (_currentStroke != null)
         {
             var mr = _currentStroke.GetComponent<MeshRenderer>();
@@ -153,11 +158,11 @@ public class MouseBrushPainter : MonoBehaviour
     {
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
-        // pass 1: regular colliders (triggers ignored) — original behavior
+        // pass 1: regular colliders (triggers ignored)
         if (Physics.Raycast(ray, out bestHit, 1000f, surfaceMask, QueryTriggerInteraction.Ignore))
             return true;
 
-        // pass 2: include triggers, but only accept colliders that have PaintSurfaceMarker somewhere (self or parent)
+        // pass 2: include triggers, but only accept colliders that have PaintSurfaceMarker (self or parent)
         var hits = Physics.RaycastAll(ray, 1000f, surfaceMask, QueryTriggerInteraction.Collide);
         if (hits != null && hits.Length > 0)
         {
@@ -169,16 +174,11 @@ public class MouseBrushPainter : MonoBehaviour
                 {
                     if (h.collider.GetComponent<PaintSurfaceMarker>() != null ||
                         h.collider.GetComponentInParent<PaintSurfaceMarker>() != null)
-                    {
-                        bestHit = h;
-                        return true;
-                    }
+                        { bestHit = h; return true; }
                 }
                 else
                 {
-                    // if a solid collider appears in this pass, it's also fine
-                    bestHit = h;
-                    return true;
+                    bestHit = h; return true;
                 }
             }
         }
@@ -187,7 +187,7 @@ public class MouseBrushPainter : MonoBehaviour
         return false;
     }
 
-    // === Hooks for Gate and other paintable objects ===
+    // === Hooks for Gate and other paintable gameplay objects ===
 
     void TryPaintGate(RaycastHit hit, float brushRadius, float metersDrawn)
     {

@@ -16,6 +16,12 @@ public class BrushTool : MonoBehaviour
     [SerializeField] private Color    brushColor = Color.black;
 
     [Header("Wear & Contact")]
+    [Tooltip("If disabled, the cube will not shrink while painting.")]
+    [SerializeField] private bool wearEnabled = true;
+
+    [Tooltip("If disabled, the brush won't create visual stroke meshes, but still affects gameplay (gates, etc.).")]
+    [SerializeField] private bool strokeEnabled = true;
+
     [Tooltip("Meters of length lost per meter of drawing.")]
     [SerializeField] private float wearPerMeter = 0.25f;
     [Tooltip("Small separation to keep the brush above the plane.")]
@@ -37,27 +43,23 @@ public class BrushTool : MonoBehaviour
     // ===== Public API used by MouseBrushPainter =====
     public Material StrokeMaterial => strokeMaterial;
     public Color    BrushColor     => brushColor;
+    public bool     StrokeEnabled  => strokeEnabled;
 
     /// <summary> Diameter in meters across the painting width (the narrower in-plane dimension). </summary>
     public float BrushDiameter
     {
         get
         {
-            // Heuristic: while painting we choose the smaller of the two in-plane axes
-            // (axes perpendicular to the dominant normal).
             var n = _lastPlaneNormalWS.sqrMagnitude > 0f ? _lastPlaneNormalWS : transform.up;
             Axis dominant = DominantAxis(n, transform);
             Vector3 s = transform.lossyScale;
 
             switch (dominant)
             {
-                case Axis.Right:   // plane normal ≈ ±right → painting plane is YZ → width=min(y,z)
-                    return Mathf.Min(s.y, s.z);
-                case Axis.Up:      // plane normal ≈ ±up    → painting plane is XZ → width=min(x,z)
-                    return Mathf.Min(s.x, s.z);
-                case Axis.Forward: // plane normal ≈ ±fwd   → painting plane is XY → width=min(x,y)
-                    return Mathf.Min(s.x, s.y);
-                default: return Mathf.Min(s.x, Mathf.Min(s.y, s.z));
+                case Axis.Right:   return Mathf.Min(s.y, s.z);
+                case Axis.Up:      return Mathf.Min(s.x, s.z);
+                case Axis.Forward: return Mathf.Min(s.x, s.y);
+                default:           return Mathf.Min(s.x, Mathf.Min(s.y, s.z));
             }
         }
     }
@@ -78,7 +80,7 @@ public class BrushTool : MonoBehaviour
 
         if (_rb)
         {
-            _rb.isKinematic = true;       // user controls it; no gravity while held
+            _rb.isKinematic = true;
             _rb.velocity = Vector3.zero;
             _rb.angularVelocity = Vector3.zero;
         }
@@ -88,14 +90,11 @@ public class BrushTool : MonoBehaviour
     public void OnPutDown()
     {
         _isHeld = false;
-
-        // Place slightly above the last plane to avoid interpenetration, so it won't fall through
         MaintainContact(_lastContactPointWS, _lastPlaneNormalWS);
 
         if (_rb)
         {
-            _rb.isKinematic = false;      // let physics resume
-            // small upward nudge to ensure separation from the plane collider
+            _rb.isKinematic = false;
             _rb.position += _lastPlaneNormalWS * (surfaceOffset * 2f);
         }
     }
@@ -108,12 +107,8 @@ public class BrushTool : MonoBehaviour
         _lastPlaneNormalWS = planeNormal.normalized;
         _lastContactPointWS = planePoint;
 
-        // Rotate so upLocal (in brush space) matches the plane normal.
-        // (This is fine to do with quaternions here.)
         Quaternion fromUp = Quaternion.FromToRotation(transform.TransformDirection(upLocal), _lastPlaneNormalWS);
         transform.rotation = fromUp * transform.rotation;
-
-        // Slide into correct height so the contact face sits on the plane
         MaintainContact(planePoint, _lastPlaneNormalWS);
     }
 
@@ -123,6 +118,7 @@ public class BrushTool : MonoBehaviour
     /// </summary>
     public void ApplyWearAlongPlane(float metersDrawn, Vector3 planePoint, Vector3 planeNormal)
     {
+        if (!wearEnabled) return;
         if (metersDrawn <= 0f) return;
 
         _lastPlaneNormalWS = planeNormal.normalized;
@@ -131,16 +127,16 @@ public class BrushTool : MonoBehaviour
         Axis shrinkAxis = DominantAxis(_lastPlaneNormalWS, transform);
 
         Vector3 ls = transform.localScale;
-        float  delta = wearPerMeter * metersDrawn;
+        float delta = wearPerMeter * metersDrawn;
+
         switch (shrinkAxis)
         {
             case Axis.Right:   ls.x = Mathf.Max(minLocalScale.x, ls.x - delta); break;
             case Axis.Up:      ls.y = Mathf.Max(minLocalScale.y, ls.y - delta); break;
             case Axis.Forward: ls.z = Mathf.Max(minLocalScale.z, ls.z - delta); break;
         }
-        transform.localScale = ls;
 
-        // After scale changed, keep face on the plane
+        transform.localScale = ls;
         MaintainContact(planePoint, _lastPlaneNormalWS);
     }
 
@@ -150,7 +146,6 @@ public class BrushTool : MonoBehaviour
 
     static Axis DominantAxis(Vector3 worldDir, Transform t)
     {
-        // Which local axis aligns best with worldDir?
         float xr = Mathf.Abs(Vector3.Dot(worldDir.normalized, t.right));
         float yu = Mathf.Abs(Vector3.Dot(worldDir.normalized, t.up));
         float zf = Mathf.Abs(Vector3.Dot(worldDir.normalized, t.forward));
@@ -159,23 +154,16 @@ public class BrushTool : MonoBehaviour
         return Axis.Forward;
     }
 
-    /// <summary>
-    /// Move center so the OBB face that points along +planeNormal lies on planePoint.
-    /// </summary>
     void MaintainContact(Vector3 planePoint, Vector3 planeNormal)
     {
         Vector3 n = planeNormal.normalized;
-
-        // Oriented-box half extents in local space (unit cube assumed as mesh base).
         Vector3 h = transform.localScale * 0.5f;
 
-        // Contribution of each local axis projected onto n
         float e =
             Mathf.Abs(Vector3.Dot(n, transform.right))   * h.x +
             Mathf.Abs(Vector3.Dot(n, transform.up))      * h.y +
             Mathf.Abs(Vector3.Dot(n, transform.forward)) * h.z;
 
-        // Center should be offset by +n * (e + offset) from the contact point.
         Vector3 targetPos = planePoint + n * (e + surfaceOffset);
 
         if (_rb && _rb.isKinematic)
