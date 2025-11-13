@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+//----
 [DisallowMultipleComponent]
 [RequireComponent(typeof(BoxCollider))]
 public class ForceGate : MonoBehaviour
@@ -206,7 +207,7 @@ public class ForceGate : MonoBehaviour
         // If still strong enough to stop
         if (opposeForce >= minForceToStop)
         {
-            float vDot = Vector3.Dot(rb.velocity, pushDir);
+            float vDot = Vector3.Dot(rb.linearVelocity, pushDir);
 
             float forceToApply = opposeForce;
             if (scaleByMass && (forceMode == ForceMode.Force || forceMode == ForceMode.Acceleration))

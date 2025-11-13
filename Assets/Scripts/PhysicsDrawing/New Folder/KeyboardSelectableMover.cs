@@ -3,7 +3,7 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider), typeof(Rigidbody))]
-public class KeyboardPhysicsMover : MonoBehaviour
+public class KeyboardSelectableMover : MonoBehaviour
 {
     [Header("Selection")]
     [SerializeField] private KeyCode deselectKey = KeyCode.Escape;
@@ -32,7 +32,7 @@ public class KeyboardPhysicsMover : MonoBehaviour
     [SerializeField] private Color selectedTint = new Color(1f, 0.9f, 0.25f, 1f);
 
     // ---- runtime ----
-    private static KeyboardPhysicsMover _current; // single active selection
+    private static KeyboardSelectableMover _current; // single active selection
     private Rigidbody _rb;
     private Renderer _r;
     private MaterialPropertyBlock _mpb;
@@ -105,7 +105,7 @@ public class KeyboardPhysicsMover : MonoBehaviour
         float speed = moveSpeed * (Input.GetKey(KeyCode.LeftShift) ? sprintMultiplier : 1f);
 
         // Current horizontal velocity (XZ only)
-        Vector3 vel = _rb.velocity;
+        Vector3 vel = _rb.linearVelocity;
         Vector3 velXZ = new Vector3(vel.x, 0f, vel.z);
 
         // Desired horizontal velocity
@@ -120,13 +120,14 @@ public class KeyboardPhysicsMover : MonoBehaviour
             newXZ = newXZ.normalized * maxHorizontalSpeed;
 
         // Apply back with original Y (gravity untouched)
-        _rb.velocity = new Vector3(newXZ.x, vel.y, newXZ.z);
+        _rb.linearVelocity = new Vector3(newXZ.x, vel.y, newXZ.z);
 
         // Anti-roll
         if (zeroAngularVelocity)
             _rb.angularVelocity = Vector3.zero;
     }
 
+    //---
     // --- select/deselect ---
     private void SelectThis()
     {
