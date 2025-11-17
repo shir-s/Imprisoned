@@ -22,6 +22,8 @@ public class WearWhenMovingScaler : MonoBehaviour
     [SerializeField] private bool wearOnMovement = true;
     [Tooltip("Ignore jitter below this world-space distance (meters).")]
     [SerializeField] private float minMoveDelta = 0.00005f;
+    [Tooltip("If true and a Rigidbody exists, use its velocity to estimate distance instead of transform position delta.")]
+    [SerializeField] private bool useRigidbodyVelocity = true;
 
     [Header("Shrink Axis & Anchor")]
     [SerializeField] private Axis shrinkAxis = Axis.Y;
@@ -46,10 +48,13 @@ public class WearWhenMovingScaler : MonoBehaviour
 
     private Behaviour _mouseBrushPainter; // optional
     private Behaviour _brushTool;         // optional
+    private Rigidbody _rb;                // optional
 
     void Awake()
     {
         _mf = GetComponent<MeshFilter>(); // only to read initial bounds; safe if missing too
+        _rb = GetComponent<Rigidbody>();  // if present, lets us use velocity-based sampling
+
         CachePainterComponents();
         ApplyDrawToggle();
 
@@ -97,16 +102,29 @@ public class WearWhenMovingScaler : MonoBehaviour
     {
         if (!wearOnMovement) return;
 
-        Vector3 p = transform.position;
-        if (_firstFrame)
-        {
-            _prevPos = p;
-            _firstFrame = false;
-            return;
-        }
+        float moved = 0f;
 
-        float moved = (p - _prevPos).magnitude;
-        _prevPos = p;
+        // Prefer Rigidbody-based distance if available and enabled
+        if (useRigidbodyVelocity && _rb != null)
+        {
+            // distance = speed * dt
+            float speed = _rb.linearVelocity.magnitude;
+            moved = speed * Time.deltaTime;
+        }
+        else
+        {
+            // Fallback: world position delta
+            Vector3 p = transform.position;
+            if (_firstFrame)
+            {
+                _prevPos = p;
+                _firstFrame = false;
+                return;
+            }
+
+            moved = (p - _prevPos).magnitude;
+            _prevPos = p;
+        }
 
         if (moved >= minMoveDelta && float.IsFinite(moved))
         {
