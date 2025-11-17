@@ -13,6 +13,9 @@ using UnityEngine;
 /// 
 /// This does not interfere with normal movement at all; it only runs when the cube
 /// actually hits the catch volume or while passively tracking its path.
+/// 
+/// Now also listens to CubeStackManager.MainCubeChanged to keep track of the
+/// current active drawing cube.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider))]
@@ -81,6 +84,55 @@ public class CubeFallCatcher : MonoBehaviour
             cubeCollider = cubeRigidbody.GetComponent<Collider>();
     }
 
+    private void OnEnable()
+    {
+        var mgr = CubeStackManager.Instance;
+        if (mgr != null)
+        {
+            mgr.MainCubeChanged += HandleMainCubeChanged;
+
+            // Initialize to current main cube if available
+            if (mgr.CurrentMainTransform != null)
+            {
+                var go = mgr.CurrentMainTransform.gameObject;
+                cubeRigidbody = go.GetComponent<Rigidbody>();
+                cubeCollider  = go.GetComponent<Collider>();
+                ClearSafePoints();
+            }
+        }
+    }
+
+    private void OnDisable()
+    {
+        var mgr = CubeStackManager.Instance;
+        if (mgr != null)
+        {
+            mgr.MainCubeChanged -= HandleMainCubeChanged;
+        }
+    }
+
+    private void HandleMainCubeChanged(GameObject cubeGO)
+    {
+        if (cubeGO == null)
+            return;
+
+        cubeRigidbody = cubeGO.GetComponent<Rigidbody>();
+        cubeCollider  = cubeGO.GetComponent<Collider>();
+
+        // Reset stored safe positions so they belong to the new cube
+        ClearSafePoints();
+
+        if (logRescue)
+            Debug.Log("[CubeFallCatcher] Updated to new main cube: " + cubeGO.name, this);
+    }
+
+    private void ClearSafePoints()
+    {
+        _hasA = _hasB = _hasSamplePos = false;
+        _safePosA = _safePosB = Vector3.zero;
+        _safeRotA = _safeRotB = Quaternion.identity;
+    }
+
     private void FixedUpdate()
     {
         TrackSafePoints();
@@ -115,6 +167,9 @@ public class CubeFallCatcher : MonoBehaviour
     /// </summary>
     private void TryRecordSafePoint(Vector3 approxCenter)
     {
+        if (cubeRigidbody == null || cubeCollider == null)
+            return;
+
         if (Physics.gravity.sqrMagnitude < 0.0001f)
             return;
 
