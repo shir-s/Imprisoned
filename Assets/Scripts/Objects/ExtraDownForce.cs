@@ -34,3 +34,19 @@ public class ExtraDownForce : MonoBehaviour
         _rb.AddForce(forceDir * extraGravity, ForceMode.Acceleration);
     }
 }
+
+/*[RequireComponent(typeof(Rigidbody))]
+public class ExtraDownForce : MonoBehaviour
+{
+    [SerializeField] float extraGravity = 20f; // tweak
+
+    Rigidbody _rb;
+
+    void Awake() => _rb = GetComponent<Rigidbody>();
+
+    void FixedUpdate()
+    {
+        // Extra gravity straight down
+        _rb.AddForce(Physics.gravity.normalized * extraGravity, ForceMode.Acceleration);
+    }
+}*/

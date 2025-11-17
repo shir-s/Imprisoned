@@ -5,7 +5,7 @@ using UnityEngine;
 public class FollowCubeCamera : MonoBehaviour
 {
     [Header("Target")]
-    [SerializeField] private Transform target;   // your drawing cube
+    [SerializeField] private Transform target;   // current drawing cube
 
     [Header("Follow")]
     [Tooltip("Offset from the target in world space.")]
@@ -20,6 +20,36 @@ public class FollowCubeCamera : MonoBehaviour
 
     [Tooltip("How fast the camera rotates toward the look direction.")]
     [SerializeField] private float lookSmooth = 10f;
+
+    private void OnEnable()
+    {
+        var mgr = CubeStackManager.Instance;
+        if (mgr != null)
+        {
+            mgr.MainCubeChanged += HandleMainCubeChanged;
+
+            // If we don't have a target yet but manager already has one, use it.
+            if (target == null && mgr.CurrentMainTransform != null)
+            {
+                target = mgr.CurrentMainTransform;
+            }
+        }
+    }
+
+    private void OnDisable()
+    {
+        var mgr = CubeStackManager.Instance;
+        if (mgr != null)
+        {
+            mgr.MainCubeChanged -= HandleMainCubeChanged;
+        }
+    }
+
+    private void HandleMainCubeChanged(GameObject cubeGO)
+    {
+        if (cubeGO == null) return;
+        target = cubeGO.transform;
+    }
 
     private void LateUpdate()
     {

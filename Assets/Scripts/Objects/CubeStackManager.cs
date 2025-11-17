@@ -1,3 +1,5 @@
+// FILEPATH: Assets/Scripts/PhysicsDrawing/CubeStackManager.cs
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -33,6 +35,12 @@ public class CubeStackManager : MonoBehaviour
         Instance = this;
     }
     #endregion
+
+    /// <summary>
+    /// Fired whenever the active main cube changes (initial setup and on promotion).
+    /// Argument is the main cube GameObject.
+    /// </summary>
+    public event Action<GameObject> MainCubeChanged;
 
     [Header("Initial Setup")]
     [Tooltip("The current cube already in your scene (with Rigidbody, WearWhenMovingScaler, MovementPaintController, etc).")]
@@ -88,6 +96,8 @@ public class CubeStackManager : MonoBehaviour
 
         if (logEvents)
             Debug.Log("[CubeStackManager] Registered initial main cube.");
+
+        RaiseMainCubeChanged(initialMainCube);
     }
 
     void Update()
@@ -336,6 +346,19 @@ public class CubeStackManager : MonoBehaviour
 
         if (logEvents)
             Debug.Log($"[CubeStackManager] New main cube: '{newMain.go.name}'. Remaining in stack: {_stack.Count}");
+
+        RaiseMainCubeChanged(newMain.go);
+    }
+
+    private void RaiseMainCubeChanged(GameObject go)
+    {
+        if (go == null)
+            return;
+
+        if (logEvents)
+            Debug.Log($"[CubeStackManager] Main cube changed to '{go.name}'");
+
+        MainCubeChanged?.Invoke(go);
     }
 
     #endregion
