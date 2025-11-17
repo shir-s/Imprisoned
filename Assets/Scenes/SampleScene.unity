@@ -2364,7 +2364,8 @@ MonoBehaviour:
   useWorldDown: 1
   brushBlitMaterial: {fileID: 2100000, guid: c1c5413a2fa7ac84f917a70ff5ad51a1, type: 2}
   brushSourceTexProperty: _MainTex
-  brushRadiusUV: 0.3
+  fallbackHalfSizeUV: 0.02
+  sizeWorldMultiplier: 1
   brushHardness: 0.5
   brushOpacity: 1
   brushColor: {r: 0, g: 0, b: 0, a: 1}
@@ -2415,7 +2416,8 @@ MonoBehaviour:
   useWorldDown: 1
   brushBlitMaterial: {fileID: 2100000, guid: c1c5413a2fa7ac84f917a70ff5ad51a1, type: 2}
   brushSourceTexProperty: _MainTex
-  brushRadiusUV: 0.1
+  fallbackHalfSizeUV: 0.02
+  sizeWorldMultiplier: 1
   brushHardness: 0.5
   brushOpacity: 1
   brushColor: {r: 0, g: 0, b: 0, a: 1}
@@ -2486,7 +2488,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04fd7f3982453244599d6c963bb03608, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
-  wearPerMeter: 0.002
+  wearPerMeter: 0.1
   maxWearDepth: 1
   wearOnMovement: 1
   minMoveDelta: 0.00005
