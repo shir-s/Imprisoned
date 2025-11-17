@@ -1,16 +1,23 @@
-// FILEPATH: Assets/Scripts/Painting/MovementPaintController.cs
 using UnityEngine;
 
 /// <summary>
 /// Watches this object's movement and forwards it to one or more IMovementPainter strategies.
-/// This lets you swap painting methods without touching the movement scripts.
+/// Supports sub-stepping: large movement in one frame is split into a limited number of
+/// smaller segments so fast motion does not create gaps in the painted trail,
+/// while capping the number of steps per frame to avoid lag.
 /// </summary>
 [DisallowMultipleComponent]
 public class MovementPaintController : MonoBehaviour
 {
     [Header("Movement Sampling")]
-    [Tooltip("Ignore movement smaller than this (meters) before sending painting steps.")]
+    [Tooltip("Ignore movement smaller than this (meters) before sending ANY painting steps (anti-jitter).")]
     [SerializeField] private float minStepDistance = 0.001f;
+
+    [Tooltip("Maximum length (meters) of a single painter step. Larger frame movement will be subdivided.")]
+    [SerializeField] private float maxSegmentLength = 0.002f;
+
+    [Tooltip("Maximum number of sub-steps we will send per frame (performance safety).")]
+    [SerializeField] private int maxSegmentsPerFrame = 24;
 
     [Tooltip("If true, send movement to ALL painters on this object. If false, only the active index.")]
     [SerializeField] private bool useAllPainters = false;
@@ -26,7 +33,7 @@ public class MovementPaintController : MonoBehaviour
     private IMovementPainter[] _painters;
     private bool _wasPainting;
 
-    void Awake()
+    private void Awake()
     {
         // Auto-discover all IMovementPainter components on this GameObject
         _painters = GetComponents<IMovementPainter>();
@@ -34,24 +41,32 @@ public class MovementPaintController : MonoBehaviour
             Debug.Log($"[MovementPaintController] Found {_painters.Length} painters on {name}");
     }
 
-    void OnEnable()
+    private void OnEnable()
     {
         _hasPrev = false;
         _wasPainting = false;
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
         StopPaintingIfNeeded();
     }
 
-    void LateUpdate()
+    private void OnValidate()
+    {
+        if (minStepDistance < 0f)       minStepDistance = 0f;
+        if (maxSegmentLength <= 0f)     maxSegmentLength = 0.0005f;
+        if (maxSegmentsPerFrame < 1)    maxSegmentsPerFrame = 1;
+    }
+
+    private void LateUpdate()
     {
         if (_painters == null || _painters.Length == 0)
             return;
 
         Vector3 pos = transform.position;
 
+        // First frame: just initialize
         if (!_hasPrev)
         {
             _prevPos = pos;
@@ -59,38 +74,41 @@ public class MovementPaintController : MonoBehaviour
             return;
         }
 
-        float dist = (pos - _prevPos).magnitude;
+        Vector3 delta = pos - _prevPos;
+        float dist = delta.magnitude;
+
         if (!float.IsFinite(dist))
         {
             _prevPos = pos;
             return;
         }
 
+        // Barely moved: possibly stop painting
         if (dist < minStepDistance)
         {
-            // If we were painting and now basically stopped, end painting once
             if (_wasPainting)
                 StopPaintingIfNeeded();
+
             _prevPos = pos;
             return;
         }
 
-        // We have a valid movement step
+        // We have real movement
         if (!_wasPainting)
         {
-            StartPainting(pos);
+            StartPainting(_prevPos);
             _wasPainting = true;
         }
 
-        CallPaintersOnStep(_prevPos, pos, dist, Time.deltaTime);
+        SubdivideAndPaint(_prevPos, pos, dist, Time.deltaTime);
 
         if (logSteps)
-            Debug.Log($"[MovementPaintController] Step dist={dist:F4} on {name}");
+            Debug.Log($"[MovementPaintController] Frame movement dist={dist:F4} on {name}");
 
         _prevPos = pos;
     }
 
-    // --- painter calls ---
+    // --- Painter calls ---
 
     private void StartPainting(Vector3 worldPos)
     {
@@ -105,6 +123,41 @@ public class MovementPaintController : MonoBehaviour
             var p = GetActivePainter();
             if (p != null)
                 p.OnMovementStart(worldPos);
+        }
+    }
+
+    /// <summary>
+    /// Break a long movement into smaller segments (clamped by maxSegmentsPerFrame)
+    /// and send each segment to the painters.
+    /// </summary>
+    private void SubdivideAndPaint(Vector3 from, Vector3 to, float dist, float dt)
+    {
+        if (dist <= 0f || !float.IsFinite(dist))
+            return;
+
+        float segLen = Mathf.Max(0.000001f, maxSegmentLength);
+
+        int steps = Mathf.CeilToInt(dist / segLen);
+        if (steps < 1) steps = 1;
+        if (steps > maxSegmentsPerFrame) steps = maxSegmentsPerFrame;
+
+        float invSteps = 1f / steps;
+        Vector3 dir = to - from;
+
+        for (int i = 0; i < steps; i++)
+        {
+            float t0 = i * invSteps;
+            float t1 = (i + 1) * invSteps;
+
+            Vector3 p0 = from + dir * t0;
+            Vector3 p1 = from + dir * t1;
+
+            float segDist = Vector3.Distance(p0, p1);
+            if (segDist <= 0f || !float.IsFinite(segDist))
+                continue;
+
+            float segDt = dt * invSteps;
+            CallPaintersOnStep(p0, p1, segDist, segDt);
         }
     }
 
@@ -129,7 +182,7 @@ public class MovementPaintController : MonoBehaviour
         if (!_wasPainting) return;
         _wasPainting = false;
 
-        var pos = transform.position;
+        Vector3 pos = transform.position;
 
         if (useAllPainters)
         {
@@ -149,8 +202,10 @@ public class MovementPaintController : MonoBehaviour
     {
         if (_painters == null || _painters.Length == 0)
             return null;
+
         if (activePainterIndex < 0 || activePainterIndex >= _painters.Length)
             return null;
+
         return _painters[activePainterIndex];
     }
 

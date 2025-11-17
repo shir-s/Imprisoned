@@ -1,12 +1,13 @@
-// FILEPATH: Assets/Scripts/Painting/RenderTextureTrailPainter.cs
 using UnityEngine;
 
 /// <summary>
 /// IMovementPainter that paints directly into a RenderTexture on the hit surface,
 /// using WORLD SPACE positions mapped through SimplePaintSurface (not mesh UVs).
 /// No StrokeMesh objects are created.
-/// Brush footprint is an axis-aligned SQUARE in paint UV space, whose size is
-/// derived from the cube's world X/Z size, so it roughly matches the cube shape.
+///
+/// IMPORTANT:
+/// - This painter now assumes MovementPaintController already sub-divides movement,
+///   so it does NOT do its own sub-stepping. It simply paints once per OnMoveStep call.
 /// </summary>
 [DisallowMultipleComponent]
 public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
@@ -43,29 +44,23 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     [SerializeField] private Color brushColor = Color.black;
 
     [Header("Sampling")]
-    [Tooltip("Minimum distance between paint dabs, in world meters.")]
-    [SerializeField] private float minWorldStep = 0.0015f;
+    [Tooltip("Minimum distance between paint dabs, in world meters, based on stepMeters from MovementPaintController.")]
+    [SerializeField] private float minWorldStep = 0.0005f;
 
     [Header("Debug")]
     [SerializeField] private bool debugRays = false;
 
     // --- runtime ---
     private SimplePaintSurface _currentSurface;
-    private Vector3            _lastPosWS;
-    private bool               _hasLast;
 
     // ========== IMovementPainter API ==========
 
     public void OnMovementStart(Vector3 worldPos)
     {
-        _hasLast = false;
-
         if (TryRaycastSurface(worldPos, out var hit))
         {
             SetSurfaceFromHit(hit);
             PaintAtWorldPoint(hit.point); // first dab
-            _lastPosWS = hit.point;
-            _hasLast   = true;
         }
         else
         {
@@ -75,37 +70,24 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
     public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
     {
+        // Optional extra filter against ultra-dense calls
+        if (stepMeters < minWorldStep)
+            return;
+
         if (!TryRaycastSurface(to, out var hit))
         {
             ClearSurface();
-            _hasLast = false;
             return;
         }
 
         SetSurfaceFromHit(hit);
-
-        Vector3 p = hit.point;
-        if (!_hasLast)
-        {
-            PaintAtWorldPoint(p);
-            _lastPosWS = p;
-            _hasLast   = true;
-            return;
-        }
-
-        float sq    = (p - _lastPosWS).sqrMagnitude;
-        float minSq = minWorldStep * minWorldStep;
-        if (sq < minSq)
-            return;
-
-        PaintAtWorldPoint(p);
-        _lastPosWS = p;
-        _hasLast   = true;
+        PaintAtWorldPoint(hit.point);
     }
 
     public void OnMovementEnd(Vector3 worldPos)
     {
-        _hasLast = false;
+        // Nothing special needed, but we can clear cached surface to be safe.
+        ClearSurface();
     }
 
     // ========== Surface helpers ==========
@@ -172,7 +154,7 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
     /// <summary>
     /// Compute brush half-size in UV space from the cube's world X/Z size.
-    /// The square is axis-aligned in paint UV.
+    /// The square is axis-aligned in UV.
     /// </summary>
     private Vector2 ComputeHalfSizeUV(Vector3 worldCenter, Vector2 uvCenter)
     {
