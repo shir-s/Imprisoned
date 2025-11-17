@@ -32,6 +32,7 @@ public class MovementPaintController : MonoBehaviour
     private bool _hasPrev;
     private IMovementPainter[] _painters;
     private bool _wasPainting;
+    public System.Action<float, bool> OnPaintingUpdate;
 
     private void Awake()
     {
@@ -71,6 +72,7 @@ public class MovementPaintController : MonoBehaviour
         {
             _prevPos = pos;
             _hasPrev = true;
+            OnPaintingUpdate?.Invoke(0f, false);
             return;
         }
 
@@ -80,6 +82,7 @@ public class MovementPaintController : MonoBehaviour
         if (!float.IsFinite(dist))
         {
             _prevPos = pos;
+            OnPaintingUpdate?.Invoke(0f, false);
             return;
         }
 
@@ -89,6 +92,7 @@ public class MovementPaintController : MonoBehaviour
             if (_wasPainting)
                 StopPaintingIfNeeded();
 
+            OnPaintingUpdate?.Invoke(0f, false);
             _prevPos = pos;
             return;
         }
@@ -105,6 +109,8 @@ public class MovementPaintController : MonoBehaviour
         if (logSteps)
             Debug.Log($"[MovementPaintController] Frame movement dist={dist:F4} on {name}");
 
+        float speed = dist / Mathf.Max(Time.deltaTime, 0.00001f);
+        OnPaintingUpdate?.Invoke(speed, true);
         _prevPos = pos;
     }
 
