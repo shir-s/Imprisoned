@@ -38,17 +38,15 @@ public class KeyboardSelectableMover : MonoBehaviour
     private MaterialPropertyBlock _mpb;
     private Color _origColor;
     private bool _hasOrigColor;
-    private RigidbodyConstraints _originalConstraints;
 
     void Awake()
     {
         _rb = GetComponent<Rigidbody>();
+        _rb.isKinematic = false; // must be dynamic so velocity actually moves it
         _rb.interpolation = RigidbodyInterpolation.Interpolate;
         _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        _originalConstraints = _rb.constraints;
-        if (freezeAllRotation)
-            _rb.constraints = _originalConstraints | RigidbodyConstraints.FreezeRotation;
+        ApplyRotationConstraints();
 
         _r = GetComponentInChildren<Renderer>();
         if (_r) _mpb = new MaterialPropertyBlock();
@@ -56,18 +54,41 @@ public class KeyboardSelectableMover : MonoBehaviour
 
     void OnEnable()
     {
-        // Re-apply constraints in case RB was reset elsewhere
         if (_rb != null)
         {
-            _rb.constraints = freezeAllRotation
-                ? (_originalConstraints | RigidbodyConstraints.FreezeRotation)
-                : _originalConstraints;
+            _rb.isKinematic = false;
+            ApplyRotationConstraints();
         }
     }
 
-    void OnDisable()
+    void OnValidate()
     {
-        if (_rb != null) _rb.constraints = _originalConstraints;
+        if (_rb != null)
+        {
+            ApplyRotationConstraints();
+        }
+    }
+
+    private void ApplyRotationConstraints()
+    {
+        if (_rb == null) return;
+
+        var c = _rb.constraints;
+
+        // Clear any rotation freeze flags
+        c &= ~(RigidbodyConstraints.FreezeRotationX |
+               RigidbodyConstraints.FreezeRotationY |
+               RigidbodyConstraints.FreezeRotationZ);
+
+        if (freezeAllRotation)
+        {
+            // Add them back if we want to lock rotation
+            c |= RigidbodyConstraints.FreezeRotationX |
+                 RigidbodyConstraints.FreezeRotationY |
+                 RigidbodyConstraints.FreezeRotationZ;
+        }
+
+        _rb.constraints = c;
     }
 
     void OnMouseDown()
@@ -127,7 +148,6 @@ public class KeyboardSelectableMover : MonoBehaviour
             _rb.angularVelocity = Vector3.zero;
     }
 
-    //---
     // --- select/deselect ---
     private void SelectThis()
     {
