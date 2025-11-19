@@ -60,21 +60,26 @@ Shader "Custom/PaintBrushBlit"
 
                 float2 halfSize = max(_BrushHalfSize.xy, float2(1e-6, 1e-6));
                 float2 rel = (i.uv - _BrushCenter.xy) / halfSize;
-                float  r   = length(rel);
 
+                // square distance instead of circular
+                float r = max(abs(rel.x), abs(rel.y));
+
+                // soft square fade
                 if (r >= 1.5)
                     return existing;
 
                 float inner = 0.6;
                 float outer = 1.5;
+
                 float t = saturate((r - inner) / (outer - inner));
 
+                // softness
                 float mask = 1.0 - smoothstep(0.0, 1.0, t);
-
                 float hard = saturate(_BrushHardness);
                 float power = lerp(1.0, 4.0, hard);
                 mask = pow(mask, power);
 
+                // opacity
                 mask *= saturate(_BrushOpacity);
 
                 fixed3 brushRGB = _BrushColor.rgb;
