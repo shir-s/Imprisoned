@@ -275,14 +275,14 @@ MonoBehaviour:
     m_Bits: 64
   rayDistance: 2
   useWorldDown: 1
-  brushBlitMaterial: {fileID: 2100000, guid: c1c5413a2fa7ac84f917a70ff5ad51a1, type: 2}
+  brushBlitMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
   brushSourceTexProperty: _MainTex
   fallbackHalfSizeUV: 0.02
-  sizeWorldMultiplier: 1
+  sizeWorldMultiplier: 2
   brushHardness: 0.5
-  brushOpacity: 1
+  opacityPerMeter: 0.5
   brushColor: {r: 0, g: 0, b: 0, a: 1}
-  minWorldStep: 0.0015
+  minWorldStep: 0
   debugRays: 1
 --- !u!82 &4148614733988395559
 AudioSource:
