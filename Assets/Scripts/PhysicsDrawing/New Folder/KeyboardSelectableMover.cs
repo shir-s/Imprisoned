@@ -21,12 +21,6 @@ public class KeyboardSelectableMover : MonoBehaviour
     [Tooltip("Extra horizontal damping when no input (in addition to Rigidbody drag).")]
     [SerializeField] private float idleDamp = 8f;
 
-    [Header("Anti-Roll / Upright")]
-    [Tooltip("Freeze all rotations on the Rigidbody to prevent any rolling or tipping.")]
-    [SerializeField] private bool freezeAllRotation = true;
-    [Tooltip("Forcefully zero angular velocity every physics step (extra safety).")]
-    [SerializeField] private bool zeroAngularVelocity = true;
-
     [Header("Optional: Visual Feedback")]
     [SerializeField] private bool tintWhenSelected = true;
     [SerializeField] private Color selectedTint = new Color(1f, 0.9f, 0.25f, 1f);
@@ -46,8 +40,6 @@ public class KeyboardSelectableMover : MonoBehaviour
         _rb.interpolation = RigidbodyInterpolation.Interpolate;
         _rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
 
-        ApplyRotationConstraints();
-
         _r = GetComponentInChildren<Renderer>();
         if (_r) _mpb = new MaterialPropertyBlock();
     }
@@ -57,38 +49,7 @@ public class KeyboardSelectableMover : MonoBehaviour
         if (_rb != null)
         {
             _rb.isKinematic = false;
-            ApplyRotationConstraints();
         }
-    }
-
-    void OnValidate()
-    {
-        if (_rb != null)
-        {
-            ApplyRotationConstraints();
-        }
-    }
-
-    private void ApplyRotationConstraints()
-    {
-        if (_rb == null) return;
-
-        var c = _rb.constraints;
-
-        // Clear any rotation freeze flags
-        c &= ~(RigidbodyConstraints.FreezeRotationX |
-               RigidbodyConstraints.FreezeRotationY |
-               RigidbodyConstraints.FreezeRotationZ);
-
-        if (freezeAllRotation)
-        {
-            // Add them back if we want to lock rotation
-            c |= RigidbodyConstraints.FreezeRotationX |
-                 RigidbodyConstraints.FreezeRotationY |
-                 RigidbodyConstraints.FreezeRotationZ;
-        }
-
-        _rb.constraints = c;
     }
 
     void OnMouseDown()
@@ -142,10 +103,6 @@ public class KeyboardSelectableMover : MonoBehaviour
 
         // Apply back with original Y (gravity untouched)
         _rb.linearVelocity = new Vector3(newXZ.x, vel.y, newXZ.z);
-
-        // Anti-roll
-        if (zeroAngularVelocity)
-            _rb.angularVelocity = Vector3.zero;
     }
 
     // --- select/deselect ---
