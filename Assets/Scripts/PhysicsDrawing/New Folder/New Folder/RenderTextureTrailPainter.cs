@@ -53,15 +53,21 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     [Header("Debug")]
     [SerializeField] private bool debugRays = false;
 
-    // --- runtime ---
     private SimplePaintSurface _currentSurface;
-    
+    private RenderTexture _tempRT;
     private void Awake()
     {
         var renderer = GetComponent<Renderer>();
         if (renderer != null)
             brushColor = renderer.material.color;
+
+        if (brushBlitMaterial != null)
+        {
+            brushBlitMaterial.SetFloat("_BrushHardness", brushHardness);
+            brushBlitMaterial.SetColor("_BrushColor", brushColor);
+        }
     }
+
 
 
     // ========== IMovementPainter API ==========
@@ -96,6 +102,9 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     }*/
     public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
     {
+        if (stepMeters < minWorldStep)
+            return;
+
         if (!TryRaycastSurface(to, out var hit))
         {
             ClearSurface();
@@ -103,15 +112,17 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         }
 
         SetSurfaceFromHit(hit);
-        
+
+        if (_currentSurface == null || brushBlitMaterial == null)
+            return;
+
         float effectiveOpacity = Mathf.Clamp01(opacityPerMeter * stepMeters);
 
-        brushBlitMaterial.SetFloat("_BrushHardness",  brushHardness);
-        brushBlitMaterial.SetFloat("_BrushOpacity",   effectiveOpacity);
-        brushBlitMaterial.SetColor("_BrushColor",     brushColor);
+        brushBlitMaterial.SetFloat("_BrushOpacity", effectiveOpacity);
 
         PaintAtWorldPoint(hit.point);
     }
+
 
 
     public void OnMovementEnd(Vector3 worldPos)
@@ -135,7 +146,7 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
     // ========== Painting ==========
 
-    private void PaintAtWorldPoint(Vector3 worldPoint)
+    /*private void PaintAtWorldPoint(Vector3 worldPoint)
     {
         if (_currentSurface == null) return;
         if (brushBlitMaterial == null)
@@ -180,7 +191,49 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         Graphics.Blit(temp, rt);
 
         RenderTexture.ReleaseTemporary(temp);
+    }*/
+    private void PaintAtWorldPoint(Vector3 worldPoint)
+    {
+        if (_currentSurface == null || brushBlitMaterial == null)
+            return;
+
+        var rt = _currentSurface.PaintRT;
+        if (rt == null)
+            return;
+
+        if (!_currentSurface.TryWorldToPaintUV(worldPoint, out var uvCenter))
+            return;
+
+        Vector2 halfSizeUV = ComputeHalfSizeUV(worldPoint, uvCenter);
+        if (!float.IsFinite(halfSizeUV.x) || !float.IsFinite(halfSizeUV.y) ||
+            halfSizeUV.x <= 0f || halfSizeUV.y <= 0f)
+        {
+            halfSizeUV = new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV);
+        }
+
+        brushBlitMaterial.SetVector("_BrushCenter",   new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+        brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
+
+        if (_tempRT == null ||
+            _tempRT.width  != rt.width ||
+            _tempRT.height != rt.height ||
+            _tempRT.format != rt.format)
+        {
+            if (_tempRT != null)
+                _tempRT.Release();
+
+            _tempRT = new RenderTexture(rt.descriptor);
+            _tempRT.Create();
+        }
+
+        _tempRT.wrapMode   = rt.wrapMode;
+        _tempRT.filterMode = rt.filterMode;
+
+        brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
+        Graphics.Blit(rt, _tempRT, brushBlitMaterial);
+        Graphics.Blit(_tempRT, rt);
     }
+
 
     /// <summary>
     /// Compute brush half-size in UV space from the cube's world X/Z size.
@@ -231,4 +284,14 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
         return Physics.Raycast(start, dir, out hit, rayDistance, surfaceMask, QueryTriggerInteraction.Collide);
     }
+    
+    private void OnDestroy()
+    {
+        if (_tempRT != null)
+        {
+            _tempRT.Release();
+            _tempRT = null;
+        }
+    }
+
 }
