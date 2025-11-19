@@ -340,9 +340,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FollowCubeCamera
   target: {fileID: 0}
-  offset: {x: 0, y: 12, z: -12}
+  followDistance: 6
+  followHeight: 6
   followSmooth: 10
-  lookAtTarget: 1
   lookSmooth: 10
   listenToActiveCubeEvent: 1
 --- !u!114 &37805751
@@ -3529,11 +3529,11 @@ Transform:
   m_GameObject: {fileID: 1415088419}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.08285714, y: -25.1, z: -0.1095238}
-  m_LocalScale: {x: 2.8571427, y: 50, z: 2.8571427}
+  m_LocalPosition: {x: 12.5, y: 36, z: 4}
+  m_LocalScale: {x: 299.99997, y: 50, z: 299.99997}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 2055905820}
+  m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1415088421
 MonoBehaviour:
@@ -4988,7 +4988,6 @@ Transform:
   - {fileID: 1929994430}
   - {fileID: 1989033116}
   - {fileID: 102386996}
-  - {fileID: 1415088420}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2055905821
@@ -5271,6 +5270,7 @@ SceneRoots:
   - {fileID: 725658950}
   - {fileID: 1566914586}
   - {fileID: 2055905820}
+  - {fileID: 1415088420}
   - {fileID: 840519437}
   - {fileID: 1690901419}
   - {fileID: 2030946670}
