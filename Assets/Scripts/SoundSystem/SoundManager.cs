@@ -12,6 +12,12 @@ namespace Sound
     {
         [SerializeField] private AudioSettings settings;
         //private AudioSourceWrapper _backgroundMusic;
+        
+        // private void Start()
+        // {
+        //     PlaySound("CubeRespawn", transform);
+        // }
+
          private void OnEnable()
          {
              // GameEvents.Intro += OnIntro;
