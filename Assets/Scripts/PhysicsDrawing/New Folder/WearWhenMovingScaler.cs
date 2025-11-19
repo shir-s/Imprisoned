@@ -6,7 +6,10 @@ using UnityEngine;
 /// Does NOT touch the mesh vertices, only transform scale + a small position shift to keep one end anchored.
 /// Also exposes a toggle to disable painting scripts while wear still applies.
 ///
-/// NOW: movement-based wear is applied ONLY when the object is on a surface (raycast down to surfaceMask).
+/// NOW:
+/// - Movement-based wear is applied ONLY when the object is on a surface (raycast down to surfaceMask).
+/// - There is NO max wear depth in meters: the cube just shrinks until its scale on the wear axis
+///   reaches minAxisScale, and then it is considered "fully worn" and can be destroyed / fire events.
 /// </summary>
 [DisallowMultipleComponent]
 public class WearWhenMovingScaler : MonoBehaviour
@@ -16,8 +19,6 @@ public class WearWhenMovingScaler : MonoBehaviour
     [Header("Wear")]
     [Tooltip("Meters of length removed per meter of travel (and per painting meter if you call AddPaintMeters).")]
     [SerializeField] private float wearPerMeter = 0.0002f;
-    [Tooltip("Maximum total wear (meters) that can be removed along the shrink axis.")]
-    [SerializeField] private float maxWearDepth = 0.01f;
 
     [Header("Movement Sampling")]
     [Tooltip("If true, shrink when the object moves in world space (physics or kinematic).")]
@@ -31,7 +32,7 @@ public class WearWhenMovingScaler : MonoBehaviour
     [SerializeField] private Axis shrinkAxis = Axis.Y;
     [Tooltip("Keeps the negative end fixed (e.g., -Y tip). If false, keeps the positive end fixed.")]
     [SerializeField] private bool anchorNegativeEnd = true;
-    [Tooltip("Local scale floor to avoid collapse/NaN.")]
+    [Tooltip("Local scale floor to avoid collapse/NaN. When the scale reaches this value, the cube is 'fully worn'.")]
     [SerializeField] private float minAxisScale = 0.01f;
 
     [Header("Disable Painting While Wearing")]
@@ -45,7 +46,7 @@ public class WearWhenMovingScaler : MonoBehaviour
     [SerializeField] private float groundCheckPadding = 0.01f;
 
     [Header("Lifetime / Events")]
-    [Tooltip("If true, when the wear reaches maxWearDepth this object will destroy itself.")]
+    [Tooltip("If true, when the cube shrinks down to minAxisScale this object will destroy itself.")]
     [SerializeField] private bool destroyWhenFullyWorn = true;
     [Tooltip("If true, when fully worn this script will fire EventManager.GameEvent.CubeDestroyed with this GameObject.")]
     [SerializeField] private bool triggerCubeDestroyedEvent = true;
@@ -57,8 +58,10 @@ public class WearWhenMovingScaler : MonoBehaviour
     // --- runtime ---
     private Vector3 _prevPos;
     private bool _firstFrame = true;
-    private float _accumWear;          // meters removed so far
-    private float _baseAxisLenWorld;   // baseline world length along axis
+
+    /// <summary>Baseline world length of the cube along the wear axis (at start).</summary>
+    private float _baseAxisLenWorld;
+
     private MeshFilter _mf;
     private Collider _col;
 
@@ -66,7 +69,7 @@ public class WearWhenMovingScaler : MonoBehaviour
     private Behaviour _brushTool;         // optional
     private Rigidbody _rb;                // optional
 
-    private bool _fullyWorn;              // did we already hit maxWearDepth?
+    private bool _fullyWorn;              // did we already hit minAxisScale?
 
     void Awake()
     {
@@ -106,11 +109,10 @@ public class WearWhenMovingScaler : MonoBehaviour
 
     void OnValidate()
     {
-        if (minAxisScale < 0.0001f)      minAxisScale      = 0.0001f;
-        if (minMoveDelta  < 0f)          minMoveDelta      = 0f;
-        if (wearPerMeter  < 0f)          wearPerMeter      = 0f;
-        if (maxWearDepth  < 0f)          maxWearDepth      = 0f;
-        if (groundCheckPadding < 0f)     groundCheckPadding = 0f;
+        if (minAxisScale < 0.0001f)       minAxisScale       = 0.0001f;
+        if (minMoveDelta  < 0f)           minMoveDelta       = 0f;
+        if (wearPerMeter  < 0f)           wearPerMeter       = 0f;
+        if (groundCheckPadding < 0f)      groundCheckPadding = 0f;
 
         if (isActiveAndEnabled)
         {
@@ -152,7 +154,7 @@ public class WearWhenMovingScaler : MonoBehaviour
         if (moved < minMoveDelta || !float.IsFinite(moved))
             return;
 
-        // NEW: only apply wear from movement while on the surface
+        // Only apply wear from movement while on the surface
         if (!IsOnSurface())
             return;
 
@@ -173,27 +175,30 @@ public class WearWhenMovingScaler : MonoBehaviour
         ApplyWearMeters(wearPerMeter * metersDrawn * Mathf.Max(0f, pressure));
     }
 
+    /// <summary>
+    /// Convert wear in meters (world) to a change in local scale along the chosen axis.
+    /// The cube is considered fully worn once its axis scale reaches minAxisScale.
+    /// </summary>
     private void ApplyWearMeters(float wearMeters)
     {
         if (_fullyWorn || wearMeters <= 0f)
             return;
 
-        // How much wear we can still apply before reaching maxWearDepth
-        float remain = Mathf.Max(0f, maxWearDepth - _accumWear);
-        if (remain <= 0f)
+        float axisScaleNow = GetAxisScale(transform.localScale);
+        if (axisScaleNow <= minAxisScale + 1e-6f)
         {
-            // Already at max wear
+            // Already at or below minimum scale
             OnFullyWorn();
             return;
         }
 
-        float d = Mathf.Min(wearMeters, remain);
-        _accumWear += d;
+        // Convert meters to local scale delta along axis (relative to baseline world length)
+        float deltaScale = wearMeters / Mathf.Max(1e-6f, _baseAxisLenWorld);
 
-        // Convert meters to local scale delta along axis (use baseline world length for consistency)
-        float axisScaleNow = GetAxisScale(transform.localScale);
-        float deltaScale = d / Mathf.Max(1e-6f, _baseAxisLenWorld);
-        float newAxisScale = Mathf.Max(minAxisScale, axisScaleNow - deltaScale);
+        // Shrink along the axis
+        float newAxisScale = axisScaleNow - deltaScale;
+        bool reachedMin = newAxisScale <= minAxisScale + 1e-6f;
+        newAxisScale = Mathf.Max(minAxisScale, newAxisScale);
 
         // world length change for center shift (keep one end anchored)
         float worldDeltaLen = (axisScaleNow - newAxisScale) * _baseAxisLenWorld;
@@ -213,11 +218,11 @@ public class WearWhenMovingScaler : MonoBehaviour
 
         if (logWear)
         {
-            Debug.Log($"[WearWhenMovingScaler] d={d:F6}m, newScaleAxis={newAxisScale:F4}, worldΔ={worldDeltaLen:F6}m, accum={_accumWear:F6}/{maxWearDepth:F6}m");
+            Debug.Log($"[WearWhenMovingScaler] wear={wearMeters:F6}m, newScaleAxis={newAxisScale:F4}, worldΔ={worldDeltaLen:F6}m");
         }
 
-        // If we reached or exceeded max wear, mark as fully worn.
-        if (_accumWear >= maxWearDepth - 1e-6f)
+        // If we reached or went below the minimum scale, mark as fully worn.
+        if (reachedMin)
         {
             OnFullyWorn();
         }

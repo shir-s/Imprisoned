@@ -921,6 +921,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CubeRespawnManager
   cubePrefab: {fileID: 6460519158208371866, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
   spawnPoint: {fileID: 2030946670}
+  respawnDelay: 2
   useEvents: 1
   logRespawns: 1
 --- !u!4 &1690901419
@@ -963,7 +964,7 @@ Transform:
   m_GameObject: {fileID: 2030946669}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 2.6, y: 99, z: 13.40434}
+  m_LocalPosition: {x: 2.6, y: 107.7, z: 13.40434}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1037,6 +1038,14 @@ PrefabInstance:
     - target: {fileID: 7797749340162350159, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
       propertyPath: m_Name
       value: Map
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905613249036863446, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
+      propertyPath: recenterDegPerSec
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905613249036863446, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
+      propertyPath: tiltAccelDegPerSec
+      value: 50
       objectReference: {fileID: 0}
     - target: {fileID: 8337020286909435252, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
       propertyPath: m_LocalPosition.x
