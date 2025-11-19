@@ -76,6 +76,7 @@ public class CubeRespawnManager : MonoBehaviour
         {
             EventManager.TriggerEvent(EventManager.GameEvent.CubeRespawned, _currentCube);
             EventManager.TriggerEvent(EventManager.GameEvent.ActiveCubeChanged, _currentCube);
+            EventManager.TriggerEvent(EventManager.GameEvent.CubeRespawnSound);
         }
     }
 }

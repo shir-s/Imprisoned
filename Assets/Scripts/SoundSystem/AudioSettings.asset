@@ -12,4 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5e90d7b2a924bf7b024cecc57661b81, type: 3}
   m_Name: AudioSettings
   m_EditorClassIdentifier: Assembly-CSharp::Sound.AudioSettings
-  audioConfigs: []
+  audioConfigs:
+  - name: CubeRespawn
+    clip: {fileID: 0}
+    volume: 0
+    loop: 0
