@@ -19,9 +19,12 @@ GameObject:
   - component: {fileID: 2883896336634138054}
   - component: {fileID: 2523794048035890911}
   - component: {fileID: 2463429873015552788}
+  - component: {fileID: 4148614733988395559}
+  - component: {fileID: 953310700036890121}
+  - component: {fileID: 7801849789387009717}
   m_Layer: 7
   m_Name: DrawingCube
-  m_TagString: Untagged
+  m_TagString: DrawingCube
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -74,7 +77,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 50ea824f0c6aa49c4baab1668d9e8595, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -179,7 +182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04fd7f3982453244599d6c963bb03608, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
-  wearPerMeter: 0.05
+  wearPerMeter: 0.005
   maxWearDepth: 1
   wearOnMovement: 1
   minMoveDelta: 0.00005
@@ -188,7 +191,14 @@ MonoBehaviour:
   anchorNegativeEnd: 1
   minAxisScale: 0.01
   drawEnabled: 1
-  logWear: 0
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheckPadding: 0.5
+  destroyWhenFullyWorn: 1
+  triggerCubeDestroyedEvent: 1
+  logWear: 1
+  debugGroundCheck: 0
 --- !u!114 &1558133357534088690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,7 +215,7 @@ MonoBehaviour:
   rayDistance: 0.5
   groundMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 64
 --- !u!114 &2883896336634138054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -219,11 +229,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MovementPaintController
   minStepDistance: 0.001
-  maxSegmentLength: 0.002
-  maxSegmentsPerFrame: 24
+  maxSegmentLength: 0.01
+  maxSegmentsPerFrame: 12
   useAllPainters: 0
   activePainterIndex: 1
-  logSteps: 1
+  logSteps: 0
 --- !u!114 &2523794048035890911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -265,12 +275,141 @@ MonoBehaviour:
     m_Bits: 64
   rayDistance: 2
   useWorldDown: 1
-  brushBlitMaterial: {fileID: 2100000, guid: c1c5413a2fa7ac84f917a70ff5ad51a1, type: 2}
+  brushBlitMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
   brushSourceTexProperty: _MainTex
   fallbackHalfSizeUV: 0.02
-  sizeWorldMultiplier: 1
+  sizeWorldMultiplier: 1.5
   brushHardness: 0.5
-  brushOpacity: 1
+  opacityPerMeter: 0.75
   brushColor: {r: 0, g: 0, b: 0, a: 1}
-  minWorldStep: 0.0015
+  minWorldStep: 0
   debugRays: 1
+--- !u!82 &4148614733988395559
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: 5ca5e7fa718d13c46a6cbab97b451bb8, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 0
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &953310700036890121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fef4ab35a26a7a4294d6f74b584e9f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundPainterController
+  paintController: {fileID: 2883896336634138054}
+  audioSource: {fileID: 4148614733988395559}
+  rb: {fileID: 7834939096454266792}
+  minSpeed: 0.1
+  maxSpeed: 35
+  fadeSpeed: 8
+--- !u!114 &7801849789387009717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 731a2d35472274f47b41875decc1bfbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MaxVelocityLimiter
+  maxSpeed: 30
+  maxAngularSpeed: 45

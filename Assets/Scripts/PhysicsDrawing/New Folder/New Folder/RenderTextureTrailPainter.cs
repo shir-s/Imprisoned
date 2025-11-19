@@ -39,9 +39,11 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     [Tooltip("Brush hardness: 0 = soft, 1 = hard edge.")]
     [SerializeField, Range(0f, 1f)] private float brushHardness = 0.5f;
 
-    [Tooltip("Brush opacity per dab (0..1).")]
-    [SerializeField, Range(0f, 1f)] private float brushOpacity = 1.0f;
-
+    //[Tooltip("Brush opacity per dab (0..1).")]
+    //[SerializeField, Range(0f, 1f)] private float brushOpacity = 0.1f;
+    [Tooltip("How much opacity to add per meter of travel.")]
+    [SerializeField] private float opacityPerMeter = 5.0f;
+    
     [SerializeField] private Color brushColor = Color.black;
 
     [Header("Sampling")]
@@ -51,8 +53,22 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     [Header("Debug")]
     [SerializeField] private bool debugRays = false;
 
-    // --- runtime ---
     private SimplePaintSurface _currentSurface;
+    private RenderTexture _tempRT;
+    private void Awake()
+    {
+        var renderer = GetComponent<Renderer>();
+        if (renderer != null)
+            brushColor = renderer.material.color;
+
+        if (brushBlitMaterial != null)
+        {
+            brushBlitMaterial.SetFloat("_BrushHardness", brushHardness);
+            brushBlitMaterial.SetColor("_BrushColor", brushColor);
+        }
+    }
+
+
 
     // ========== IMovementPainter API ==========
 
@@ -69,7 +85,7 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         }
     }
 
-    public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
+    /*public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
     {
         // Optional extra filter against ultra-dense calls
         if (stepMeters < minWorldStep)
@@ -83,7 +99,31 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
         SetSurfaceFromHit(hit);
         PaintAtWorldPoint(hit.point);
+    }*/
+    public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
+    {
+        if (stepMeters < minWorldStep)
+            return;
+
+        if (!TryRaycastSurface(to, out var hit))
+        {
+            ClearSurface();
+            return;
+        }
+
+        SetSurfaceFromHit(hit);
+
+        if (_currentSurface == null || brushBlitMaterial == null)
+            return;
+
+        float effectiveOpacity = Mathf.Clamp01(opacityPerMeter * stepMeters);
+
+        brushBlitMaterial.SetFloat("_BrushOpacity", effectiveOpacity);
+
+        PaintAtWorldPoint(hit.point);
     }
+
+
 
     public void OnMovementEnd(Vector3 worldPos)
     {
@@ -106,7 +146,7 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
     // ========== Painting ==========
 
-    private void PaintAtWorldPoint(Vector3 worldPoint)
+    /*private void PaintAtWorldPoint(Vector3 worldPoint)
     {
         if (_currentSurface == null) return;
         if (brushBlitMaterial == null)
@@ -137,9 +177,9 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         // Set brush parameters
         brushBlitMaterial.SetVector("_BrushCenter",   new Vector4(uvCenter.x, uvCenter.y, 0, 0));
         brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
-        brushBlitMaterial.SetFloat("_BrushHardness",  brushHardness);
-        brushBlitMaterial.SetFloat("_BrushOpacity",   brushOpacity);
-        brushBlitMaterial.SetColor("_BrushColor",     brushColor);
+        //brushBlitMaterial.SetFloat("_BrushHardness",  brushHardness);
+        //brushBlitMaterial.SetFloat("_BrushOpacity",   brushOpacity);
+        //brushBlitMaterial.SetColor("_BrushColor",     brushColor);
 
         // Ping-pong blit
         RenderTexture temp = RenderTexture.GetTemporary(rt.width, rt.height, 0, rt.format);
@@ -151,7 +191,49 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         Graphics.Blit(temp, rt);
 
         RenderTexture.ReleaseTemporary(temp);
+    }*/
+    private void PaintAtWorldPoint(Vector3 worldPoint)
+    {
+        if (_currentSurface == null || brushBlitMaterial == null)
+            return;
+
+        var rt = _currentSurface.PaintRT;
+        if (rt == null)
+            return;
+
+        if (!_currentSurface.TryWorldToPaintUV(worldPoint, out var uvCenter))
+            return;
+
+        Vector2 halfSizeUV = ComputeHalfSizeUV(worldPoint, uvCenter);
+        if (!float.IsFinite(halfSizeUV.x) || !float.IsFinite(halfSizeUV.y) ||
+            halfSizeUV.x <= 0f || halfSizeUV.y <= 0f)
+        {
+            halfSizeUV = new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV);
+        }
+
+        brushBlitMaterial.SetVector("_BrushCenter",   new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+        brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
+
+        if (_tempRT == null ||
+            _tempRT.width  != rt.width ||
+            _tempRT.height != rt.height ||
+            _tempRT.format != rt.format)
+        {
+            if (_tempRT != null)
+                _tempRT.Release();
+
+            _tempRT = new RenderTexture(rt.descriptor);
+            _tempRT.Create();
+        }
+
+        _tempRT.wrapMode   = rt.wrapMode;
+        _tempRT.filterMode = rt.filterMode;
+
+        brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
+        Graphics.Blit(rt, _tempRT, brushBlitMaterial);
+        Graphics.Blit(_tempRT, rt);
     }
+
 
     /// <summary>
     /// Compute brush half-size in UV space from the cube's world X/Z size.
@@ -202,4 +284,14 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
         return Physics.Raycast(start, dir, out hit, rayDistance, surfaceMask, QueryTriggerInteraction.Collide);
     }
+    
+    private void OnDestroy()
+    {
+        if (_tempRT != null)
+        {
+            _tempRT.Release();
+            _tempRT = null;
+        }
+    }
+
 }
