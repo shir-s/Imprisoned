@@ -12,19 +12,29 @@ namespace Sound
     {
         [SerializeField] private AudioSettings settings;
         //private AudioSourceWrapper _backgroundMusic;
-        /*private void OnEnable()
-        {
-            GameEvents.Intro += OnIntro;
-            GameEvents.GameStarted += OnGameStart;
-            GameEvents.GameOver += EndGame;
-        }
+        
+        // private void Start()
+        // {
+        //     PlaySound("CubeRespawn", transform);
+        // }
 
-        private void OnDisable()
-        {
-            GameEvents.Intro -= OnIntro;
-            GameEvents.GameStarted -= OnGameStart;
-            GameEvents.GameOver -= EndGame;
-        }*/
+         private void OnEnable()
+         {
+             // GameEvents.Intro += OnIntro;
+             // GameEvents.GameStarted += OnGameStart;
+             // GameEvents.GameOver += EndGame;
+             EventManager.StartListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
+
+         }
+
+         private void OnDisable()
+         {
+             // GameEvents.Intro -= OnIntro;
+             // GameEvents.GameStarted -= OnGameStart;
+             // GameEvents.GameOver -= EndGame;
+             EventManager.StopListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
+
+         }
 
         private void EndGame()
         {
@@ -96,5 +106,11 @@ namespace Sound
                 return null;
             }
         }
+        
+        private void OnCubeRespawnSound(object _)
+        {
+            PlaySound("CubeRespawn", transform);
+        }
+
     }
 }

@@ -9,8 +9,12 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2314850770022543249, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
+      propertyPath: maxWearDepth
+      value: 0.75
+      objectReference: {fileID: 0}
+    - target: {fileID: 2314850770022543249, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: wearPerMeter
-      value: 0.005
+      value: 0.01
       objectReference: {fileID: 0}
     - target: {fileID: 6460519158208371866, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_Name
@@ -18,27 +22,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1
+      value: 0.75
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1
+      value: 0.75
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1
+      value: 0.75
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 2.3
+      value: 2.69
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 14.21
+      value: 83.25
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 15.28
+      value: 5.75986
       objectReference: {fileID: 0}
     - target: {fileID: 7009971931566194860, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_LocalRotation.w

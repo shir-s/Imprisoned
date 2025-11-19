@@ -1,35 +1,19 @@
 // FILEPATH: Assets/Scripts/Gameplay/CubeRespawnManager.cs
 using UnityEngine;
+using System.Collections;
 
-/// <summary>
-/// Responsible ONLY for ensuring there is always an active cube:
-/// - Spawns a cube at start.
-/// - If the current cube gets destroyed (by wear, fall catcher, etc.), it respawns a new one.
-/// 
-/// It does NOT check position, does NOT detect falling, and does NOT handle wear.
-/// That logic lives in:
-/// - WearWhenMovingScaler  -> destroys cube when fully worn.
-/// - CubeFallCatcher       -> destroys cube when it falls out of the surface.
-/// 
-/// EXPECTED SETUP:
-/// - Put this on an empty GameObject in the scene (e.g. "CubeRespawnManager").
-/// - Assign:
-///     * cubePrefab  = prefab that has all your cube logic (Rigidbody, MovementPaintController,
-///                     WearWhenMovingScaler, ExtraDownForce, etc.).
-///     * spawnPoint  = Transform that marks where the cube should appear (position + rotation).
-/// </summary>
 [DisallowMultipleComponent]
 public class CubeRespawnManager : MonoBehaviour
 {
     [Header("Prefab & Spawn")]
-    [Tooltip("Prefab of the cube (must contain all movement / painting / wear scripts).")]
     [SerializeField] private GameObject cubePrefab;
-
-    [Tooltip("Where to spawn the cube. If null, uses this GameObject's transform.")]
     [SerializeField] private Transform spawnPoint;
 
+    [Header("Spawn Delay")]
+    [Tooltip("Delay in seconds before spawning a new cube after the previous one is destroyed.")]
+    [SerializeField] private float respawnDelay = 0.3f;
+
     [Header("Events")]
-    [Tooltip("If true, will fire EventManager events when cubes are (re)spawned.")]
     [SerializeField] private bool useEvents = true;
 
     [Header("Debug")]
@@ -37,28 +21,42 @@ public class CubeRespawnManager : MonoBehaviour
 
     // --- runtime ---
     private GameObject _currentCube;
+    private bool _isRespawning = false;
 
     private void Start()
     {
         if (!spawnPoint)
             spawnPoint = transform;
 
-        SpawnNewCube();
+        SpawnNewCube(); // First spawn without delay
     }
 
     private void Update()
     {
-        // If cube was destroyed by other systems (wear, fall catcher, etc.), spawn a new one.
-        if (_currentCube == null)
+        // If the cube was destroyed by other systems, start respawn coroutine.
+        if (_currentCube == null && !_isRespawning)
         {
-            SpawnNewCube();
+            StartCoroutine(RespawnRoutine());
         }
+    }
+
+    // ----------------------
+    // Respawn with delay
+    // ----------------------
+    private IEnumerator RespawnRoutine()
+    {
+        _isRespawning = true;
+
+        if (respawnDelay > 0f)
+            yield return new WaitForSeconds(respawnDelay);
+
+        SpawnNewCube();
+        _isRespawning = false;
     }
 
     // ----------------------
     // Spawn helper
     // ----------------------
-
     private void SpawnNewCube()
     {
         if (cubePrefab == null)
@@ -76,6 +74,7 @@ public class CubeRespawnManager : MonoBehaviour
         {
             EventManager.TriggerEvent(EventManager.GameEvent.CubeRespawned, _currentCube);
             EventManager.TriggerEvent(EventManager.GameEvent.ActiveCubeChanged, _currentCube);
+            EventManager.TriggerEvent(EventManager.GameEvent.CubeRespawnSound);
         }
     }
 }

@@ -21,7 +21,8 @@ GameObject:
   - component: {fileID: 2463429873015552788}
   - component: {fileID: 4148614733988395559}
   - component: {fileID: 953310700036890121}
-  - component: {fileID: 7801849789387009717}
+  - component: {fileID: -3301710990218042283}
+  - component: {fileID: 6158964790517734281}
   m_Layer: 7
   m_Name: DrawingCube
   m_TagString: DrawingCube
@@ -39,8 +40,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 2.3, y: 14.21, z: 15.28}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -166,8 +167,6 @@ MonoBehaviour:
   accel: 12
   maxHorizontalSpeed: 6
   idleDamp: 8
-  freezeAllRotation: 1
-  zeroAngularVelocity: 1
   tintWhenSelected: 1
   selectedTint: {r: 1, g: 0.9, b: 0.25, a: 1}
 --- !u!114 &2314850770022543249
@@ -183,7 +182,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
   wearPerMeter: 0.005
-  maxWearDepth: 1
   wearOnMovement: 1
   minMoveDelta: 0.00005
   useRigidbodyVelocity: 1
@@ -211,8 +209,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f050c55caf79082449ed56d54c5d36fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExtraDownForce
-  extraGravity: 1000
-  rayDistance: 0.5
+  extraGravity: 1500
+  rayDistance: 1
   groundMask:
     serializedVersion: 2
     m_Bits: 64
@@ -399,7 +397,7 @@ MonoBehaviour:
   minSpeed: 0.1
   maxSpeed: 35
   fadeSpeed: 8
---- !u!114 &7801849789387009717
+--- !u!114 &-3301710990218042283
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -408,8 +406,34 @@ MonoBehaviour:
   m_GameObject: {fileID: 6460519158208371866}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 731a2d35472274f47b41875decc1bfbb, type: 3}
+  m_Script: {fileID: 11500000, guid: c6c2cc77f5c4f244f915c5dafb80a77a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::MaxVelocityLimiter
-  maxSpeed: 30
-  maxAngularSpeed: 45
+  m_EditorClassIdentifier: Assembly-CSharp::UprightRigidbodyConstraints
+  freezeAllRotation: 0
+  zeroAngularVelocity: 1
+  limitLinearSpeed: 1
+  maxLinearSpeed: 40
+  limitAngularSpeed: 1
+  maxAngularSpeed: 40
+--- !u!114 &6158964790517734281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d862027d2fb8d0e4493b06bb28992dd9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StickToSurface
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  searchDistance: 0.5
+  surfaceOffset: 0.001
+  floatTolerance: 0.001
+  maxCorrectionPerStep: 0.02
+  dampAwayFromSurfaceVelocity: 1
+  awayVelocityDamp: 1
+  drawDebugRays: 0

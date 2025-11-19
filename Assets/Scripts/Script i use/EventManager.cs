@@ -16,6 +16,8 @@ public static class EventManager
         CubeDestroyed,       // passes GameObject
         CubeRespawned,       // passes GameObject
         
+        CubeRespawnSound,
+        
         // Tray / surface (optional, for later)
         TraySelected,        // data: Transform (selected tray)
         SurfaceTilted,       // data: Vector3 (current rotation / tilt info)
