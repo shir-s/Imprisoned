@@ -21,9 +21,10 @@ GameObject:
   - component: {fileID: 2463429873015552788}
   - component: {fileID: 4148614733988395559}
   - component: {fileID: 953310700036890121}
+  - component: {fileID: 7801849789387009717}
   m_Layer: 7
   m_Name: DrawingCube
-  m_TagString: Untagged
+  m_TagString: DrawingCube
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -181,7 +182,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 04fd7f3982453244599d6c963bb03608, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
-  wearPerMeter: 0.05
+  wearPerMeter: 0.005
   maxWearDepth: 1
   wearOnMovement: 1
   minMoveDelta: 0.00005
@@ -190,7 +191,14 @@ MonoBehaviour:
   anchorNegativeEnd: 1
   minAxisScale: 0.01
   drawEnabled: 1
-  logWear: 0
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheckPadding: 0.5
+  destroyWhenFullyWorn: 1
+  triggerCubeDestroyedEvent: 1
+  logWear: 1
+  debugGroundCheck: 0
 --- !u!114 &1558133357534088690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -207,7 +215,7 @@ MonoBehaviour:
   rayDistance: 0.5
   groundMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 64
 --- !u!114 &2883896336634138054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -225,7 +233,7 @@ MonoBehaviour:
   maxSegmentsPerFrame: 24
   useAllPainters: 0
   activePainterIndex: 1
-  logSteps: 1
+  logSteps: 0
 --- !u!114 &2523794048035890911
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -391,3 +399,17 @@ MonoBehaviour:
   minSpeed: 0.1
   maxSpeed: 35
   fadeSpeed: 8
+--- !u!114 &7801849789387009717
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 731a2d35472274f47b41875decc1bfbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MaxVelocityLimiter
+  maxSpeed: 30
+  maxAngularSpeed: 45
