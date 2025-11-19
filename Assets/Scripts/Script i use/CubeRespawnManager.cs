@@ -6,7 +6,8 @@ using System.Collections;
 public class CubeRespawnManager : MonoBehaviour
 {
     [Header("Prefab & Spawn")]
-    [SerializeField] private GameObject cubePrefab;
+    [Tooltip("List of cube prefabs to randomly choose from each respawn.")]
+    [SerializeField] private GameObject[] cubePrefabs;
     [SerializeField] private Transform spawnPoint;
 
     [Header("Spawn Delay")]
@@ -59,14 +60,17 @@ public class CubeRespawnManager : MonoBehaviour
     // ----------------------
     private void SpawnNewCube()
     {
-        if (cubePrefab == null)
+        if (cubePrefabs == null || cubePrefabs.Length == 0)
         {
             Debug.LogError("[CubeRespawnManager] No cubePrefab assigned.", this);
             return;
         }
-
-        _currentCube = Instantiate(cubePrefab, spawnPoint.position, spawnPoint.rotation);
-
+        
+        int index = Random.Range(0, cubePrefabs.Length);
+        GameObject prefabToSpawn = cubePrefabs[index];
+        
+        _currentCube = Instantiate(prefabToSpawn, spawnPoint.position, spawnPoint.rotation);
+        
         if (logRespawns)
             Debug.Log("[CubeRespawnManager] Spawned new cube.", this);
 
