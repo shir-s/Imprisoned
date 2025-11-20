@@ -9,12 +9,15 @@ public class TiltTray : MonoBehaviour
     [SerializeField] private bool tintWhenSelected = true;
     [SerializeField] private Color selectedTint = new Color(1f, 0.9f, 0.25f, 1f);
 
-    static TiltTray _current;   // global selection (only one tray at a time)
+    [Tooltip("If true, tray must be selected to respond to input. If false, arrow keys always control this tray.")]
+    [SerializeField] private bool requireSelectionForInput = false;
 
-    Renderer _r;
-    MaterialPropertyBlock _mpb;
-    Color _origColor;
-    bool _hasOrig;
+    private static TiltTray _current;   // global selection (only one tray at a time)
+
+    private Renderer _r;
+    private MaterialPropertyBlock _mpb;
+    private Color _origColor;
+    private bool _hasOrig;
 
     [Header("Input (Arrow Keys)")]
     [SerializeField] private KeyCode upKey = KeyCode.UpArrow;
@@ -34,12 +37,12 @@ public class TiltTray : MonoBehaviour
     [SerializeField] private bool invertZ = false;
     [SerializeField] private bool physicsDriven = true;
 
-    Rigidbody _rb;
-    Quaternion _baseRot;
-    Vector2 _targetTiltXZ;
-    Vector2 _currentTiltXZ;
+    private Rigidbody _rb;
+    private Quaternion _baseRot;
+    private Vector2 _targetTiltXZ;
+    private Vector2 _currentTiltXZ;
 
-    void Awake()
+    private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
         _rb.isKinematic = true;
@@ -52,38 +55,42 @@ public class TiltTray : MonoBehaviour
     }
 
     // --------------------------------
-    // SELECTION
+    // SELECTION (only affects tint, and input if requireSelectionForInput = true)
     // --------------------------------
-    void OnMouseDown()
+    private void OnMouseDown()
     {
         SelectThis();
     }
 
-    void Update()
+    private void Update()
     {
-        if (_current != this) return;
+        bool activeForInput = !requireSelectionForInput || _current == this;
+        if (!activeForInput)
+            return;
 
-        // right mouse button deselect
-        if (Input.GetMouseButtonDown(1))
+        // right mouse button deselect (only makes sense if selection is used)
+        if (requireSelectionForInput && Input.GetMouseButtonDown(1) && _current == this)
         {
             Deselect();
             return;
         }
 
-        // Arrow-key logic only if selected
         HandleInput(Time.deltaTime);
 
         if (!physicsDriven)
             DriveRotation(Time.deltaTime);
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
-        if (_current != this || !physicsDriven) return;
+        bool activeForInput = !requireSelectionForInput || _current == this;
+        if (!activeForInput || !physicsDriven)
+            return;
+
         DriveRotation(Time.fixedDeltaTime);
     }
 
-    void HandleInput(float dt)
+    private void HandleInput(float dt)
     {
         int v = (Input.GetKey(upKey) ? 1 : 0) - (Input.GetKey(downKey) ? 1 : 0);
         int h = (Input.GetKey(rightKey) ? 1 : 0) - (Input.GetKey(leftKey) ? 1 : 0);
@@ -103,7 +110,7 @@ public class TiltTray : MonoBehaviour
             _targetTiltXZ.y = MoveToward(_targetTiltXZ.y, 0f, recenterDegPerSec * dt);
     }
 
-    void DriveRotation(float dt)
+    private void DriveRotation(float dt)
     {
         _currentTiltXZ.x = MoveToward(_currentTiltXZ.x, _targetTiltXZ.x, followDegPerSec * dt);
         _currentTiltXZ.y = MoveToward(_currentTiltXZ.y, _targetTiltXZ.y, followDegPerSec * dt);
@@ -118,13 +125,13 @@ public class TiltTray : MonoBehaviour
             transform.rotation = target;
     }
 
-    static float MoveToward(float current, float target, float maxDelta)
+    private static float MoveToward(float current, float target, float maxDelta)
         => Mathf.MoveTowards(current, target, maxDelta);
 
     // --------------------------------
-    // SELECT / DESELECT
+    // SELECT / DESELECT (only visual by default)
     // --------------------------------
-    void SelectThis()
+    private void SelectThis()
     {
         if (_current == this) return;
         if (_current != null) _current.Deselect();
@@ -143,7 +150,7 @@ public class TiltTray : MonoBehaviour
         }
     }
 
-    void Deselect()
+    private void Deselect()
     {
         if (_current != this) return;
 
@@ -159,7 +166,7 @@ public class TiltTray : MonoBehaviour
     }
 
 #if UNITY_EDITOR
-    void OnDrawGizmosSelected()
+    private void OnDrawGizmosSelected()
     {
         Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.4f);
         Vector3 p = transform.position;
