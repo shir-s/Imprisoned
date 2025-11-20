@@ -167,7 +167,7 @@ MonoBehaviour:
   accel: 12
   maxHorizontalSpeed: 6
   idleDamp: 8
-  tintWhenSelected: 1
+  tintWhenSelected: 0
   selectedTint: {r: 1, g: 0.9, b: 0.25, a: 1}
 --- !u!114 &2314850770022543249
 MonoBehaviour:
@@ -195,7 +195,7 @@ MonoBehaviour:
   groundCheckPadding: 0.5
   destroyWhenFullyWorn: 1
   triggerCubeDestroyedEvent: 1
-  logWear: 1
+  logWear: 0
   debugGroundCheck: 0
 --- !u!114 &1558133357534088690
 MonoBehaviour:
@@ -281,7 +281,7 @@ MonoBehaviour:
   opacityPerMeter: 0.75
   brushColor: {r: 0, g: 0, b: 0, a: 1}
   minWorldStep: 0
-  debugRays: 1
+  debugRays: 0
 --- !u!82 &4148614733988395559
 AudioSource:
   m_ObjectHideFlags: 0
