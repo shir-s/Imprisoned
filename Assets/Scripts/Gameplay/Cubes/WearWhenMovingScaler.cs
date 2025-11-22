@@ -54,6 +54,10 @@ public class WearWhenMovingScaler : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logWear = false;
     [SerializeField] private bool debugGroundCheck = false;
+    
+    [Header("Anchor / Position")]
+    [Tooltip("if it's true, the object's position will be adjusted to keep the anchored end in place as it shrinks.")]
+    [SerializeField] private bool adjustPositionToAnchor = true;
 
     // --- runtime ---
     private Vector3 _prevPos;
@@ -203,9 +207,11 @@ public class WearWhenMovingScaler : MonoBehaviour
         // world length change for center shift (keep one end anchored)
         float worldDeltaLen = (axisScaleNow - newAxisScale) * _baseAxisLenWorld;
 
-        Vector3 axisWorldDir = AxisWorldDirection();
-        transform.position += (anchorNegativeEnd ? -1f : 1f) * axisWorldDir * (worldDeltaLen * 0.5f);
-
+        if (adjustPositionToAnchor)
+        {
+            Vector3 axisWorldDir = AxisWorldDirection();
+            transform.position += (anchorNegativeEnd ? -1f : 1f) * axisWorldDir * (worldDeltaLen * 0.5f);
+        }
         // apply scale
         var ls = transform.localScale;
         switch (shrinkAxis)

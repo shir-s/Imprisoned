@@ -23,6 +23,7 @@ GameObject:
   - component: {fileID: 953310700036890121}
   - component: {fileID: -3301710990218042283}
   - component: {fileID: 6158964790517734281}
+  - component: {fileID: 2580086825652719394}
   m_Layer: 7
   m_Name: DrawingCube
   m_TagString: DrawingCube
@@ -197,6 +198,7 @@ MonoBehaviour:
   triggerCubeDestroyedEvent: 1
   logWear: 0
   debugGroundCheck: 0
+  adjustPositionToAnchor: 0
 --- !u!114 &1558133357534088690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,13 +206,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f050c55caf79082449ed56d54c5d36fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExtraDownForce
-  extraGravity: 100
-  rayDistance: 5
+  extraGravity: 80
+  rayDistance: 10
   groundMask:
     serializedVersion: 2
     m_Bits: 64
@@ -410,7 +412,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UprightRigidbodyConstraints
   freezeAllRotation: 0
-  zeroAngularVelocity: 1
+  zeroAngularVelocity: 0
   limitLinearSpeed: 1
   maxLinearSpeed: 40
   limitAngularSpeed: 1
@@ -422,7 +424,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d862027d2fb8d0e4493b06bb28992dd9, type: 3}
   m_Name: 
@@ -432,4 +434,27 @@ MonoBehaviour:
     m_Bits: 64
   surfaceOffset: 0.005
   extraSearchDistance: 0.2
+  drawDebug: 0
+--- !u!114 &2580086825652719394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06eb9948aaee43de952e4f2f175a8078, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceAlignAndSlide
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  extraSearchDistance: 0.3
+  surfaceOffset: 0.001
+  planeSeparation: 0.0001
+  alignSpeed: 10
+  snapRotation: 0
+  enableDownhillSliding: 1
+  downhillTurnSpeed: 8
   drawDebug: 0
