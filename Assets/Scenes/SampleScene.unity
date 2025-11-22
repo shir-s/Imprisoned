@@ -15607,18 +15607,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa4ea6afcb4becb4a8ccd30ec15fcf9a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MouseBrushPainter
-  cam: {fileID: 330585545}
-  toolMask:
-    serializedVersion: 2
-    m_Bits: 128
-  surfaceMask:
-    serializedVersion: 2
-    m_Bits: 64
-  knownGates: []
-  minPointSpacing: 0.0015
-  strokeLift: 0.001
-  stampDotOnClick: 1
-  putDownKey: 32
 --- !u!4 &1566914586
 Transform:
   m_ObjectHideFlags: 0
@@ -30509,11 +30497,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7905613249036863446, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
       propertyPath: recenterDegPerSec
-      value: 30
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 7905613249036863446, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
       propertyPath: tiltAccelDegPerSec
-      value: 50
+      value: 30
       objectReference: {fileID: 0}
     - target: {fileID: 8337020286909435252, guid: 263ee5982472cce4da7bdfc5fcaa48af, type: 3}
       propertyPath: m_LocalScale.x

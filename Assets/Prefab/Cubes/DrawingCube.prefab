@@ -130,7 +130,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 50
   m_LinearDamping: 0
   m_AngularDamping: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -209,8 +209,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f050c55caf79082449ed56d54c5d36fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExtraDownForce
-  extraGravity: 1500
-  rayDistance: 10
+  extraGravity: 100
+  rayDistance: 5
   groundMask:
     serializedVersion: 2
     m_Bits: 64
@@ -430,10 +430,6 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  searchDistance: 5
-  surfaceOffset: 0.001
-  floatTolerance: 0.001
-  maxCorrectionPerStep: 0.02
-  dampAwayFromSurfaceVelocity: 1
-  awayVelocityDamp: 1
-  drawDebugRays: 0
+  surfaceOffset: 0.005
+  extraSearchDistance: 0.2
+  drawDebug: 0
