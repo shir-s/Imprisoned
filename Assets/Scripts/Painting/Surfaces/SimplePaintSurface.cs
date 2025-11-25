@@ -155,4 +155,38 @@ public class SimplePaintSurface : MonoBehaviour
         uv = new Vector2(Mathf.Clamp01(u), Mathf.Clamp01(v));
         return true;
     }
+    
+    
+    /// <summary>
+    /// Convert paint UV (0..1) back into a world-space point on the surface.
+    /// This is the inverse of TryWorldToPaintUV, using the same bounds & flags.
+    /// </summary>
+    public bool TryPaintUVToWorld(Vector2 uv, out Vector3 worldPos)
+    {
+        worldPos = Vector3.zero;
+        if (!_hasBounds)
+            return false;
+        // Clamp and apply inversion flags
+        float u = Mathf.Clamp01(uv.x);
+        float v = Mathf.Clamp01(uv.y);
+        if (invertU) u = 1f - u;
+        if (invertV) v = 1f - v;
+        // Map 0..1 back into local 2D bounds
+        float a = Mathf.Lerp(_localMin.x, _localMax.x, u);
+        float b = Mathf.Lerp(_localMin.y, _localMax.y, v);
+        Vector3 local;
+        if (!swapXZ)
+        {
+            // X -> U, Z -> V
+            local = new Vector3(a, 0f, b);
+        }
+        else
+        {
+            // Z -> U, X -> V (swapped)
+            local = new Vector3(b, 0f, a);
+        }
+        worldPos = transform.TransformPoint(local);
+        return true;
+    }
+
 }
