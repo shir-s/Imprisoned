@@ -13,8 +13,8 @@ public static class StrokeTurnUtils
 {
     // Thresholds – tweak to taste
     public const float SmallTurnMax   = 20f;
-    public const float MediumTurnMax  = 60f;
-    public const float SharpTurnMin   = 60f;
+    public const float MediumTurnMax  = 50f;
+    public const float SharpTurnMin   = 50f;
 
     /// <summary>
     /// Turn at pivot index.

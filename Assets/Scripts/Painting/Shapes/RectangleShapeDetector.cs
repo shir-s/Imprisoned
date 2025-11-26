@@ -11,7 +11,7 @@ using UnityEngine;
 ///   we spawn a ramp aligned to that rectangle.
 /// 
 /// Note: if we get exactly (requiredCornerClusters - 1) corners, we assume
-/// the missing corner is at the loop seam (start/end) and synthesize one more
+/// the missing corner lives at the loop closure (start/end) and synthesize one more
 /// corner at endIndexInclusive.
 /// 
 /// Attach to the SAME GameObject as StrokeTrailAnalyzer + StrokeTrailRecorder.
@@ -34,7 +34,23 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
     [Header("Rectangle → Ramp")]
     [SerializeField] private GameObject rampPrefab;
-    [SerializeField] private float rampHeightOffset = 0.01f;
+
+    [Tooltip(
+        "Extra shift along the surface normal AFTER we align the ramp so that the surface " +
+        "cuts through it at Surface Intersection T. Can be negative to push it deeper.")]
+    [SerializeField] private float rampHeightOffset = 0.0f;
+
+    [Tooltip(
+        "Where the painted surface cuts the ramp along its thickness, in [0..1].\n" +
+        "0 = bottom-most corner, 1 = top-most corner along the surface normal.\n" +
+        "Use something like 0.7–0.9 so most of the ramp is under the surface.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float surfaceIntersectionT = 0.8f;
+
+    [Tooltip("Tilt of the ramp in degrees around its local X (right) axis.\n" +
+             "Positive values make the ramp go 'up' along the detected forward direction.")]
+    [SerializeField] private float rampTiltAngleDeg = 45f;
+
     [SerializeField] private bool scaleRampToRectangle = true;
 
     [Header("Debug")]
@@ -143,7 +159,7 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
                 historyIndex = endIndexInclusive,
                 surface      = seamSample.surface,
                 localPos     = seamSample.localPos,
-                angleDeg     = 90f,                         // treat seam as a strong corner
+                angleDeg     = 90f,
                 turn         = StrokeTurnCategory.Sharp
             };
 
@@ -189,7 +205,7 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         }
 
         // --------------------------------------------------------------------
-        // 2) Project corners into 2D and fit a bounding box
+        // 2) Project corners into 2D and fit a bounding box in (u,v)
         // --------------------------------------------------------------------
         Vector3 originWS = corners[0].WorldPos;
         if (originWS.sqrMagnitude == 0f) // very paranoid fallback
@@ -205,8 +221,8 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             Vector3 pWS = corners[i].WorldPos;
             Vector3 rel = pWS - originWS;
 
-            float x = Vector3.Dot(rel, u);
-            float y = Vector3.Dot(rel, v);
+            float x = Vector3.Dot(rel, u); // along u
+            float y = Vector3.Dot(rel, v); // along v
 
             if (x < minX) minX = x;
             if (x > maxX) maxX = x;
@@ -214,15 +230,15 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             if (y > maxY) maxY = y;
         }
 
-        float width  = maxX - minX;
-        float height = maxY - minY;
-        float minSide = Mathf.Min(width, height);
-        float maxSide = Mathf.Max(width, height);
+        float sizeU = maxX - minX;
+        float sizeV = maxY - minY;
+        float minSide = Mathf.Min(sizeU, sizeV);
+        float maxSide = Mathf.Max(sizeU, sizeV);
 
         if (minSide < rectangleMinSideLength)
         {
             if (debugShapes)
-                Debug.Log($"[RectangleShapeDetector] Reject: side too small (w={width:F3}, h={height:F3}).");
+                Debug.Log($"[RectangleShapeDetector] Reject: side too small (u={sizeU:F3}, v={sizeV:F3}).");
             return false;
         }
 
@@ -234,7 +250,7 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             return false;
         }
 
-        float boxPerim = 2f * (width + height);
+        float boxPerim = 2f * (sizeU + sizeV);
         if (boxPerim < rectangleMinPerimeter || boxPerim > rectangleMaxPerimeter)
         {
             if (debugShapes)
@@ -250,17 +266,28 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
         Vector3 centerWS = originWS + u * center2D.x + v * center2D.y;
 
-        // Decide ramp orientation: longer side = "forward"
+        // Decide ramp orientation:
+        // - forwardWS is along the LONGER side
+        // - rightWS is along the SHORTER side
+        // And also decide how big the ramp should be along each axis.
         Vector3 forwardWS, rightWS;
-        if (height >= width)
+        float   sizeAlongRight, sizeAlongForward;
+
+        if (sizeV >= sizeU)
         {
-            forwardWS = v;
-            rightWS   = u;
+            // v is the long side
+            forwardWS       = v;
+            rightWS         = u;
+            sizeAlongRight  = sizeU; // along u
+            sizeAlongForward= sizeV; // along v
         }
         else
         {
-            forwardWS = u;
-            rightWS   = v;
+            // u is the long side
+            forwardWS       = u;
+            rightWS         = v;
+            sizeAlongRight  = sizeV; // along v
+            sizeAlongForward= sizeU; // along u
         }
 
         Transform surface = history[startIndex].surface;
@@ -269,12 +296,14 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         {
             Debug.Log(
                 $"[RectangleShapeDetector] Rectangle ACCEPTED: " +
-                $"w={width:F3}, h={height:F3}, aspect={aspect:F2}, " +
+                $"sizeU={sizeU:F3}, sizeV={sizeV:F3}, aspect={aspect:F2}, " +
                 $"corners={cornerCount}, sharpCorners={sharpCorners}, loopLen={loopLen:F3}"
             );
         }
 
-        SpawnRamp(centerWS, avgNormal, forwardWS, rightWS, width, height, surface);
+        // Now sizeAlongRight and sizeAlongForward are the dimensions of the
+        // rectangle in the plane, explicitly matched to right/forward axes.
+        SpawnRamp(centerWS, avgNormal, forwardWS, rightWS, sizeAlongRight, sizeAlongForward, surface);
         return true;
     }
 
@@ -283,36 +312,83 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         Vector3 normalWS,
         Vector3 forwardWS,
         Vector3 rightWS,
-        float width,
-        float height,
+        float sizeAlongRight,
+        float sizeAlongForward,
         Transform surface)
     {
         if (!rampPrefab)
             return;
 
-        Quaternion rot = Quaternion.LookRotation(forwardWS, normalWS);
-        Vector3 pos = centerWS + normalWS * rampHeightOffset;
+        // 1) Instantiate unparented so parent scale can't distort it
+        GameObject ramp = Instantiate(rampPrefab);
 
-        GameObject ramp = Instantiate(rampPrefab, pos, rot);
-
+        // 2) Scale to match the rectangle in world space:
+        //    X = along rightWS, Z = along forwardWS.
         if (scaleRampToRectangle)
         {
             Vector3 s = ramp.transform.localScale;
-            s.x = width;
-            s.z = height;
+            s.x = sizeAlongRight;
+            s.z = sizeAlongForward;
             ramp.transform.localScale = s;
         }
 
-        if (surface != null)
+        // 3) Set rotation in world space: forward = stroke forward, up = surface normal
+        Quaternion rot = Quaternion.LookRotation(forwardWS, normalWS);
+
+        // Apply extra tilt around ramp's right axis (world-space rightWS)
+        if (Mathf.Abs(rampTiltAngleDeg) > 0.01f)
         {
-            ramp.transform.SetParent(surface, worldPositionStays: true);
+            rot = Quaternion.AngleAxis(rampTiltAngleDeg, rightWS) * rot;
+        }
+
+        ramp.transform.rotation = rot;
+
+        // 4) Decide where the surface cuts the ramp along its thickness.
+        //    We look at all 8 corners, compute minDot & maxDot along normalWS,
+        //    then choose a point between them with surfaceIntersectionT.
+        Vector3 halfExtents = 0.5f * ramp.transform.localScale;
+
+        float minDot = float.PositiveInfinity;
+        float maxDot = float.NegativeInfinity;
+
+        for (int sx = -1; sx <= 1; sx += 2)
+        {
+            for (int sy = -1; sy <= 1; sy += 2)
+            {
+                for (int sz = -1; sz <= 1; sz += 2)
+                {
+                    Vector3 localCorner = new Vector3(
+                        sx * halfExtents.x,
+                        sy * halfExtents.y,
+                        sz * halfExtents.z
+                    );
+
+                    Vector3 worldOffset = rot * localCorner;
+                    float   dot         = Vector3.Dot(worldOffset, normalWS);
+
+                    if (dot < minDot) minDot = dot;
+                    if (dot > maxDot) maxDot = dot;
+                }
+            }
+        }
+
+        float contactDot = Mathf.Lerp(minDot, maxDot, surfaceIntersectionT);
+        float d          = -contactDot + rampHeightOffset;
+
+        Vector3 pos = centerWS + normalWS * d;
+        ramp.transform.position = pos;
+
+        // 5) Parent to the parent of the painted surface (to avoid cursed non-uniform scale)
+        if (surface != null && surface.parent != null)
+        {
+            ramp.transform.SetParent(surface.parent, worldPositionStays: true);
         }
 
         if (debugShapes)
         {
-            Debug.DrawRay(pos, normalWS * 0.3f, Color.green, 2f);
-            Debug.DrawRay(pos, forwardWS * 0.3f, Color.blue,  2f);
-            Debug.DrawRay(pos, rightWS   * 0.3f, Color.red,   2f);
+            Debug.DrawRay(pos, normalWS * 0.3f, Color.green, 2f);  // surface normal
+            Debug.DrawRay(pos, forwardWS * 0.3f, Color.blue,  2f); // uphill direction
+            Debug.DrawRay(pos, rightWS   * 0.3f, Color.red,   2f); // ramp right
         }
     }
 
@@ -327,5 +403,6 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (minSharpCornerClusters < 0) minSharpCornerClusters = 0;
         if (minSharpCornerClusters > requiredCornerClusters)
             minSharpCornerClusters = requiredCornerClusters;
+        // rampHeightOffset can be negative; surfaceIntersectionT clamped by [Range].
     }
 }
