@@ -21,6 +21,9 @@ public static class EventManager
         // Tray / surface (optional, for later)
         TraySelected,        // data: Transform (selected tray)
         SurfaceTilted,       // data: Vector3 (current rotation / tilt info)
+        
+        // Stroke / drawing
+        StrokeCrossingDetected, // data: StrokeCrossingEventData
     }
 
     public static void StartListening(GameEvent eventType, EventAction listener)
