@@ -4,8 +4,8 @@ using UnityEngine;
 /// <summary>
 /// Grid-based A* follower that chases a player,
 /// trying to follow the painted trail on PaintTrailGrid.
-/// 1) First it tries to find a path using ONLY painted cells (trail-following).
-/// 2) If that fails, it falls back to a normal path that may cut across empty cells.
+/// 1) First it tries to find a path using ONLY painted cells.
+/// 2) If that fails, it falls back to a normal path.
 /// </summary>
 [DisallowMultipleComponent]
 public class MonsterAStarFollower : MonoBehaviour
@@ -42,6 +42,14 @@ public class MonsterAStarFollower : MonoBehaviour
     private int _currentPathIndex = 0;
     private float _nextPathTime = 0f;
 
+    // NEW: cache Rigidbody so we move it in FixedUpdate
+    private Rigidbody _rb;
+
+    private void Awake()
+    {
+        _rb = GetComponent<Rigidbody>();
+    }
+
     private void Reset()
     {
         moveSpeed = 5f;
@@ -49,7 +57,7 @@ public class MonsterAStarFollower : MonoBehaviour
     }
 
     // -------------------------------------------------------
-    // UPDATE
+    // UPDATE – רק לוגיקת מטרה ונתיב, בלי להזיז פיזיקה
     // -------------------------------------------------------
     private void Update()
     {
@@ -68,8 +76,57 @@ public class MonsterAStarFollower : MonoBehaviour
             _nextPathTime = Time.time + pathUpdateInterval;
             RecalculatePath();
         }
+    }
 
-        FollowPath();
+    // -------------------------------------------------------
+    // FIXED UPDATE – תנועה בפיזיקה
+    // -------------------------------------------------------
+    private void FixedUpdate()
+    {
+        FollowPathPhysics(Time.fixedDeltaTime);
+    }
+
+    private void FollowPathPhysics(float dt)
+    {
+        if (_rb == null)
+            return;
+
+        if (_currentPathWorld == null || _currentPathWorld.Count == 0)
+            return;
+
+        if (_currentPathIndex < 0 || _currentPathIndex >= _currentPathWorld.Count)
+            return;
+
+        Vector3 targetPos = _currentPathWorld[_currentPathIndex];
+        Vector3 pos = _rb.position;
+
+        Vector3 to = targetPos - pos;
+        to.y = 0f; // move only in XZ plane
+
+        float dist = to.magnitude;
+        if (dist < arriveThreshold)
+        {
+            _currentPathIndex++;
+            return;
+        }
+
+        Vector3 dir = to.normalized;
+
+        // Compute step for this physics frame
+        float step = moveSpeed * dt;
+        if (step > dist)
+            step = dist;
+
+        Vector3 newPos = pos + dir * step;
+
+        // Move via Rigidbody so SurfaceAlignAndSlide יכול לתקן גובה וכיוון
+        _rb.MovePosition(newPos);
+
+        // Optional: face movement direction
+        if (dir.sqrMagnitude > 0.001f)
+        {
+            transform.forward = dir;
+        }
     }
 
     // -------------------------------------------------------
@@ -89,7 +146,7 @@ public class MonsterAStarFollower : MonoBehaviour
     }
 
     // -------------------------------------------------------
-    // PATHFINDING
+    // PATHFINDING (נשאר כמו שהיה)
     // -------------------------------------------------------
     private void RecalculatePath()
     {
@@ -103,7 +160,7 @@ public class MonsterAStarFollower : MonoBehaviour
 
         List<Vector2Int> pathCells = null;
 
-        // 1) Try "paint-only" path: the monster walks strictly on painted cells (if trail connects).
+        // 1) Try "paint-only" path
         if (tryPaintOnlyPathFirst && painted != null)
         {
             pathCells = FindPathAStar(
@@ -115,7 +172,7 @@ public class MonsterAStarFollower : MonoBehaviour
             );
         }
 
-        // 2) Fallback: normal A* that may step on empty cells as well.
+        // 2) Fallback: normal A*
         if (pathCells == null || pathCells.Count == 0)
         {
             pathCells = FindPathAStar(
@@ -137,47 +194,13 @@ public class MonsterAStarFollower : MonoBehaviour
         {
             if (trailGrid.GridToWorld(cell.x, cell.y, out Vector3 wp))
             {
-                wp.y = transform.position.y; // keep monster above the surface
+                // Y will be adjusted by SurfaceAlignAndSlide anyway
+                wp.y = transform.position.y;
                 _currentPathWorld.Add(wp);
             }
         }
     }
 
-    // -------------------------------------------------------
-    // FOLLOW THE PATH
-    // -------------------------------------------------------
-    private void FollowPath()
-    {
-        if (_currentPathWorld.Count == 0)
-            return;
-
-        if (_currentPathIndex >= _currentPathWorld.Count)
-            return;
-
-        Vector3 targetPos = _currentPathWorld[_currentPathIndex];
-        Vector3 pos = transform.position;
-        Vector3 to = targetPos - pos;
-        to.y = 0f;
-
-        float dist = to.magnitude;
-        if (dist < arriveThreshold)
-        {
-            _currentPathIndex++;
-            return;
-        }
-
-        Vector3 dir = to.normalized;
-        transform.position += dir * moveSpeed * Time.deltaTime;
-
-        if (dir.sqrMagnitude > 0.001f)
-        {
-            transform.forward = dir;
-        }
-    }
-
-    // -------------------------------------------------------
-    // A* IMPLEMENTATION
-    // -------------------------------------------------------
     private List<Vector2Int> FindPathAStar(
         int startX, int startY,
         int goalX, int goalY,
@@ -209,7 +232,6 @@ public class MonsterAStarFollower : MonoBehaviour
 
         while (open.Count > 0)
         {
-            // Find lowest f = g + h
             int bestIndex = 0;
             float bestF = INF;
 
@@ -245,8 +267,6 @@ public class MonsterAStarFollower : MonoBehaviour
 
                 bool isPainted = paintedGrid != null && paintedGrid[nx, ny];
 
-                // In paint-only mode: we only allow stepping onto painted cells,
-                // except start/goal cells which may be empty.
                 if (paintOnlyMode &&
                     !isPainted &&
                     !(nx == goalX && ny == goalY) &&
