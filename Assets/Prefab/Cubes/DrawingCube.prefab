@@ -450,10 +450,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f1c4fd8be3cb4c41abfb20757c814f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailAnalyzer
-  closureMaxDistance: 0.25
-  minLoopIndexSeparation: 6
-  minCornerSeparationMeters: 3
-  debugLoop: 0
+  closureMaxDistance: 0.6
+  minLoopIndexSeparation: 10
+  minCornerSeparationMeters: 5
+  debugLoop: 1
   debugLoopVerbose: 0
 --- !u!114 &-2474602075988917771
 MonoBehaviour:
@@ -468,15 +468,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RectangleShapeDetector
   rectangleMinPerimeter: 0.3
-  rectangleMaxPerimeter: 300
+  rectangleMaxPerimeter: 1000
   rectangleMinSideLength: 0.01
   rectangleMaxAspectRatio: 4
   requiredCornerClusters: 4
-  minSharpCornerClusters: 2
+  minSharpCornerClusters: 4
   rampPrefab: {fileID: 2156941403158890620, guid: 17cc6528ae26ca64bab548dfea97d9c1, type: 3}
   rampHeightOffset: 0.01
   scaleRampToRectangle: 1
-  debugShapes: 0
+  debugShapes: 1
 --- !u!114 &7739526055780409110
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -517,9 +517,9 @@ MonoBehaviour:
   smallTurnColor: {r: 0, g: 1, b: 0, a: 1}
   mediumTurnColor: {r: 1, g: 0, b: 1, a: 1}
   sharpTurnColor: {r: 1, g: 0, b: 0, a: 1}
-  crossingSmallColor: {r: 0, g: 1, b: 1, a: 1}
-  crossingMediumColor: {r: 0, g: 0, b: 1, a: 1}
-  crossingSharpColor: {r: 1, g: 1, b: 1, a: 1}
+  crossingSmallColor: {r: 0, g: 1, b: 0, a: 1}
+  crossingMediumColor: {r: 1, g: 0, b: 1, a: 1}
+  crossingSharpColor: {r: 1, g: 0, b: 0, a: 1}
   pointRadius: 0.3
 --- !u!114 &-2099077964787412294
 MonoBehaviour:
