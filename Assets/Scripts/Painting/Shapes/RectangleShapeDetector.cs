@@ -11,7 +11,7 @@ using UnityEngine;
 ///   we spawn a ramp aligned to that rectangle.
 /// 
 /// Note: if we get exactly (requiredCornerClusters - 1) corners, we assume
-/// the missing corner lives at the loop closure (start/end) and synthesize one more
+/// the missing corner lives at the loop seam (start/end) and synthesize one more
 /// corner at endIndexInclusive.
 /// 
 /// Attach to the SAME GameObject as StrokeTrailAnalyzer + StrokeTrailRecorder.
@@ -53,6 +53,11 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
     [SerializeField] private bool scaleRampToRectangle = true;
 
+    [Header("Z scale tweak")]
+    [Tooltip("Z (forward) world scale will be divided by this number after matching rectangle size.\n" +
+             "Use this if the model looks too long in Z compared to the drawn rectangle.")]
+    [SerializeField] private float zScaleDivider = 5f;
+
     [Header("Debug")]
     [SerializeField] private bool debugShapes = true;
 
@@ -93,7 +98,11 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (loopLen < rectangleMinPerimeter || loopLen > rectangleMaxPerimeter)
         {
             if (debugShapes)
-                Debug.Log($"[RectangleShapeDetector] Reject: loopLen={loopLen:F3} outside [{rectangleMinPerimeter:F3},{rectangleMaxPerimeter:F3}].");
+            {
+                Debug.Log(
+                    $"[RectangleShapeDetector] Reject: loopLen={loopLen:F3} " +
+                    $"outside [{rectangleMinPerimeter:F3},{rectangleMaxPerimeter:F3}].");
+            }
             return false;
         }
 
@@ -159,7 +168,7 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
                 historyIndex = endIndexInclusive,
                 surface      = seamSample.surface,
                 localPos     = seamSample.localPos,
-                angleDeg     = 90f,
+                angleDeg     = 90f,                         // treat seam as a strong corner
                 turn         = StrokeTurnCategory.Sharp
             };
 
@@ -230,15 +239,18 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             if (y > maxY) maxY = y;
         }
 
-        float sizeU = maxX - minX;
-        float sizeV = maxY - minY;
+        float sizeU   = maxX - minX; // we will map this to ramp X (right)
+        float sizeV   = maxY - minY; // we will map this to ramp Z (forward)
         float minSide = Mathf.Min(sizeU, sizeV);
         float maxSide = Mathf.Max(sizeU, sizeV);
 
         if (minSide < rectangleMinSideLength)
         {
             if (debugShapes)
-                Debug.Log($"[RectangleShapeDetector] Reject: side too small (u={sizeU:F3}, v={sizeV:F3}).");
+            {
+                Debug.Log(
+                    $"[RectangleShapeDetector] Reject: side too small (u={sizeU:F3}, v={sizeV:F3}).");
+            }
             return false;
         }
 
@@ -246,7 +258,10 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (aspect > rectangleMaxAspectRatio)
         {
             if (debugShapes)
-                Debug.Log($"[RectangleShapeDetector] Reject: aspect={aspect:F2} > max={rectangleMaxAspectRatio:F2}.");
+            {
+                Debug.Log(
+                    $"[RectangleShapeDetector] Reject: aspect={aspect:F2} > max={rectangleMaxAspectRatio:F2}.");
+            }
             return false;
         }
 
@@ -254,7 +269,10 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (boxPerim < rectangleMinPerimeter || boxPerim > rectangleMaxPerimeter)
         {
             if (debugShapes)
-                Debug.Log($"[RectangleShapeDetector] Reject: boxPerim={boxPerim:F3} outside allowed range.");
+            {
+                Debug.Log(
+                    $"[RectangleShapeDetector] Reject: boxPerim={boxPerim:F3} outside allowed range.");
+            }
             return false;
         }
 
@@ -266,29 +284,14 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
         Vector3 centerWS = originWS + u * center2D.x + v * center2D.y;
 
-        // Decide ramp orientation:
-        // - forwardWS is along the LONGER side
-        // - rightWS is along the SHORTER side
-        // And also decide how big the ramp should be along each axis.
-        Vector3 forwardWS, rightWS;
-        float   sizeAlongRight, sizeAlongForward;
-
-        if (sizeV >= sizeU)
-        {
-            // v is the long side
-            forwardWS       = v;
-            rightWS         = u;
-            sizeAlongRight  = sizeU; // along u
-            sizeAlongForward= sizeV; // along v
-        }
-        else
-        {
-            // u is the long side
-            forwardWS       = u;
-            rightWS         = v;
-            sizeAlongRight  = sizeV; // along v
-            sizeAlongForward= sizeU; // along u
-        }
+        // Orientation:
+        // - rightWS  = u (maps to local X)
+        // - fwdWS    = v (maps to local Z)
+        // Scale:
+        // - local X world-length = sizeU
+        // - local Z world-length = sizeV (then divided by zScaleDivider to "shrink" visually)
+        Vector3 rightWS   = u;
+        Vector3 forwardWS = v;
 
         Transform surface = history[startIndex].surface;
 
@@ -301,9 +304,7 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             );
         }
 
-        // Now sizeAlongRight and sizeAlongForward are the dimensions of the
-        // rectangle in the plane, explicitly matched to right/forward axes.
-        SpawnRamp(centerWS, avgNormal, forwardWS, rightWS, sizeAlongRight, sizeAlongForward, surface);
+        SpawnRamp(centerWS, avgNormal, forwardWS, rightWS, sizeU, sizeV, surface);
         return true;
     }
 
@@ -322,17 +323,29 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         // 1) Instantiate unparented so parent scale can't distort it
         GameObject ramp = Instantiate(rampPrefab);
 
-        // 2) Scale to match the rectangle in world space:
-        //    X = along rightWS, Z = along forwardWS.
+        // 2) Scale to match the rectangle footprint in world space (with Z divided)
         if (scaleRampToRectangle)
         {
-            Vector3 s = ramp.transform.localScale;
-            s.x = sizeAlongRight;
-            s.z = sizeAlongForward;
+            float safeDivider = Mathf.Max(zScaleDivider, 0.0001f);
+
+            // Desired world sizes:
+            float worldX = sizeAlongRight;
+            float worldZ = sizeAlongForward / safeDivider;
+
+            // Height in world = smallest between X and Z
+            float worldY = Mathf.Min(worldX, worldZ);
+
+            // Directly set localScale to these world sizes.
+            // This assumes the mesh was authored with ~1 unit in each axis.
+            // If the mesh is not 1-unit, this is still a visual hack (which is what you asked for).
+            Vector3 s;
+            s.x = worldX;
+            s.z = worldZ;
+            s.y = worldY;
             ramp.transform.localScale = s;
         }
 
-        // 3) Set rotation in world space: forward = stroke forward, up = surface normal
+        // 3) Set rotation in world space: forward = v, up = surface normal
         Quaternion rot = Quaternion.LookRotation(forwardWS, normalWS);
 
         // Apply extra tilt around ramp's right axis (world-space rightWS)
@@ -403,6 +416,8 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (minSharpCornerClusters < 0) minSharpCornerClusters = 0;
         if (minSharpCornerClusters > requiredCornerClusters)
             minSharpCornerClusters = requiredCornerClusters;
-        // rampHeightOffset can be negative; surfaceIntersectionT clamped by [Range].
+
+        if (zScaleDivider < 0.0001f) zScaleDivider = 0.0001f;
     }
 }
+    

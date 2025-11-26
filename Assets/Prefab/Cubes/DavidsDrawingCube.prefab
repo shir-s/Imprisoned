@@ -21,12 +21,16 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -2474602075988917771, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
+      propertyPath: rampPrefab
+      value: 
+      objectReference: {fileID: 2156941403158890620, guid: 17cc6528ae26ca64bab548dfea97d9c1, type: 3}
+    - target: {fileID: -2474602075988917771, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: rampHeightOffset
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -2474602075988917771, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: rampTiltAngleDeg
-      value: -25
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -2474602075988917771, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: scaleRampToRectangle
@@ -34,7 +38,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -2474602075988917771, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: surfaceIntersectionT
-      value: 0.15
+      value: 0.05
+      objectReference: {fileID: 0}
+    - target: {fileID: -2474602075988917771, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
+      propertyPath: heightProportionSource
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -2099077964787412294, guid: e303f463f7a610c44b54d177ea6d4434, type: 3}
       propertyPath: m_Enabled
