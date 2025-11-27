@@ -1,21 +1,32 @@
 // FILEPATH: Assets/Scripts/AI/StrokeTrailFollowerAI.cs
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// Enemy AI that follows the cube's stroke trail:
-/// - Behavior 1: Wander around.
-/// - Behavior 2: FollowStroke – always goes to the CLOSEST stroke point
-///   within detectionRadius, deletes it when reached, then picks the next
-///   closest point in radius. It does NOT care about stroke index order,
-///   only distance.
+///
+/// Modes:
+/// - ConsumePoints:
+///     * Enemy always goes to the closest stroke point in detectionRadius.
+///     * When it reaches a point, it deletes it from StrokeHistory (RemoveAt).
+///     * Never comes back to the same part of the trail.
 /// 
-/// It tries to automatically bind to the "active" StrokeTrailRecorder:
-/// - If no recorder is assigned, or the current one has 0 points,
-///   it searches all StrokeTrailRecorders in the scene and picks
-///   the one with the largest History.Count (usually the active cube).
+/// - PersistentTrail:
+///     * Points are never destroyed.
+///     * Enemy always chooses the closest point within detectionRadius,
+///       but avoids going straight back to the previous point if there is
+///       any other option.
+///     * Remembers how many times it visited each point index.
+///     * At crossings, prefers points/directions with the lowest visit count
+///       to avoid circles.
+///     * If there are no other options except going back, it will go back,
+///       effectively reversing and following the trail in the opposite
+///       direction.
 /// 
-/// Works nicely with StrokeTrailRecorder in "single point prune" mode,
-/// but does not depend on that.
+/// It also:
+/// - Wanders when there is no trail in range.
+/// - Auto-binds to the StrokeTrailRecorder with the most points if none
+///   is assigned or current one has no points.
 /// </summary>
 [DisallowMultipleComponent]
 public class StrokeTrailFollowerAI : MonoBehaviour
@@ -26,15 +37,25 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         FollowStroke
     }
 
+    public enum FollowMode
+    {
+        ConsumePoints,
+        PersistentTrail
+    }
+
     [Header("Stroke Source")]
     [Tooltip("Optional. If left empty, the AI will auto-find the best StrokeTrailRecorder in the scene.")]
     [SerializeField] private StrokeTrailRecorder recorder;
+
+    [Header("Follow Mode")]
+    [Tooltip("ConsumePoints: deletes points when reached.\nPersistentTrail: keeps all points, uses visit counts to avoid circles.")]
+    [SerializeField] private FollowMode followMode = FollowMode.ConsumePoints;
 
     [Header("Detection")]
     [Tooltip("Radius (in world units, XZ plane) within which the enemy can detect and choose stroke points.")]
     [SerializeField] private float detectionRadius = 3.0f;
 
-    [Tooltip("How close we need to get to a stroke point to consider it 'reached' and delete it.")]
+    [Tooltip("How close we need to get to a stroke point to consider it 'reached'.")]
     [SerializeField] private float reachThreshold = 0.05f;
 
     [Header("Movement")]
@@ -63,6 +84,10 @@ public class StrokeTrailFollowerAI : MonoBehaviour
     // Wander state
     private Vector3 _wanderDir;
     private float _wanderTimer;
+
+    // PersistentTrail visit tracking: how many times each index was visited
+    private readonly Dictionary<int, int> _visitCounts = new Dictionary<int, int>();
+    private int _lastIndexPersistent = -1;
 
     private void Awake()
     {
@@ -100,7 +125,7 @@ public class StrokeTrailFollowerAI : MonoBehaviour
             return;
         }
 
-        // Always get history from current recorder (no caching)
+        // Always get history from current recorder (no caching of reference)
         StrokeHistory history = recorder.History;
 
         switch (_behavior)
@@ -150,6 +175,7 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (best != null && best != recorder)
         {
             recorder = best;
+            ResetVisitHistory(); // different history, reset per-index data
 
             if (debugLogs)
             {
@@ -169,6 +195,12 @@ public class StrokeTrailFollowerAI : MonoBehaviour
                           " StrokeTrailRecorder(s), but none have points yet.", this);
             }
         }
+    }
+
+    private void ResetVisitHistory()
+    {
+        _visitCounts.Clear();
+        _lastIndexPersistent = -1;
     }
 
     // ----------------------------------------------------------------
@@ -214,7 +246,7 @@ public class StrokeTrailFollowerAI : MonoBehaviour
     }
 
     // ----------------------------------------------------------------
-    // FOLLOW STROKE BEHAVIOR (greedy nearest-point)
+    // FOLLOW STROKE BEHAVIOR
     // ----------------------------------------------------------------
 
     private void TickFollowStroke(float dt, StrokeHistory history)
@@ -263,21 +295,14 @@ public class StrokeTrailFollowerAI : MonoBehaviour
 
         if (dist <= reachThreshold)
         {
-            // Reached this point → delete it so we never use it again.
-            if (debugLogs)
-                Debug.Log($"[StrokeTrailFollowerAI] Reached stroke index {_currentIndex}, deleting.", this);
-
-            if (_currentIndex >= 0 && _currentIndex < history.Count)
+            // We reached this point; now behavior depends on mode.
+            if (followMode == FollowMode.ConsumePoints)
             {
-                history.RemoveAt(_currentIndex);
+                HandleReachedPoint_Consume(history);
             }
-
-            // After deletion, greedily pick the nearest point in detectionRadius.
-            if (!TryAcquireStrokeTarget(history))
+            else // PersistentTrail
             {
-                if (debugLogs)
-                    Debug.Log("[StrokeTrailFollowerAI] No more points in radius after delete → Wander.", this);
-                SwitchToWander();
+                HandleReachedPoint_Persistent(history);
             }
 
             return;
@@ -289,6 +314,150 @@ public class StrokeTrailFollowerAI : MonoBehaviour
             pos += dir * (followSpeed * dt);
             transform.position = pos;
         }
+    }
+
+    private void HandleReachedPoint_Consume(StrokeHistory history)
+    {
+        if (debugLogs)
+            Debug.Log($"[StrokeTrailFollowerAI] (Consume) Reached stroke index {_currentIndex}, deleting.", this);
+
+        if (_currentIndex >= 0 && _currentIndex < history.Count)
+        {
+            history.RemoveAt(_currentIndex);
+        }
+
+        // After deletion, try to find a new nearest point in radius.
+        if (!TryAcquireStrokeTarget(history))
+        {
+            if (debugLogs)
+                Debug.Log("[StrokeTrailFollowerAI] (Consume) No more points in radius after delete → Wander.", this);
+            SwitchToWander();
+        }
+    }
+
+    private void HandleReachedPoint_Persistent(StrokeHistory history)
+    {
+        if (debugLogs)
+            Debug.Log($"[StrokeTrailFollowerAI] (Persistent) Reached stroke index {_currentIndex}", this);
+
+        // Register visit for this point index
+        RegisterVisit(_currentIndex);
+
+        // Greedy step: choose next closest point in radius,
+        // avoiding immediate backtracking if possible, and
+        // preferring points with fewer total visits.
+        if (!ChooseNextPersistentTarget(history))
+        {
+            if (debugLogs)
+                Debug.Log("[StrokeTrailFollowerAI] (Persistent) No suitable next point → Wander.", this);
+            SwitchToWander();
+        }
+    }
+
+    private void RegisterVisit(int index)
+    {
+        if (index < 0)
+            return;
+
+        if (!_visitCounts.TryGetValue(index, out int count))
+            count = 0;
+
+        count++;
+        _visitCounts[index] = count;
+        _lastIndexPersistent = index;
+    }
+
+    /// <summary>
+    /// PersistentTrail logic:
+    /// - Look at all points within detectionRadius.
+    /// - Prefer points with the fewest visits.
+    /// - Avoid going straight back to the lastIndex if there are other options.
+    /// - If only the lastIndex is available, allow it (to reverse at trail end).
+    /// </summary>
+    private bool ChooseNextPersistentTarget(StrokeHistory history)
+    {
+        int count = history.Count;
+        if (count == 0)
+            return false;
+
+        Vector3 pos = transform.position;
+        Vector2 enemyXZ = new Vector2(pos.x, pos.z);
+        float maxDistSq = detectionRadius * detectionRadius;
+
+        // First pass: find all candidates in radius
+        List<int> candidates = new List<int>();
+        float[] dists = new float[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            Vector3 p = history[i].WorldPos;
+            Vector2 pXZ = new Vector2(p.x, p.z);
+            float dSq = (pXZ - enemyXZ).sqrMagnitude;
+            dists[i] = dSq;
+
+            if (dSq <= maxDistSq)
+            {
+                candidates.Add(i);
+            }
+        }
+
+        if (candidates.Count == 0)
+            return false;
+
+        // Among candidates, find the minimal visit count
+        int minVisits = int.MaxValue;
+        foreach (int idx in candidates)
+        {
+            int v = _visitCounts.TryGetValue(idx, out int vc) ? vc : 0;
+            if (v < minVisits)
+                minVisits = v;
+        }
+
+        // Filter to those that have the minimal visit count
+        List<int> bestByVisits = new List<int>();
+        foreach (int idx in candidates)
+        {
+            int v = _visitCounts.TryGetValue(idx, out int vc) ? vc : 0;
+            if (v == minVisits)
+                bestByVisits.Add(idx);
+        }
+
+        // If possible, avoid immediately going back to lastIndex
+        List<int> filtered = new List<int>();
+        foreach (int idx in bestByVisits)
+        {
+            if (idx != _lastIndexPersistent)
+                filtered.Add(idx);
+        }
+
+        List<int> finalCandidates = filtered.Count > 0 ? filtered : bestByVisits;
+
+        // Choose the nearest among finalCandidates
+        int bestIndex = -1;
+        float bestDistSq = float.PositiveInfinity;
+
+        foreach (int idx in finalCandidates)
+        {
+            float dSq = dists[idx];
+            if (dSq < bestDistSq)
+            {
+                bestDistSq = dSq;
+                bestIndex = idx;
+            }
+        }
+
+        if (bestIndex < 0)
+            return false;
+
+        _currentIndex = bestIndex;
+
+        if (debugLogs)
+        {
+            int v = _visitCounts.TryGetValue(bestIndex, out int vc) ? vc : 0;
+            Debug.Log($"[StrokeTrailFollowerAI] (Persistent) Next index={bestIndex}, dist={Mathf.Sqrt(bestDistSq):F3}, visits={v}", this);
+        }
+
+        return true;
     }
 
     private void SwitchToWander()
@@ -309,12 +478,12 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (debugLogs)
         {
             int count = (recorder != null && recorder.History != null) ? recorder.History.Count : -1;
-            Debug.Log($"[StrokeTrailFollowerAI] SwitchToFollow index={index}, historyCount={count}", this);
+            Debug.Log($"[StrokeTrailFollowerAI] SwitchToFollow index={index}, historyCount={count}, mode={followMode}", this);
         }
     }
 
     // ----------------------------------------------------------------
-    // ACQUIRE TARGET – always closes point in radius
+    // ACQUIRE TARGET – nearest point in radius
     // ----------------------------------------------------------------
 
     /// <summary>

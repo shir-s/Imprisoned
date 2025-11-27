@@ -1,4 +1,3 @@
-// FILEPATH: Assets/Scripts/AI/EnemyTrayStick.cs
 using UnityEngine;
 
 /// <summary>
