@@ -1,4 +1,3 @@
-// FILEPATH: Assets/Scripts/Painting/Shapes/RectangleShapeDetector.cs
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -57,6 +56,17 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [Tooltip("Z (forward) world scale will be divided by this number after matching rectangle size.\n" +
              "Use this if the model looks too long in Z compared to the drawn rectangle.")]
     [SerializeField] private float zScaleDivider = 5f;
+
+    [Header("Ramp height clamp")]
+    [Tooltip("If true, clamp the ramp world height (Y) so it never exceeds maxRampHeight.")]
+    [SerializeField] private bool limitRampHeight = true;
+
+    [Tooltip("Maximum world-space height (Y) of spawned ramps.")]
+    [SerializeField] private float maxRampHeight = 0.2f;
+
+    [Header("Extra Y rotation")]
+    [Tooltip("Additional rotation in degrees around the ramp's local Y axis (after tilt).")]
+    [SerializeField] private float extraYRotationDeg = 90f;
 
     [Header("Debug")]
     [SerializeField] private bool debugShapes = true;
@@ -335,9 +345,12 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             // Height in world = smallest between X and Z
             float worldY = Mathf.Min(worldX, worldZ);
 
-            // Directly set localScale to these world sizes.
-            // This assumes the mesh was authored with ~1 unit in each axis.
-            // If the mesh is not 1-unit, this is still a visual hack (which is what you asked for).
+            // Clamp height if requested
+            if (limitRampHeight && maxRampHeight > 0f)
+            {
+                worldY = Mathf.Min(worldY, maxRampHeight);
+            }
+
             Vector3 s;
             s.x = worldX;
             s.z = worldZ;
@@ -348,17 +361,21 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
         // 3) Set rotation in world space: forward = v, up = surface normal
         Quaternion rot = Quaternion.LookRotation(forwardWS, normalWS);
 
-        // Apply extra tilt around ramp's right axis (world-space rightWS)
+        // Extra tilt around ramp's right axis
         if (Mathf.Abs(rampTiltAngleDeg) > 0.01f)
         {
             rot = Quaternion.AngleAxis(rampTiltAngleDeg, rightWS) * rot;
         }
 
+        // Extra rotation around local Y (after tilt) – 90° by default
+        if (Mathf.Abs(extraYRotationDeg) > 0.01f)
+        {
+            rot *= Quaternion.Euler(0f, extraYRotationDeg, 0f);
+        }
+
         ramp.transform.rotation = rot;
 
         // 4) Decide where the surface cuts the ramp along its thickness.
-        //    We look at all 8 corners, compute minDot & maxDot along normalWS,
-        //    then choose a point between them with surfaceIntersectionT.
         Vector3 halfExtents = 0.5f * ramp.transform.localScale;
 
         float minDot = float.PositiveInfinity;
@@ -418,6 +435,6 @@ public class RectangleShapeDetector : MonoBehaviour, IStrokeShapeDetector
             minSharpCornerClusters = requiredCornerClusters;
 
         if (zScaleDivider < 0.0001f) zScaleDivider = 0.0001f;
+        if (maxRampHeight < 0f) maxRampHeight = 0f;
     }
 }
-    

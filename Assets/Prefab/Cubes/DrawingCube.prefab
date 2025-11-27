@@ -431,9 +431,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   extraSearchDistance: 0.3
-  surfaceOffset: 0.001
+  surfaceOffset: 0
   planeSeparation: 0
-  alignSpeed: 10
+  alignSpeed: 5
   snapRotation: 0
   enableDownhillSliding: 1
   downhillTurnSpeed: 8
@@ -475,8 +475,13 @@ MonoBehaviour:
   minSharpCornerClusters: 4
   rampPrefab: {fileID: 2156941403158890620, guid: 17cc6528ae26ca64bab548dfea97d9c1, type: 3}
   rampHeightOffset: 0.01
+  surfaceIntersectionT: 0.8
   rampTiltAngleDeg: 45
   scaleRampToRectangle: 1
+  zScaleDivider: 5
+  limitRampHeight: 1
+  maxRampHeight: 0.2
+  extraYRotationDeg: 90
   debugShapes: 1
 --- !u!114 &7739526055780409110
 MonoBehaviour:
@@ -493,7 +498,7 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 5
+  rayDistance: 1
   useWorldDown: 1
   minSampleDistance: 1
   maxHistoryLength: 300

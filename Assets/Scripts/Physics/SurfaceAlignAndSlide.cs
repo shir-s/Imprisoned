@@ -1,9 +1,8 @@
-// FILEPATH: Assets/Scripts/PhysicsDrawing/SurfaceAlignAndSlide.cs
 using UnityEngine;
 
 /// <summary>
 /// Makes the cube:
-/// - Detect the surface underneath it (Raycast along gravity).
+/// - Detect the surface underneath it (SphereCast along gravity).
 /// - Align its transform.up with the surface normal.
 /// - Stay slightly above the surface (offset + safety margin).
 /// - Remove velocity along the surface normal and slide downhill
@@ -65,27 +64,34 @@ public class SurfaceAlignAndSlide : MonoBehaviour
         Vector3 down = Physics.gravity.normalized;
         Bounds b = _col.bounds;
 
-        // Like in StickToSurface — compute where to start a ray toward gravity.
+        // How much of the cube's half-extent lies along the gravity direction
         Vector3 absDown = new Vector3(Mathf.Abs(down.x), Mathf.Abs(down.y), Mathf.Abs(down.z));
         float halfAlongDown = Vector3.Dot(absDown, b.extents);
 
-        // Start slightly *below* the cube (but still above the surface).
-        Vector3 start = b.center - (-down) * (halfAlongDown + 0.01f);
+        // How far below the cube we will check
         float rayLength = halfAlongDown + extraSearchDistance;
+
+        // Sphere radius — about half the width/length (slightly smaller so we don't hit things on the sides)
+        float sphereRadius = Mathf.Min(b.extents.x, b.extents.z) * 0.9f;
+
+        // Start from the cube's center
+        Vector3 start = b.center;
 
         if (drawDebug)
         {
             Debug.DrawRay(start, down * rayLength, Color.cyan, 0.05f);
         }
 
-        if (!Physics.Raycast(start, down, out RaycastHit hit, rayLength, surfaceMask,
-                QueryTriggerInteraction.Ignore))
+        // SphereCast — as if the cube sends a "bubble" underneath it
+        if (!Physics.SphereCast(start, sphereRadius, down, out RaycastHit hit, rayLength,
+                surfaceMask, QueryTriggerInteraction.Ignore))
         {
-            // No surface beneath — allow normal physics (falling, etc.)
+            // No surface below — let normal physics handle it
             return;
         }
 
         Vector3 n = hit.normal.normalized;
+        Vector3 hitPoint = hit.point;
 
         // --- 1) Align rotation to the surface normal ---
 
@@ -109,16 +115,15 @@ public class SurfaceAlignAndSlide : MonoBehaviour
         // Update bounds after the rotation
         b = _col.bounds;
 
-        // --- 2) Maintain height slightly above the surface ---
+        // --- 2) Maintain height slightly above the surface (original version) ---
 
         Vector3 absN = new Vector3(Mathf.Abs(n.x), Mathf.Abs(n.y), Mathf.Abs(n.z));
         float halfAlongNormal = Vector3.Dot(absN, b.extents);
 
-        // Add both surfaceOffset and planeSeparation so the cube does NOT sit *exactly* on the surface.
         float desiredDistFromPlane = halfAlongNormal + surfaceOffset + planeSeparation;
         Vector3 currentCenter = b.center;
 
-        float currentDistFromPlane = Vector3.Dot(n, currentCenter - hit.point);
+        float currentDistFromPlane = Vector3.Dot(n, currentCenter - hitPoint);
         float deltaDist = desiredDistFromPlane - currentDistFromPlane;
 
         Vector3 deltaWorld = n * deltaDist;
