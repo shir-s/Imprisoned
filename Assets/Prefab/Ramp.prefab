@@ -88,7 +88,7 @@ PrefabInstance:
     - target: {fileID: 7346865357136652974, guid: 47d23915e17eb104c86b55b08ea2106f, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+      objectReference: {fileID: 2100000, guid: 2bbb708a3fe8f49879d0d36daf277eab, type: 2}
     - target: {fileID: 8484328430150554049, guid: 47d23915e17eb104c86b55b08ea2106f, type: 3}
       propertyPath: m_LocalScale.y
       value: 1
@@ -165,7 +165,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5089837636524862293}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
   m_Name: 
@@ -175,7 +175,7 @@ MonoBehaviour:
   paintTexProperty: _PaintTex
   swapXZ: 1
   invertU: 1
-  invertV: 0
+  invertV: 1
 --- !u!4 &5614138195450671599 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8484328430150554049, guid: 47d23915e17eb104c86b55b08ea2106f, type: 3}
