@@ -1,4 +1,4 @@
-// FILEPATH: Assets/Scripts/Painting/Shapes/StrokeTrailRecorder.cs
+// FILEPATH: Assets/Scripts/Painting/Trails/StrokeTrailRecorder.cs
 using UnityEngine;
 
 /// <summary>
@@ -26,6 +26,11 @@ public class StrokeTrailRecorder : MonoBehaviour, IMovementPainter
     [SerializeField] private float maxHistoryLength = 50f;
 
     [SerializeField] private int maxHistoryPoints = 1000;
+
+    [Header("History Mode")]
+    [Tooltip("If true, when maxHistoryPoints is exceeded we delete ONLY one oldest point per new sample (boss/enemy mode).\n" +
+             "If false, we delete a 5% chunk (scrolling snake mode used by shape detection scenes).")]
+    [SerializeField] private bool useSinglePointPrune = false;
 
     [Header("Debug")]
     [SerializeField] private bool debugRays = false;
@@ -87,7 +92,18 @@ public class StrokeTrailRecorder : MonoBehaviour, IMovementPainter
         };
 
         History.AddSample(s);
-        History.Prune(maxHistoryLength, maxHistoryPoints);
+
+        // Choose prune mode
+        if (useSinglePointPrune)
+        {
+            // Boss / enemy mode: never nuke a whole segment, only eat one oldest point.
+            History.PruneSingleOldest(maxHistoryPoints);
+        }
+        else
+        {
+            // Original "scrolling snake" behavior.
+            History.Prune(maxHistoryLength, maxHistoryPoints);
+        }
 
         if (debugSampleNormals)
         {

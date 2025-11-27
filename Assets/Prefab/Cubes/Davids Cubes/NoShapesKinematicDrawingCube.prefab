@@ -1,0 +1,428 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6460519158208371866
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7009971931566194860}
+  - component: {fileID: 5276770452329395765}
+  - component: {fileID: 8563042900198643568}
+  - component: {fileID: 663792307328971739}
+  - component: {fileID: 7834939096454266792}
+  - component: {fileID: 2314850770022543249}
+  - component: {fileID: 2883896336634138054}
+  - component: {fileID: 2463429873015552788}
+  - component: {fileID: 4148614733988395559}
+  - component: {fileID: 953310700036890121}
+  - component: {fileID: 7739526055780409110}
+  - component: {fileID: -7444170565681963680}
+  - component: {fileID: -2099077964787412294}
+  - component: {fileID: -396625711115672213}
+  m_Layer: 7
+  m_Name: NoShapesKinematicDrawingCube
+  m_TagString: DrawingCube
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7009971931566194860
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.3, y: 14.21, z: 15.28}
+  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &5276770452329395765
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &8563042900198643568
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 50ea824f0c6aa49c4baab1668d9e8595, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &663792307328971739
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Material: {fileID: 13400000, guid: 7cb61446cda87bb418abeacf69825243, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &7834939096454266792
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  serializedVersion: 5
+  m_Mass: 50
+  m_LinearDamping: 0
+  m_AngularDamping: 0.15
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 1
+  m_Constraints: 0
+  m_CollisionDetection: 2
+--- !u!114 &2314850770022543249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04fd7f3982453244599d6c963bb03608, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
+  wearPerMeter: 0.005
+  wearOnMovement: 1
+  minMoveDelta: 0.00005
+  useRigidbodyVelocity: 1
+  shrinkAxis: 1
+  anchorNegativeEnd: 1
+  minAxisScale: 0.1
+  drawEnabled: 1
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  groundCheckPadding: 0.5
+  destroyWhenFullyWorn: 1
+  triggerCubeDestroyedEvent: 1
+  logWear: 0
+  debugGroundCheck: 0
+  adjustPositionToAnchor: 0
+--- !u!114 &2883896336634138054
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 966aaab7052887c4da41c7be47038afe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MovementPaintController
+  minStepDistance: 0.0001
+  maxSegmentLength: 0.01
+  maxSegmentsPerFrame: 12
+  useAllPainters: 1
+  activePainterIndex: 0
+  logSteps: 0
+--- !u!114 &2463429873015552788
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab9949d3c44870b47a9d379d9b894797, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RenderTextureTrailPainter
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  rayDistance: 5
+  useWorldDown: 1
+  brushBlitMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
+  brushSourceTexProperty: _MainTex
+  fallbackHalfSizeUV: 0.02
+  sizeWorldMultiplier: 1.5
+  brushHardness: 0.5
+  opacityPerMeter: 0.85
+  brushColor: {r: 0, g: 0, b: 0, a: 1}
+  minWorldStep: 0
+  debugRays: 0
+--- !u!82 &4148614733988395559
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: 5ca5e7fa718d13c46a6cbab97b451bb8, type: 3}
+  m_PlayOnAwake: 0
+  m_Volume: 0
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &953310700036890121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fef4ab35a26a7a4294d6f74b584e9f9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SoundPainterController
+  paintController: {fileID: 2883896336634138054}
+  audioSource: {fileID: 4148614733988395559}
+  rb: {fileID: 7834939096454266792}
+  minSpeed: 0.1
+  maxSpeed: 35
+  fadeSpeed: 8
+--- !u!114 &7739526055780409110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9af267a14e5cf1f4a8255873402cb376, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailRecorder
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  rayDistance: 5
+  useWorldDown: 1
+  minSampleDistance: 1
+  maxHistoryLength: 300
+  maxHistoryPoints: 1000
+  useSinglePointPrune: 1
+  debugRays: 0
+  debugSampleNormals: 0
+--- !u!114 &-7444170565681963680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8665c6751acf0e445a624a0a80097778, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailVisualizer
+  recorder: {fileID: 7739526055780409110}
+  crossingDetector: {fileID: -2099077964787412294}
+  normalColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  smallTurnColor: {r: 0, g: 1, b: 0, a: 1}
+  mediumTurnColor: {r: 1, g: 0, b: 1, a: 1}
+  sharpTurnColor: {r: 1, g: 0, b: 0, a: 1}
+  crossingSmallColor: {r: 0, g: 1, b: 0, a: 1}
+  crossingMediumColor: {r: 1, g: 0, b: 1, a: 1}
+  crossingSharpColor: {r: 1, g: 0, b: 0, a: 1}
+  pointRadius: 0.3
+--- !u!114 &-2099077964787412294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a1d39703e80d6d4ebbd0fe399d477c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeCrossingDetector
+  recorder: {fileID: 7739526055780409110}
+  crossingRadius: 0.8
+  minIndexSeparation: 3
+  directionWindow: 2
+  parallelAngleMax: 15
+  debugCrossings: 0
+--- !u!114 &-396625711115672213
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b4791086da17014197d26ffab929538, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KinematicTrayRider
+  tray: {fileID: 0}
+  autoFindTray: 1
+  localHeightAboveSurface: 1.5
+  slopeAcceleration: 5
+  maxSpeed: 15
+  friction: 2
+  alignRotationToTray: 1
+  snapOntoTrayOnAwake: 1
+  snapOffsetAlongNormal: 0.01
+  useBounds: 1
+  boundsCenterLocal: {x: 0, y: 0}
+  boundsHalfSize: {x: 0.5, y: 0.5}
+  bounceStrength: 0.8
+  debugLogs: 0
+  debugDrawBounds: 0

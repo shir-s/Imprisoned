@@ -75,7 +75,7 @@ public class StrokeHistory
     }
 
     /// <summary>
-    /// New behaviour:
+    /// Legacy / "scrolling snake" prune:
     /// - Ignore length for pruning (you can still pass it in, it's just unused).
     /// - Only when Count > maxHistoryPoints we delete the OLDEST 5% of samples.
     ///   This keeps a long "snake" and slowly scrolls it.
@@ -106,6 +106,51 @@ public class StrokeHistory
         float offset = _cumLength[0];
         for (int i = 0; i < _cumLength.Count; i++)
             _cumLength[i] -= offset;
+    }
+
+    /// <summary>
+    /// Boss-mode prune:
+    /// - If Count > maxHistoryPoints, remove ONLY the oldest one sample.
+    /// - Used when we want "never delete everything at once", just slowly eat the tail.
+    /// </summary>
+    public void PruneSingleOldest(int maxHistoryPoints)
+    {
+        if (maxHistoryPoints <= 0)
+            return;
+
+        if (_samples.Count <= maxHistoryPoints)
+            return;
+
+        // Remove just the very oldest sample.
+        RemoveAt(0);
+    }
+
+    /// <summary>
+    /// Remove a SINGLE sample at a given index and rebuild cumulative length.
+    /// Used by enemy AI when it "consumes" a point.
+    /// </summary>
+    public void RemoveAt(int index)
+    {
+        if (index < 0 || index >= _samples.Count)
+            return;
+
+        _samples.RemoveAt(index);
+
+        _cumLength.Clear();
+
+        if (_samples.Count == 0)
+            return;
+
+        // Recompute cumulative length from scratch in world space.
+        _cumLength.Add(0f);
+        float acc = 0f;
+
+        for (int i = 1; i < _samples.Count; i++)
+        {
+            float segLen = Vector3.Distance(_samples[i - 1].WorldPos, _samples[i].WorldPos);
+            acc += segLen;
+            _cumLength.Add(acc);
+        }
     }
 
     /// <summary>
