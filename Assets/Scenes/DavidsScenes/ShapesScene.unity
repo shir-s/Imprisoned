@@ -5682,11 +5682,6 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
---- !u!4 &466555691 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-  m_PrefabInstance: {fileID: 8347371561717547378}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &725658947
 GameObject:
   m_ObjectHideFlags: 0
@@ -20889,7 +20884,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CubeRespawnManager
   cubePrefabs:
-  - {fileID: 6460519158208371866, guid: 6900d4e4b131f8047812ee712785b8db, type: 3}
+  - {fileID: 6460519158208371866, guid: 744b71ca7470a714f80428a636c3de41, type: 3}
   spawnPoint: {fileID: 2030946670}
   respawnDelay: 2
   useEvents: 1
@@ -30984,84 +30979,8 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3255722720468461020, guid: 0506827b8a094884a89675bf7c81813b, type: 3}
       insertIndex: 4
       addedObject: {fileID: 2122902919}
-    - targetCorrespondingSourceObject: {fileID: 3255722720468461020, guid: 0506827b8a094884a89675bf7c81813b, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 466555691}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0506827b8a094884a89675bf7c81813b, type: 3}
---- !u!1001 &8347371561717547378
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 21312087}
-    m_Modifications:
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -19.35485
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1.7
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -42.2
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 4977077031313652785, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6354224984375237740, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: m_Name
-      value: Enemy
-      objectReference: {fileID: 0}
-    - target: {fileID: 7814527345188295018, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: recorder
-      value: 
-      objectReference: {fileID: 7739526055780409110, guid: 6900d4e4b131f8047812ee712785b8db, type: 3}
-    - target: {fileID: 7814527345188295018, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: followSpeed
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 7814527345188295018, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: reachThreshold
-      value: 0.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 7814527345188295018, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
-      propertyPath: wanderDirectionChangeInterval
-      value: 5
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 683bde0d5ddee684aa1167f249c93913, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

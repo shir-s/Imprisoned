@@ -15,13 +15,11 @@ GameObject:
   - component: {fileID: 7834939096454266792}
   - component: {fileID: 7739502834809405007}
   - component: {fileID: 2314850770022543249}
-  - component: {fileID: 1558133357534088690}
   - component: {fileID: 2883896336634138054}
   - component: {fileID: 2463429873015552788}
   - component: {fileID: 4148614733988395559}
   - component: {fileID: 953310700036890121}
   - component: {fileID: -3301710990218042283}
-  - component: {fileID: 6158964790517734281}
   - component: {fileID: 2580086825652719394}
   - component: {fileID: -6770147162634958670}
   - component: {fileID: -2474602075988917771}
@@ -203,23 +201,6 @@ MonoBehaviour:
   logWear: 0
   debugGroundCheck: 0
   adjustPositionToAnchor: 0
---- !u!114 &1558133357534088690
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f050c55caf79082449ed56d54c5d36fa, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ExtraDownForce
-  extraGravity: 80
-  rayDistance: 10
-  groundMask:
-    serializedVersion: 2
-    m_Bits: 64
 --- !u!114 &2883896336634138054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -397,24 +378,6 @@ MonoBehaviour:
   maxLinearSpeed: 40
   limitAngularSpeed: 1
   maxAngularSpeed: 40
---- !u!114 &6158964790517734281
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d862027d2fb8d0e4493b06bb28992dd9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StickToSurface
-  surfaceMask:
-    serializedVersion: 2
-    m_Bits: 64
-  surfaceOffset: 0.005
-  extraSearchDistance: 0.2
-  drawDebug: 0
 --- !u!114 &2580086825652719394
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -445,7 +408,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4f1c4fd8be3cb4c41abfb20757c814f2, type: 3}
   m_Name: 
@@ -462,7 +425,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d116d55f8d07d0e47813ce995468ebbf, type: 3}
   m_Name: 
@@ -479,6 +442,9 @@ MonoBehaviour:
   rampTiltAngleDeg: 45
   scaleRampToRectangle: 1
   zScaleDivider: 5
+  limitRampHeight: 1
+  maxRampHeight: 0.2
+  extraYRotationDeg: 90
   debugShapes: 1
 --- !u!114 &7739526055780409110
 MonoBehaviour:
@@ -487,7 +453,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9af267a14e5cf1f4a8255873402cb376, type: 3}
   m_Name: 
@@ -500,6 +466,7 @@ MonoBehaviour:
   minSampleDistance: 1
   maxHistoryLength: 300
   maxHistoryPoints: 1000
+  useSinglePointPrune: 0
   debugRays: 0
   debugSampleNormals: 0
 --- !u!114 &-7444170565681963680
@@ -509,7 +476,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8665c6751acf0e445a624a0a80097778, type: 3}
   m_Name: 
@@ -531,7 +498,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1a1d39703e80d6d4ebbd0fe399d477c1, type: 3}
   m_Name: 

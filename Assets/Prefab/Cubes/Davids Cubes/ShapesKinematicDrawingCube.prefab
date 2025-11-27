@@ -379,6 +379,9 @@ MonoBehaviour:
   rampTiltAngleDeg: 0
   scaleRampToRectangle: 1
   zScaleDivider: 5
+  limitRampHeight: 1
+  maxRampHeight: 0.2
+  extraYRotationDeg: 90
   debugShapes: 0
 --- !u!114 &7739526055780409110
 MonoBehaviour:
@@ -400,6 +403,7 @@ MonoBehaviour:
   minSampleDistance: 1
   maxHistoryLength: 300
   maxHistoryPoints: 1000
+  useSinglePointPrune: 0
   debugRays: 0
   debugSampleNormals: 0
 --- !u!114 &-7444170565681963680
@@ -465,7 +469,7 @@ MonoBehaviour:
   snapOffsetAlongNormal: 0.01
   useBounds: 1
   boundsCenterLocal: {x: 0, y: 0}
-  boundsHalfSize: {x: 0.5, y: 0.5}
+  boundsHalfSize: {x: 0.49, y: 0.49}
   bounceStrength: 0.8
   debugLogs: 0
   debugDrawBounds: 0
