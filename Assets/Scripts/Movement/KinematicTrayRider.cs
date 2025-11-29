@@ -67,10 +67,15 @@ public class KinematicTrayRider : MonoBehaviour
     [SerializeField] private bool debugLogs = false;
     [SerializeField] private bool debugDrawBounds = false;
 
+    // Runtime state
     Rigidbody _rb;
     Vector2 _velLocalXZ;   // velocity in tray local XZ
     Vector3 _localPos;     // position in tray local space
     bool _initialized;
+
+    // External speed multiplier (used by RiverZone etc.)
+    // 1 = normal speed, 0.5 = half speed, 0 = stopped.
+    float _externalSpeedMultiplier = 1f;
 
     void Awake()
     {
@@ -153,6 +158,7 @@ public class KinematicTrayRider : MonoBehaviour
         }
 
         float dt = Time.fixedDeltaTime;
+        float speedMul = Mathf.Max(0f, _externalSpeedMultiplier); // safety
 
         // 1) Compute "downhill" direction on the tray plane
         Vector3 normalWS = tray.up;        // tray plane normal
@@ -169,8 +175,8 @@ public class KinematicTrayRider : MonoBehaviour
         if (slopeMag > 1e-4f)
         {
             Vector2 slopeDir = slopeLocalXZ / slopeMag;
-            // acceleration magnitude proportional to tilt
-            accelLocalXZ = slopeDir * slopeAcceleration * slopeMag;
+            // acceleration magnitude proportional to tilt, scaled by river multiplier
+            accelLocalXZ = slopeDir * slopeAcceleration * slopeMag * speedMul;
         }
 
         // 2) Integrate velocity
@@ -183,12 +189,14 @@ public class KinematicTrayRider : MonoBehaviour
             _velLocalXZ *= (1f - damping);
         }
 
-        // Clamp max speed
+        // Clamp max speed (also scaled by river multiplier)
         float speed = _velLocalXZ.magnitude;
-        if (maxSpeed > 0f && speed > maxSpeed)
+        float effectiveMaxSpeed = maxSpeed * speedMul;
+
+        if (effectiveMaxSpeed > 0f && speed > effectiveMaxSpeed)
         {
-            _velLocalXZ = _velLocalXZ.normalized * maxSpeed;
-            speed = maxSpeed;
+            _velLocalXZ = _velLocalXZ.normalized * effectiveMaxSpeed;
+            speed = effectiveMaxSpeed;
         }
 
         // 3) Integrate position in tray local XZ
@@ -310,4 +318,25 @@ public class KinematicTrayRider : MonoBehaviour
         Gizmos.DrawLine(pos, pos + tray.up * 0.3f);
     }
 #endif
+
+    // --------------------------------------------------------------------
+    // Public API for external zones (river, mud, etc.)
+    // --------------------------------------------------------------------
+
+    /// <summary>
+    /// Sets an external speed multiplier, e.g. from a river or mud zone.
+    /// 1 = normal speed, 0.5 = half speed, 0 = stopped.
+    /// </summary>
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _externalSpeedMultiplier = Mathf.Max(0f, multiplier);
+    }
+
+    /// <summary>
+    /// Clears external speed modifier and returns to normal speed.
+    /// </summary>
+    public void ClearSpeedMultiplier()
+    {
+        _externalSpeedMultiplier = 1f;
+    }
 }

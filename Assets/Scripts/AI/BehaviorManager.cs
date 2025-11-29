@@ -1,0 +1,213 @@
+// FILEPATH: Assets/Scripts/AI/StrokeTrailFollowerAI.cs
+using UnityEngine;
+
+/// <summary>
+/// Enemy AI "brain" that manages a set of behaviors (IEnemyBehavior).
+/// 
+/// Responsibilities:
+/// - Owns the stroke context (recorder + auto-bind logic).
+/// - Each frame:
+///     * Optionally re-binds to the StrokeTrailRecorder with the most points.
+///     * Queries all attached behaviors for CanActivate().
+///     * Picks the behavior with the highest Priority that can activate.
+///     * If a higher-priority behavior wants control, switches to it.
+///     * Calls Tick() on the current behavior.
+/// 
+/// Notes:
+/// - Behaviors are separate components that implement IEnemyBehavior.
+/// - Typical setup on the enemy GameObject:
+///     * StrokeTrailFollowerAI  (this brain)
+///     * StrokeTrailWanderBehavior
+///     * StrokeTrailFollowBehavior
+/// </summary>
+[DisallowMultipleComponent]
+public class BehaviorManager : MonoBehaviour
+{
+    [Header("Stroke Source")]
+    [Tooltip("Optional. If left empty, the AI will auto-find the best StrokeTrailRecorder in the scene.")]
+    [SerializeField] private StrokeTrailRecorder recorder;
+
+    [Header("Auto binding")]
+    [Tooltip("If true, the AI will keep trying to re-bind to the StrokeTrailRecorder that has the most points in its history.")]
+    [SerializeField] private bool autoBindToBestRecorder = true;
+
+    [Header("Debug")]
+    [SerializeField] private bool debugLogs = false;
+
+    // Cached behaviors (same GameObject)
+    private IEnemyBehavior[] _behaviors;
+    private IEnemyBehavior _currentBehavior;
+
+    // ----------------- PUBLIC CONTEXT -----------------
+
+    /// <summary>Current stroke recorder (may be null if none found).</summary>
+    public StrokeTrailRecorder Recorder => recorder;
+
+    /// <summary>Shortcut to Recorder.History (may be null if recorder is null).</summary>
+    public StrokeHistory CurrentHistory => recorder != null ? recorder.History : null;
+
+    private void Awake()
+    {
+        // Find all behaviors on this GameObject
+        _behaviors = GetComponents<IEnemyBehavior>();
+        if (debugLogs)
+        {
+            Debug.Log($"[StrokeTrailFollowerAI] Found {_behaviors.Length} IEnemyBehavior components on {name}.", this);
+        }
+    }
+
+    private void Update()
+    {
+        float dt = Time.deltaTime;
+
+        if (autoBindToBestRecorder)
+        {
+            RefreshRecorderBinding();
+        }
+
+        // 1) If there is an active behavior but it no longer wants to run, exit it.
+        if (_currentBehavior != null && !_currentBehavior.CanActivate())
+        {
+            if (debugLogs)
+            {
+                Debug.Log($"[StrokeTrailFollowerAI] Current behavior '{_currentBehavior.GetType().Name}' no longer CanActivate() → OnExit().", this);
+            }
+
+            _currentBehavior.OnExit();
+            _currentBehavior = null;
+        }
+
+        // 2) Find the best behavior that *can* activate right now.
+        IEnemyBehavior best = null;
+        int bestPriority = int.MinValue;
+
+        for (int i = 0; i < _behaviors.Length; i++)
+        {
+            IEnemyBehavior b = _behaviors[i];
+            if (b == null)
+                continue;
+
+            // If this behavior is also a MonoBehaviour, respect enabled/active flags
+            if (b is Behaviour mb && !mb.isActiveAndEnabled)
+                continue;
+
+            if (!b.CanActivate())
+                continue;
+
+            int p = b.Priority;
+            if (p > bestPriority)
+            {
+                bestPriority = p;
+                best = b;
+            }
+        }
+
+        // 3) Decide whether to switch behaviors.
+        if (best != null)
+        {
+            if (_currentBehavior == null)
+            {
+                // No current → just take the best.
+                _currentBehavior = best;
+                if (debugLogs)
+                {
+                    Debug.Log($"[StrokeTrailFollowerAI] No current behavior → OnEnter '{_currentBehavior.GetType().Name}'.", this);
+                }
+                _currentBehavior.OnEnter();
+            }
+            else if (!ReferenceEquals(best, _currentBehavior))
+            {
+                // There is a current behavior; only switch if new one has strictly higher priority.
+                if (best.Priority > _currentBehavior.Priority)
+                {
+                    if (debugLogs)
+                    {
+                        Debug.Log(
+                            $"[StrokeTrailFollowerAI] Switching behavior '{_currentBehavior.GetType().Name}'(P={_currentBehavior.Priority}) " +
+                            $"→ '{best.GetType().Name}'(P={best.Priority}).", this);
+                    }
+
+                    _currentBehavior.OnExit();
+                    _currentBehavior = best;
+                    _currentBehavior.OnEnter();
+                }
+                // If best.Priority <= current.Priority, stay on current behavior.
+            }
+            // else: best == current, keep running it.
+        }
+        else
+        {
+            // No behavior wants control right now.
+            if (_currentBehavior != null)
+            {
+                if (debugLogs)
+                {
+                    Debug.Log("[StrokeTrailFollowerAI] No behaviors CanActivate() → exiting current behavior.", this);
+                }
+
+                _currentBehavior.OnExit();
+                _currentBehavior = null;
+            }
+        }
+
+        // 4) Tick the active behavior (if any)
+        if (_currentBehavior != null)
+        {
+            _currentBehavior.Tick(dt);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // Recorder binding / re-binding
+    // ----------------------------------------------------------------
+
+    private void RefreshRecorderBinding()
+    {
+        bool needSearch =
+            recorder == null ||
+            recorder.History == null ||
+            recorder.History.Count == 0;
+
+        if (!needSearch)
+            return;
+
+        StrokeTrailRecorder[] all = FindObjectsOfType<StrokeTrailRecorder>();
+        StrokeTrailRecorder best = null;
+        int bestCount = -1;
+
+        foreach (var rec in all)
+        {
+            if (rec == null) continue;
+            int c = rec.History != null ? rec.History.Count : 0;
+
+            if (c > bestCount)
+            {
+                bestCount = c;
+                best = rec;
+            }
+        }
+
+        if (best != null && best != recorder)
+        {
+            recorder = best;
+
+            if (debugLogs)
+            {
+                Debug.Log("[StrokeTrailFollowerAI] Bound to recorder: " + recorder.name +
+                          " (HistoryCount=" + bestCount + ")", this);
+            }
+        }
+        else if (debugLogs)
+        {
+            if (all.Length == 0)
+            {
+                Debug.Log("[StrokeTrailFollowerAI] No StrokeTrailRecorder found in scene.", this);
+            }
+            else
+            {
+                Debug.Log("[StrokeTrailFollowerAI] Found " + all.Length +
+                          " StrokeTrailRecorder(s), but none have points yet.", this);
+            }
+        }
+    }
+}

@@ -165,7 +165,7 @@ public class EnemyTrayStick : MonoBehaviour
         Vector3 c = tray.TransformPoint(new Vector3(maxLocalX, 0f, maxLocalZ));
         Vector3 d = tray.TransformPoint(new Vector3(minLocalX, 0f, maxLocalZ));
 
-        Gizmos.color = Color.green;
+        Gizmos.color = Color.black;
         Gizmos.DrawLine(a, b);
         Gizmos.DrawLine(b, c);
         Gizmos.DrawLine(c, d);

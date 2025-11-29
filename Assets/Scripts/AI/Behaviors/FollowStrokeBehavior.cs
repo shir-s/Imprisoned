@@ -1,9 +1,9 @@
-// FILEPATH: Assets/Scripts/AI/StrokeTrailFollowerAI.cs
+// FILEPATH: Assets/Scripts/AI/StrokeTrailFollowBehavior.cs
 using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Enemy AI that follows the cube's stroke trail:
+/// Behavior that follows the cube's stroke trail.
 ///
 /// Modes:
 /// - ConsumePoints:
@@ -23,29 +23,22 @@ using UnityEngine;
 ///       effectively reversing and following the trail in the opposite
 ///       direction.
 /// 
-/// It also:
-/// - Wanders when there is no trail in range.
-/// - Auto-binds to the StrokeTrailRecorder with the most points if none
-///   is assigned or current one has no points.
+/// CanActivate():
+/// - Only true if the brain has a StrokeHistory AND there is at least one
+///   point within detectionRadius.
 /// </summary>
 [DisallowMultipleComponent]
-public class StrokeTrailFollowerAI : MonoBehaviour
+public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
 {
-    private enum Behavior
-    {
-        Wander,
-        FollowStroke
-    }
-
     public enum FollowMode
     {
         ConsumePoints,
         PersistentTrail
     }
 
-    [Header("Stroke Source")]
-    [Tooltip("Optional. If left empty, the AI will auto-find the best StrokeTrailRecorder in the scene.")]
-    [SerializeField] private StrokeTrailRecorder recorder;
+    [Header("Behavior Priority")]
+    [Tooltip("Higher value = higher priority. Should be higher than Wander (e.g. 10).")]
+    [SerializeField] private int priority = 10;
 
     [Header("Follow Mode")]
     [Tooltip("ConsumePoints: deletes points when reached.\nPersistentTrail: keeps all points, uses visit counts to avoid circles.")]
@@ -62,209 +55,105 @@ public class StrokeTrailFollowerAI : MonoBehaviour
     [Tooltip("Speed while following the stroke (world units/sec).")]
     [SerializeField] private float followSpeed = 2.0f;
 
-    [Tooltip("Speed while wandering (world units/sec).")]
-    [SerializeField] private float wanderSpeed = 1.0f;
-
-    [Tooltip("How often to change wander direction (seconds).")]
-    [SerializeField] private float wanderDirectionChangeInterval = 2.0f;
-
-    [Header("Auto binding")]
-    [Tooltip("If true, the AI will keep trying to re-bind to the StrokeTrailRecorder that has the most points in its history.")]
-    [SerializeField] private bool autoBindToBestRecorder = true;
-
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
     [SerializeField] private bool debugGizmos = false;
 
-    private Behavior _behavior = Behavior.Wander;
+    private BehaviorManager _brain;
 
     // Index of the stroke point we are currently heading to
     private int _currentIndex = -1;
-
-    // Wander state
-    private Vector3 _wanderDir;
-    private float _wanderTimer;
 
     // PersistentTrail visit tracking: how many times each index was visited
     private readonly Dictionary<int, int> _visitCounts = new Dictionary<int, int>();
     private int _lastIndexPersistent = -1;
 
+    public int Priority => priority;
+
     private void Awake()
+    {
+        _brain = GetComponent<BehaviorManager>();
+        if (_brain == null)
+        {
+            Debug.LogError("[StrokeTrailFollowBehavior] Missing StrokeTrailFollowerAI on the same GameObject.", this);
+        }
+    }
+
+    // --------------------------------------------------------
+    // IEnemyBehavior
+    // --------------------------------------------------------
+
+    public bool CanActivate()
+    {
+        if (_brain == null)
+            return false;
+
+        StrokeHistory history = _brain.CurrentHistory;
+        if (history == null || history.Count == 0)
+            return false;
+
+        // Only activate if there is at least one point within detectionRadius.
+        return HasAnyPointInRadius(history);
+    }
+
+    public void OnEnter()
+    {
+        _currentIndex = -1;
+        _visitCounts.Clear();
+        _lastIndexPersistent = -1;
+
+        if (debugLogs)
+        {
+            Debug.Log("[StrokeTrailFollowBehavior] OnEnter (mode=" + followMode + ")", this);
+        }
+
+        // Try to immediately acquire a target.
+        StrokeHistory history = _brain != null ? _brain.CurrentHistory : null;
+        if (history != null)
+        {
+            TryAcquireStrokeTarget(history);
+        }
+    }
+
+    public void Tick(float deltaTime)
+    {
+        if (_brain == null)
+            return;
+
+        StrokeHistory history = _brain.CurrentHistory;
+        if (history == null || history.Count == 0)
+        {
+            // No history -> can't really follow, but the brain will decide
+            // next frame that we can't activate anymore.
+            _currentIndex = -1;
+            return;
+        }
+
+        TickFollowStroke(deltaTime, history);
+    }
+
+    public void OnExit()
     {
         if (debugLogs)
         {
-            Debug.Log("[StrokeTrailFollowerAI] Awake on " + gameObject.name, this);
+            Debug.Log("[StrokeTrailFollowBehavior] OnExit", this);
         }
 
-        if (recorder != null && debugLogs)
-        {
-            int c = recorder.History != null ? recorder.History.Count : -1;
-            Debug.Log("[StrokeTrailFollowerAI] Initial recorder: " + recorder.name +
-                      " (HistoryCount=" + c + ")", this);
-        }
-
-        PickNewWanderDirection();
-    }
-
-    private void Update()
-    {
-        float dt = Time.deltaTime;
-
-        // Make sure we are bound to a useful StrokeTrailRecorder
-        RefreshRecorderBinding();
-
-        if (recorder == null)
-        {
-            // No recorder in scene at all – just wander (history is null)
-            if (debugLogs)
-            {
-                Debug.Log("[StrokeTrailFollowerAI] No recorder available → wandering only.", this);
-            }
-
-            TickWander(dt, null);
-            return;
-        }
-
-        // Always get history from current recorder (no caching of reference)
-        StrokeHistory history = recorder.History;
-
-        switch (_behavior)
-        {
-            case Behavior.Wander:
-                TickWander(dt, history);
-                break;
-
-            case Behavior.FollowStroke:
-                TickFollowStroke(dt, history);
-                break;
-        }
-    }
-
-    // ----------------------------------------------------------------
-    // Recorder binding / re-binding
-    // ----------------------------------------------------------------
-
-    private void RefreshRecorderBinding()
-    {
-        if (!autoBindToBestRecorder)
-            return;
-
-        bool needSearch = recorder == null ||
-                          recorder.History == null ||
-                          recorder.History.Count == 0;
-
-        if (!needSearch)
-            return;
-
-        StrokeTrailRecorder[] all = FindObjectsOfType<StrokeTrailRecorder>();
-        StrokeTrailRecorder best = null;
-        int bestCount = -1;
-
-        foreach (var rec in all)
-        {
-            if (rec == null) continue;
-            int c = rec.History != null ? rec.History.Count : 0;
-
-            if (c > bestCount)
-            {
-                bestCount = c;
-                best = rec;
-            }
-        }
-
-        if (best != null && best != recorder)
-        {
-            recorder = best;
-            ResetVisitHistory(); // different history, reset per-index data
-
-            if (debugLogs)
-            {
-                Debug.Log("[StrokeTrailFollowerAI] Bound to recorder: " + recorder.name +
-                          " (HistoryCount=" + bestCount + ")", this);
-            }
-        }
-        else if (debugLogs)
-        {
-            if (all.Length == 0)
-            {
-                Debug.Log("[StrokeTrailFollowerAI] No StrokeTrailRecorder found in scene.", this);
-            }
-            else
-            {
-                Debug.Log("[StrokeTrailFollowerAI] Found " + all.Length +
-                          " StrokeTrailRecorder(s), but none have points yet.", this);
-            }
-        }
-    }
-
-    private void ResetVisitHistory()
-    {
+        _currentIndex = -1;
         _visitCounts.Clear();
         _lastIndexPersistent = -1;
     }
 
-    // ----------------------------------------------------------------
-    // WANDER BEHAVIOR
-    // ----------------------------------------------------------------
-
-    private void TickWander(float dt, StrokeHistory history)
-    {
-        // Move in current wander direction
-        if (_wanderDir.sqrMagnitude > 1e-4f)
-        {
-            Vector3 pos = transform.position;
-            pos += _wanderDir * (wanderSpeed * dt);
-            transform.position = pos;
-        }
-
-        // Change direction every interval
-        _wanderTimer -= dt;
-        if (_wanderTimer <= 0f)
-        {
-            PickNewWanderDirection();
-        }
-
-        // Try to detect a nearby stroke point and switch to follow mode
-        if (history != null)
-            TryAcquireStrokeTarget(history);
-    }
-
-    private void PickNewWanderDirection()
-    {
-        // Random direction on XZ plane
-        Vector2 dir2D = Random.insideUnitCircle.normalized;
-        if (dir2D.sqrMagnitude < 1e-4f)
-            dir2D = Vector2.right;
-
-        _wanderDir = new Vector3(dir2D.x, 0f, dir2D.y);
-        _wanderTimer = wanderDirectionChangeInterval;
-
-        if (debugLogs)
-        {
-            Debug.Log("[StrokeTrailFollowerAI] New wander direction: " + _wanderDir, this);
-        }
-    }
-
-    // ----------------------------------------------------------------
-    // FOLLOW STROKE BEHAVIOR
-    // ----------------------------------------------------------------
+    // --------------------------------------------------------
+    // Core follow logic (adapted from old StrokeTrailFollowerAI)
+    // --------------------------------------------------------
 
     private void TickFollowStroke(float dt, StrokeHistory history)
     {
-        if (history == null)
-        {
-            if (debugLogs)
-                Debug.Log("[StrokeTrailFollowerAI] No history in Follow mode → Wander.", this);
-            SwitchToWander();
-            return;
-        }
-
         int count = history.Count;
         if (count == 0)
         {
-            if (debugLogs)
-                Debug.Log("[StrokeTrailFollowerAI] History empty in Follow mode → Wander.", this);
-            SwitchToWander();
+            _currentIndex = -1;
             return;
         }
 
@@ -273,13 +162,13 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         {
             if (debugLogs)
             {
-                Debug.Log("[StrokeTrailFollowerAI] Current index out of range in Follow mode. " +
-                          "Re-acquiring target. Count=" + count, this);
+                Debug.Log("[StrokeTrailFollowBehavior] Current index out of range. Re-acquiring target. Count=" + count, this);
             }
 
             if (!TryAcquireStrokeTarget(history))
             {
-                SwitchToWander();
+                // No more valid targets in radius → brain will drop us next frame
+                _currentIndex = -1;
             }
             return;
         }
@@ -319,7 +208,7 @@ public class StrokeTrailFollowerAI : MonoBehaviour
     private void HandleReachedPoint_Consume(StrokeHistory history)
     {
         if (debugLogs)
-            Debug.Log($"[StrokeTrailFollowerAI] (Consume) Reached stroke index {_currentIndex}, deleting.", this);
+            Debug.Log($"[StrokeTrailFollowBehavior] (Consume) Reached stroke index {_currentIndex}, deleting.", this);
 
         if (_currentIndex >= 0 && _currentIndex < history.Count)
         {
@@ -330,15 +219,15 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (!TryAcquireStrokeTarget(history))
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowerAI] (Consume) No more points in radius after delete → Wander.", this);
-            SwitchToWander();
+                Debug.Log("[StrokeTrailFollowBehavior] (Consume) No more points in radius after delete.", this);
+            _currentIndex = -1;
         }
     }
 
     private void HandleReachedPoint_Persistent(StrokeHistory history)
     {
         if (debugLogs)
-            Debug.Log($"[StrokeTrailFollowerAI] (Persistent) Reached stroke index {_currentIndex}", this);
+            Debug.Log($"[StrokeTrailFollowBehavior] (Persistent) Reached stroke index {_currentIndex}", this);
 
         // Register visit for this point index
         RegisterVisit(_currentIndex);
@@ -349,8 +238,8 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (!ChooseNextPersistentTarget(history))
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowerAI] (Persistent) No suitable next point → Wander.", this);
-            SwitchToWander();
+                Debug.Log("[StrokeTrailFollowBehavior] (Persistent) No suitable next point.", this);
+            _currentIndex = -1;
         }
     }
 
@@ -454,48 +343,48 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (debugLogs)
         {
             int v = _visitCounts.TryGetValue(bestIndex, out int vc) ? vc : 0;
-            Debug.Log($"[StrokeTrailFollowerAI] (Persistent) Next index={bestIndex}, dist={Mathf.Sqrt(bestDistSq):F3}, visits={v}", this);
+            Debug.Log($"[StrokeTrailFollowBehavior] (Persistent) Next index={bestIndex}, dist={Mathf.Sqrt(bestDistSq):F3}, visits={v}", this);
         }
 
         return true;
     }
 
-    private void SwitchToWander()
+    // ----------------------------------------------------------------
+    // Target acquisition / CanActivate helper
+    // ----------------------------------------------------------------
+
+    private bool HasAnyPointInRadius(StrokeHistory history)
     {
-        _behavior = Behavior.Wander;
-        _currentIndex = -1;
-        _wanderTimer = 0f; // so it picks a fresh direction quickly
+        int count = history.Count;
+        if (count == 0)
+            return false;
 
-        if (debugLogs)
-            Debug.Log("[StrokeTrailFollowerAI] SwitchToWander", this);
-    }
+        Vector3 pos = transform.position;
+        Vector2 enemyXZ = new Vector2(pos.x, pos.z);
+        float maxDistSq = detectionRadius * detectionRadius;
 
-    private void SwitchToFollow(int index)
-    {
-        _behavior = Behavior.FollowStroke;
-        _currentIndex = index;
-
-        if (debugLogs)
+        for (int i = 0; i < count; i++)
         {
-            int count = (recorder != null && recorder.History != null) ? recorder.History.Count : -1;
-            Debug.Log($"[StrokeTrailFollowerAI] SwitchToFollow index={index}, historyCount={count}, mode={followMode}", this);
+            Vector3 p = history[i].WorldPos;
+            Vector2 pXZ = new Vector2(p.x, p.z);
+            float dSq = (pXZ - enemyXZ).sqrMagnitude;
+            if (dSq <= maxDistSq)
+                return true;
         }
-    }
 
-    // ----------------------------------------------------------------
-    // ACQUIRE TARGET – nearest point in radius
-    // ----------------------------------------------------------------
+        return false;
+    }
 
     /// <summary>
     /// Look for the nearest stroke point within detectionRadius (XZ plane).
-    /// If found, switch to FollowStroke and set _currentIndex.
+    /// If found, set _currentIndex.
     /// </summary>
     private bool TryAcquireStrokeTarget(StrokeHistory history)
     {
         if (history == null)
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowerAI] TryAcquireStrokeTarget: history is null.", this);
+                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: history is null.", this);
             return false;
         }
 
@@ -503,7 +392,7 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (count == 0)
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowerAI] TryAcquireStrokeTarget: history empty.", this);
+                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: history empty.", this);
             return false;
         }
 
@@ -531,12 +420,12 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         {
             if (bestIndex < 0)
             {
-                Debug.Log("[StrokeTrailFollowerAI] TryAcquireStrokeTarget: no point in radius. " +
+                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: no point in radius. " +
                           $"HistoryCount={count}, detectionRadius={detectionRadius}", this);
             }
             else
             {
-                Debug.Log("[StrokeTrailFollowerAI] TryAcquireStrokeTarget: found index=" + bestIndex +
+                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: found index=" + bestIndex +
                           ", dist=" + Mathf.Sqrt(bestDistSq), this);
             }
         }
@@ -544,7 +433,7 @@ public class StrokeTrailFollowerAI : MonoBehaviour
         if (bestIndex < 0)
             return false;
 
-        SwitchToFollow(bestIndex);
+        _currentIndex = bestIndex;
         return true;
     }
 
@@ -556,20 +445,6 @@ public class StrokeTrailFollowerAI : MonoBehaviour
 
         Gizmos.color = new Color(0.3f, 1f, 0.3f, 0.2f);
         Gizmos.DrawWireSphere(transform.position, detectionRadius);
-
-        if (recorder != null)
-        {
-            StrokeHistory history = recorder.History;
-            if (_behavior == Behavior.FollowStroke && history != null)
-            {
-                if (_currentIndex >= 0 && _currentIndex < history.Count)
-                {
-                    Gizmos.color = Color.red;
-                    Gizmos.DrawSphere(history[_currentIndex].WorldPos, 0.03f);
-                    Gizmos.DrawLine(transform.position, history[_currentIndex].WorldPos);
-                }
-            }
-        }
     }
 #endif
 }

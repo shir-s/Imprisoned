@@ -13,19 +13,17 @@ GameObject:
   - component: {fileID: 8563042900198643568}
   - component: {fileID: 663792307328971739}
   - component: {fileID: 7834939096454266792}
-  - component: {fileID: 2314850770022543249}
   - component: {fileID: 2883896336634138054}
   - component: {fileID: 2463429873015552788}
   - component: {fileID: 4148614733988395559}
   - component: {fileID: 953310700036890121}
-  - component: {fileID: -6770147162634958670}
-  - component: {fileID: -2474602075988917771}
   - component: {fileID: 7739526055780409110}
   - component: {fileID: -7444170565681963680}
   - component: {fileID: -2099077964787412294}
   - component: {fileID: -396625711115672213}
+  - component: {fileID: 2683065005026541407}
   m_Layer: 7
-  m_Name: ShapesKinematicDrawingCube
+  m_Name: NoShapesKinematicDrawingWithModel
   m_TagString: DrawingCube
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -53,7 +51,7 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+  m_Mesh: {fileID: -9092734704524862282, guid: f19c21e8f35da4545b4a35f54b4f1958, type: 3}
 --- !u!23 &8563042900198643568
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -121,8 +119,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1.8751276, y: 3.8380337, z: 2.3658776}
+  m_Center: {x: -0.053705692, y: 2.0276408, z: 0.12433934}
 --- !u!54 &7834939096454266792
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -150,35 +148,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 2
---- !u!114 &2314850770022543249
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04fd7f3982453244599d6c963bb03608, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
-  wearPerMeter: 0.005
-  wearOnMovement: 1
-  minMoveDelta: 0.00005
-  useRigidbodyVelocity: 1
-  shrinkAxis: 1
-  anchorNegativeEnd: 1
-  minAxisScale: 0.1
-  drawEnabled: 1
-  surfaceMask:
-    serializedVersion: 2
-    m_Bits: 64
-  groundCheckPadding: 0.5
-  destroyWhenFullyWorn: 1
-  triggerCubeDestroyedEvent: 1
-  logWear: 0
-  debugGroundCheck: 0
-  adjustPositionToAnchor: 0
 --- !u!114 &2883896336634138054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -338,51 +307,6 @@ MonoBehaviour:
   minSpeed: 0.1
   maxSpeed: 35
   fadeSpeed: 8
---- !u!114 &-6770147162634958670
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4f1c4fd8be3cb4c41abfb20757c814f2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailAnalyzer
-  closureMaxDistance: 0.6
-  minLoopIndexSeparation: 10
-  minCornerSeparationMeters: 5
-  debugLoop: 0
-  debugLoopVerbose: 0
---- !u!114 &-2474602075988917771
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d116d55f8d07d0e47813ce995468ebbf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RectangleShapeDetector
-  rectangleMinPerimeter: 0.3
-  rectangleMaxPerimeter: 1000
-  rectangleMinSideLength: 0.01
-  rectangleMaxAspectRatio: 4
-  requiredCornerClusters: 4
-  minSharpCornerClusters: 4
-  rampPrefab: {fileID: 2156941403158890620, guid: 17cc6528ae26ca64bab548dfea97d9c1, type: 3}
-  rampHeightOffset: 0.01
-  surfaceIntersectionT: 0.05
-  rampTiltAngleDeg: 0
-  scaleRampToRectangle: 1
-  zScaleDivider: 5
-  limitRampHeight: 1
-  maxRampHeight: 0.2
-  extraYRotationDeg: 90
-  debugShapes: 0
 --- !u!114 &7739526055780409110
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -403,7 +327,8 @@ MonoBehaviour:
   minSampleDistance: 1
   maxHistoryLength: 300
   maxHistoryPoints: 1000
-  useSinglePointPrune: 0
+  useSinglePointPrune: 1
+  recordingEnabled: 1
   debugRays: 0
   debugSampleNormals: 0
 --- !u!114 &-7444170565681963680
@@ -461,10 +386,10 @@ MonoBehaviour:
   tray: {fileID: 0}
   autoFindTray: 1
   localHeightAboveSurface: 1.5
-  slopeAcceleration: 10
-  maxSpeed: 30
-  friction: 10
-  alignRotationToTray: 1
+  slopeAcceleration: 5
+  maxSpeed: 15
+  friction: 3
+  alignRotationToTray: 0
   snapOntoTrayOnAwake: 1
   snapOffsetAlongNormal: 0.01
   useBounds: 1
@@ -473,3 +398,20 @@ MonoBehaviour:
   bounceStrength: 0.8
   debugLogs: 0
   debugDrawBounds: 0
+--- !u!114 &2683065005026541407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 568e4f56439e3234faeb87615a7483ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FaceMovementDirection
+  movementSource: {fileID: 7009971931566194860}
+  upSource: {fileID: 0}
+  autoFindUpSource: 1
+  minSpeedToRotate: 0.05
+  rotationSmoothness: 10

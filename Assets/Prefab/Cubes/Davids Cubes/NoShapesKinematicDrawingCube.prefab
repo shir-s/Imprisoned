@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 8563042900198643568}
   - component: {fileID: 663792307328971739}
   - component: {fileID: 7834939096454266792}
-  - component: {fileID: 2314850770022543249}
   - component: {fileID: 2883896336634138054}
   - component: {fileID: 2463429873015552788}
   - component: {fileID: 4148614733988395559}
@@ -148,35 +147,6 @@ Rigidbody:
   m_Interpolate: 1
   m_Constraints: 0
   m_CollisionDetection: 2
---- !u!114 &2314850770022543249
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04fd7f3982453244599d6c963bb03608, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WearWhenMovingScaler
-  wearPerMeter: 0.005
-  wearOnMovement: 1
-  minMoveDelta: 0.00005
-  useRigidbodyVelocity: 1
-  shrinkAxis: 1
-  anchorNegativeEnd: 1
-  minAxisScale: 0.1
-  drawEnabled: 1
-  surfaceMask:
-    serializedVersion: 2
-    m_Bits: 64
-  groundCheckPadding: 0.5
-  destroyWhenFullyWorn: 1
-  triggerCubeDestroyedEvent: 1
-  logWear: 0
-  debugGroundCheck: 0
-  adjustPositionToAnchor: 0
 --- !u!114 &2883896336634138054
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -422,7 +392,7 @@ MonoBehaviour:
   snapOffsetAlongNormal: 0.01
   useBounds: 1
   boundsCenterLocal: {x: 0, y: 0}
-  boundsHalfSize: {x: 0.49, y: 0.49}
+  boundsHalfSize: {x: 0.48, y: 0.48}
   bounceStrength: 0.8
   debugLogs: 0
   debugDrawBounds: 0
