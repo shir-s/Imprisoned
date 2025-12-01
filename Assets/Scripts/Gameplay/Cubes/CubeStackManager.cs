@@ -178,7 +178,7 @@ public class CubeStackManager : MonoBehaviour
             return null;
         }
 
-        // For non-main cubes: disable physics + painting + wear,
+        /*// For non-main cubes: disable physics + painting + wear,
         // they are just visual until they become main.
         if (!isMain)
         {
@@ -222,7 +222,25 @@ public class CubeStackManager : MonoBehaviour
 
             if (c.extraGravity != null)
                 c.extraGravity.enabled = true;
+        }*/
+        
+        if (c.rb != null)
+        {
+            c.rb.isKinematic = true;
+            c.rb.useGravity = false;
         }
+        
+        if (c.col != null)
+            c.col.enabled = isMain;
+
+        if (c.paint != null)
+            c.paint.enabled = isMain;
+
+        if (c.wear != null)
+            c.wear.enabled = isMain;
+
+        if (c.extraGravity != null)
+            c.extraGravity.enabled = false;
 
         return c;
     }

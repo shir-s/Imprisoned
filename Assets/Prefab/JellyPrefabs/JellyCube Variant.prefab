@@ -8,6 +8,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2069595068200749745, guid: 7a5f37dc86a8e408f891c6c397876f06, type: 3}
+      propertyPath: debugRays
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2213362362568105524, guid: 7a5f37dc86a8e408f891c6c397876f06, type: 3}
+      propertyPath: logWear
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2213362362568105524, guid: 7a5f37dc86a8e408f891c6c397876f06, type: 3}
+      propertyPath: debugGroundCheck
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5206578928594560725, guid: 7a5f37dc86a8e408f891c6c397876f06, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
