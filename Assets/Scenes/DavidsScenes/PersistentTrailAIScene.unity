@@ -634,7 +634,13 @@ MonoBehaviour:
     m_Bits: 2048
   skinWidth: 0.01
   maxPushPerStep: 0
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
   projectPushOnTrayPlane: 1
+  autoFindTray: 1
   tray: {fileID: 0}
 --- !u!1 &76227346
 GameObject:
@@ -765,7 +771,13 @@ MonoBehaviour:
     m_Bits: 2048
   skinWidth: 0.01
   maxPushPerStep: 0
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
   projectPushOnTrayPlane: 1
+  autoFindTray: 1
   tray: {fileID: 0}
 --- !u!1 &110214978
 GameObject:
@@ -21510,7 +21522,13 @@ MonoBehaviour:
     m_Bits: 2048
   skinWidth: 0.01
   maxPushPerStep: 0
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
   projectPushOnTrayPlane: 1
+  autoFindTray: 1
   tray: {fileID: 0}
 --- !u!1 &1566914584
 GameObject:
@@ -37263,6 +37281,26 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2065980300}
   m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &2077718275 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8247292325941471142, guid: 9e261fa9060b4f847a1b804383d6a3fe, type: 3}
+  m_PrefabInstance: {fileID: 5783418503015478268}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2077718281
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2077718275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11989433f9aff354695dd97813be84eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NewMonoBehaviourScript
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 128
 --- !u!1 &2122902918
 GameObject:
   m_ObjectHideFlags: 0
@@ -37392,7 +37430,13 @@ MonoBehaviour:
     m_Bits: 2048
   skinWidth: 0.01
   maxPushPerStep: 0
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
   projectPushOnTrayPlane: 1
+  autoFindTray: 1
   tray: {fileID: 0}
 --- !u!1001 &1570523109666213832
 PrefabInstance:
@@ -37759,6 +37803,10 @@ PrefabInstance:
       propertyPath: debugSinking
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 583132185574426175, guid: 9e261fa9060b4f847a1b804383d6a3fe, type: 3}
+      propertyPath: traySurfaceMask.m_Bits
+      value: 64
+      objectReference: {fileID: 0}
     - target: {fileID: 6929955979560574613, guid: 9e261fa9060b4f847a1b804383d6a3fe, type: 3}
       propertyPath: m_LocalPosition.x
       value: 47.3
@@ -37810,7 +37858,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8247292325941471142, guid: 9e261fa9060b4f847a1b804383d6a3fe, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2077718281}
   m_SourcePrefab: {fileID: 100100000, guid: 9e261fa9060b4f847a1b804383d6a3fe, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

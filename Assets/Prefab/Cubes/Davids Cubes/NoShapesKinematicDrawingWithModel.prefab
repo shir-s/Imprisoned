@@ -430,7 +430,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
   collisionMask:
     serializedVersion: 2
-    m_Bits: 29184
+    m_Bits: 25088
   skinWidth: 0.01
   maxPushPerStep: 0
   allowPushingOthers: 1
@@ -439,4 +439,5 @@ MonoBehaviour:
     m_Bits: 4096
   maxPushOtherPerStep: 0.3
   projectPushOnTrayPlane: 1
+  autoFindTray: 1
   tray: {fileID: 0}
