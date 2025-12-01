@@ -1,56 +1,51 @@
 using UnityEngine;
 
 /// <summary>
-/// Keyboard-controlled kinematic cube:
-/// - Requires Rigidbody set to kinematic (done in Awake).
-/// - Moves on the XZ plane using arrow keys / WASD.
-/// - Keeps a fixed Y height so it "sits" on the board.
-/// - Optional world-space bounds.
+/// Smooth, slime-like keyboard movement on the XZ plane.
+/// Does NOT force a fixed Y height.
 /// </summary>
 [DisallowMultipleComponent]
-[RequireComponent(typeof(Rigidbody), typeof(Collider))]
-public class CubePlayerKeyboardController : MonoBehaviour
+[RequireComponent(typeof(Collider))]
+public class CubePlayerSlimeController : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 5f;
-
-    [Header("Board / Height")]
-    [SerializeField] private float fixedY = 0.5f;
+    [SerializeField] private float maxSpeed = 8f;
+    [SerializeField] private float acceleration = 25f;
+    [SerializeField] private float deceleration = 20f;
 
     [Header("Bounds (world XZ)")]
     [SerializeField] private bool useBounds = false;
     [SerializeField] private Vector2 boundsCenter = Vector2.zero;
     [SerializeField] private Vector2 boundsHalfSize = new Vector2(50f, 50f);
 
-    private Rigidbody _rb;
-
-    private void Awake()
-    {
-        _rb = GetComponent<Rigidbody>();
-        _rb.isKinematic = true;
-        _rb.useGravity = false;
-    }
+    private Vector3 _velocity = Vector3.zero;
 
     private void Update()
     {
-        // Read input (arrow keys / WASD)
-        float horizontal = Input.GetAxisRaw("Horizontal"); // left/right
-        float vertical   = Input.GetAxisRaw("Vertical");   // up/down
+        float dt = Time.deltaTime;
 
-        Vector3 direction = new Vector3(horizontal, 0f, vertical).normalized;
+        // 1) Input
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical   = Input.GetAxisRaw("Vertical");
 
-        // Current position
-        Vector3 pos = transform.position;
+        Vector3 inputDir = new Vector3(horizontal, 0f, vertical).normalized;
 
-        if (direction.sqrMagnitude > 0f)
+        // 2) Velocity update
+        if (inputDir.sqrMagnitude > 0f)
         {
-            pos += direction * moveSpeed * Time.deltaTime;
+            Vector3 desiredVel = inputDir * maxSpeed;
+            _velocity = Vector3.MoveTowards(_velocity, desiredVel, acceleration * dt);
+        }
+        else
+        {
+            _velocity = Vector3.MoveTowards(_velocity, Vector3.zero, deceleration * dt);
         }
 
-        // Keep the cube at a fixed height above the board
-        pos.y = fixedY;
+        // 3) Position update
+        Vector3 pos = transform.position;
+        pos += _velocity * dt;
 
-        // Optional bounds clamp
+        // 4) Optional bounds clamp (X,Z only)
         if (useBounds)
         {
             float minX = boundsCenter.x - boundsHalfSize.x;
@@ -62,7 +57,6 @@ public class CubePlayerKeyboardController : MonoBehaviour
             pos.z = Mathf.Clamp(pos.z, minZ, maxZ);
         }
 
-        // Move kinematically
-        _rb.MovePosition(pos);
+        transform.position = pos;
     }
 }
