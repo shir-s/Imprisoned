@@ -66,9 +66,6 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6460519158208371866, guid: 744b71ca7470a714f80428a636c3de41, type: 3}
       insertIndex: -1
-      addedObject: {fileID: -2345896025052499031}
-    - targetCorrespondingSourceObject: {fileID: 6460519158208371866, guid: 744b71ca7470a714f80428a636c3de41, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 6705952273677735613}
   m_SourcePrefab: {fileID: 100100000, guid: 744b71ca7470a714f80428a636c3de41, type: 3}
 --- !u!1 &7439715844993674559 stripped
@@ -76,22 +73,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 6460519158208371866, guid: 744b71ca7470a714f80428a636c3de41, type: 3}
   m_PrefabInstance: {fileID: 4510198712469615013}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &-2345896025052499031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7439715844993674559}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1bfedd6999dec6345bcf60327e84f6dd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CubeStackManager
-  initialMainCube: {fileID: 0}
-  wornScaleFractionThreshold: 0.1
-  absoluteMinScaleY: 0.02
-  logEvents: 0
 --- !u!114 &6705952273677735613
 MonoBehaviour:
   m_ObjectHideFlags: 0
