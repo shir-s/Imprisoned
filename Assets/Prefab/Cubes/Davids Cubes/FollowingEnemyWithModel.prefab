@@ -19,7 +19,7 @@ GameObject:
   - component: {fileID: 7566574375738423124}
   - component: {fileID: 5443064426042331080}
   m_Layer: 0
-  m_Name: EnemyWithModel
+  m_Name: FollowingEnemyWithModel
   m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -131,7 +131,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailFollowerAI
   recorder: {fileID: 7739526055780409110, guid: 6900d4e4b131f8047812ee712785b8db, type: 3}
   autoBindToBestRecorder: 1
-  debugLogs: 1
+  debugLogs: 0
 --- !u!114 &-3747301097098019548
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -157,7 +157,7 @@ MonoBehaviour:
   minLocalZ: -0.495
   maxLocalZ: 0.495
   debugRays: 0
-  debugBoundsGizmos: 1
+  debugBoundsGizmos: 0
 --- !u!114 &-8591710702020635188
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -188,7 +188,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailFollowBehavior
   priority: 10
-  followMode: 1
+  followMode: 0
   detectionRadius: 10
   reachThreshold: 0.5
   followSpeed: 30
@@ -212,7 +212,7 @@ MonoBehaviour:
   avoidRadius: 1.5
   avoidLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 512
   awayBias: 0.7
   debugLogs: 0
   debugGizmos: 0
@@ -232,8 +232,9 @@ MonoBehaviour:
   targetLayers:
     serializedVersion: 2
     m_Bits: 128
-  detectionRadius: 10
+  detectionRadius: 15
   attackRadius: 3
   chaseSpeed: 40
+  faceMovement: 1
   debugLogs: 0
-  debugGizmos: 1
+  debugGizmos: 0

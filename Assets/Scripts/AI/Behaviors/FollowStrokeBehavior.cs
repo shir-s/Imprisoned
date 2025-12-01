@@ -1,4 +1,4 @@
-// FILEPATH: Assets/Scripts/AI/StrokeTrailFollowBehavior.cs
+// FILEPATH: Assets/Scripts/AI/FollowStrokeBehavior.cs
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,24 +8,19 @@ using UnityEngine;
 /// Modes:
 /// - ConsumePoints:
 ///     * Enemy always goes to the closest stroke point in detectionRadius.
-///     * When it reaches a point, it deletes it from StrokeHistory (RemoveAt).
+///     * When it reaches a point, it deletes it from StrokeHistory (ConsumeUpTo/RemoveAt-style behavior).
 ///     * Never comes back to the same part of the trail.
-/// 
+///
 /// - PersistentTrail:
-///     * Points are never destroyed.
-///     * Enemy always chooses the closest point within detectionRadius,
-///       but avoids going straight back to the previous point if there is
-///       any other option.
-///     * Remembers how many times it visited each point index.
-///     * At crossings, prefers points/directions with the lowest visit count
-///       to avoid circles.
-///     * If there are no other options except going back, it will go back,
-///       effectively reversing and following the trail in the opposite
-///       direction.
-/// 
-/// CanActivate():
-/// - Only true if the brain has a StrokeHistory AND there is at least one
-///   point within detectionRadius.
+///     * Points are NOT deleted while exploring.
+///     * Enemy remembers which indices it actually reached during THIS activation (session).
+///     * Uses visit counts + a branch stack to explore both “directions” of the trail.
+///     * When exploration ends (no unvisited points in radius OR in branches),
+///       it deletes the explored chunk from StrokeHistory in one go:
+///       - Find minVisitedIndex & maxVisitedIndex from this session.
+///       - Call history.ConsumeRange(minVisitedIndex, maxVisitedIndex).
+///     * If this behavior is interrupted by a higher-priority behavior (e.g. Attack),
+///       it does NOT delete anything from history; it just forgets temp session data.
 /// </summary>
 [DisallowMultipleComponent]
 public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
@@ -41,7 +36,7 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
     [SerializeField] private int priority = 10;
 
     [Header("Follow Mode")]
-    [Tooltip("ConsumePoints: deletes points when reached.\nPersistentTrail: keeps all points, uses visit counts to avoid circles.")]
+    [Tooltip("ConsumePoints: deletes points as it goes.\nPersistentTrail: keeps points while exploring, then deletes explored chunk at the end.")]
     [SerializeField] private FollowMode followMode = FollowMode.ConsumePoints;
 
     [Header("Detection")]
@@ -64,9 +59,14 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
     // Index of the stroke point we are currently heading to
     private int _currentIndex = -1;
 
-    // PersistentTrail visit tracking: how many times each index was visited
+    // Visit tracking inside a single activation (session)
     private readonly Dictionary<int, int> _visitCounts = new Dictionary<int, int>();
+    private readonly HashSet<int> _visitedThisSession = new HashSet<int>();
     private int _lastIndexPersistent = -1;
+
+    // Branch memory (PersistentTrail)
+    private readonly Stack<int> _branchStack = new Stack<int>();
+    private readonly HashSet<int> _knownBranchIndices = new HashSet<int>();
 
     public int Priority => priority;
 
@@ -75,7 +75,7 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         _brain = GetComponent<BehaviorManager>();
         if (_brain == null)
         {
-            Debug.LogError("[StrokeTrailFollowBehavior] Missing StrokeTrailFollowerAI on the same GameObject.", this);
+            Debug.LogError("[FollowStrokeBehavior] Missing BehaviorManager on the same GameObject.", this);
         }
     }
 
@@ -92,7 +92,8 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         if (history == null || history.Count == 0)
             return false;
 
-        // Only activate if there is at least one point within detectionRadius.
+        // Explored parts are physically removed from history (via ConsumeUpTo / ConsumeRange),
+        // so we never re-activate on already explored trails.
         return HasAnyPointInRadius(history);
     }
 
@@ -100,14 +101,16 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
     {
         _currentIndex = -1;
         _visitCounts.Clear();
+        _visitedThisSession.Clear();
         _lastIndexPersistent = -1;
+        _branchStack.Clear();
+        _knownBranchIndices.Clear();
 
         if (debugLogs)
         {
-            Debug.Log("[StrokeTrailFollowBehavior] OnEnter (mode=" + followMode + ")", this);
+            Debug.Log("[FollowStrokeBehavior] OnEnter (mode=" + followMode + ")", this);
         }
 
-        // Try to immediately acquire a target.
         StrokeHistory history = _brain != null ? _brain.CurrentHistory : null;
         if (history != null)
         {
@@ -123,8 +126,6 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         StrokeHistory history = _brain.CurrentHistory;
         if (history == null || history.Count == 0)
         {
-            // No history -> can't really follow, but the brain will decide
-            // next frame that we can't activate anymore.
             _currentIndex = -1;
             return;
         }
@@ -136,16 +137,22 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
     {
         if (debugLogs)
         {
-            Debug.Log("[StrokeTrailFollowBehavior] OnExit", this);
+            Debug.Log("[FollowStrokeBehavior] OnExit", this);
         }
+
+        // If exploration finished normally, we already removed explored part in CleanupExploredHistory().
+        // If a higher-priority behavior (e.g. Attack) interrupted us, we keep history and just clear session state.
 
         _currentIndex = -1;
         _visitCounts.Clear();
+        _visitedThisSession.Clear();
         _lastIndexPersistent = -1;
+        _branchStack.Clear();
+        _knownBranchIndices.Clear();
     }
 
     // --------------------------------------------------------
-    // Core follow logic (adapted from old StrokeTrailFollowerAI)
+    // Core follow logic
     // --------------------------------------------------------
 
     private void TickFollowStroke(float dt, StrokeHistory history)
@@ -162,18 +169,16 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         {
             if (debugLogs)
             {
-                Debug.Log("[StrokeTrailFollowBehavior] Current index out of range. Re-acquiring target. Count=" + count, this);
+                Debug.Log("[FollowStrokeBehavior] Current index out of range. Re-acquiring target. Count=" + count, this);
             }
 
             if (!TryAcquireStrokeTarget(history))
             {
-                // No more valid targets in radius → brain will drop us next frame
                 _currentIndex = -1;
+                return;
             }
-            return;
         }
 
-        // Move towards current target point (keeping our current Y height)
         StrokeSample sample = history[_currentIndex];
         Vector3 targetWS = sample.WorldPos;
         Vector3 pos = transform.position;
@@ -184,16 +189,14 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
 
         if (dist <= reachThreshold)
         {
-            // We reached this point; now behavior depends on mode.
             if (followMode == FollowMode.ConsumePoints)
             {
                 HandleReachedPoint_Consume(history);
             }
-            else // PersistentTrail
+            else
             {
                 HandleReachedPoint_Persistent(history);
             }
-
             return;
         }
 
@@ -205,40 +208,43 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         }
     }
 
+    // ----------------- ConsumePoints mode -----------------
+
     private void HandleReachedPoint_Consume(StrokeHistory history)
     {
         if (debugLogs)
-            Debug.Log($"[StrokeTrailFollowBehavior] (Consume) Reached stroke index {_currentIndex}, deleting.", this);
+            Debug.Log($"[FollowStrokeBehavior] (Consume) Reached stroke index {_currentIndex}, deleting via ConsumeUpTo.", this);
 
         if (_currentIndex >= 0 && _currentIndex < history.Count)
         {
-            history.RemoveAt(_currentIndex);
+            history.ConsumeUpTo(_currentIndex);
         }
 
-        // After deletion, try to find a new nearest point in radius.
         if (!TryAcquireStrokeTarget(history))
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowBehavior] (Consume) No more points in radius after delete.", this);
+                Debug.Log("[FollowStrokeBehavior] (Consume) No more points in radius after deletion.", this);
+
             _currentIndex = -1;
         }
     }
 
+    // ----------------- PersistentTrail mode -----------------
+
     private void HandleReachedPoint_Persistent(StrokeHistory history)
     {
         if (debugLogs)
-            Debug.Log($"[StrokeTrailFollowBehavior] (Persistent) Reached stroke index {_currentIndex}", this);
+            Debug.Log($"[FollowStrokeBehavior] (Persistent) Reached stroke index {_currentIndex}", this);
 
-        // Register visit for this point index
         RegisterVisit(_currentIndex);
 
-        // Greedy step: choose next closest point in radius,
-        // avoiding immediate backtracking if possible, and
-        // preferring points with fewer total visits.
         if (!ChooseNextPersistentTarget(history))
         {
+            // No unvisited points left (in radius or branches) → exploration finished.
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowBehavior] (Persistent) No suitable next point.", this);
+                Debug.Log("[FollowStrokeBehavior] (Persistent) Exploration finished – deleting explored segment from history.", this);
+
+            CleanupExploredHistory(history);
             _currentIndex = -1;
         }
     }
@@ -253,15 +259,57 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
 
         count++;
         _visitCounts[index] = count;
+        _visitedThisSession.Add(index);
         _lastIndexPersistent = index;
     }
 
     /// <summary>
-    /// PersistentTrail logic:
-    /// - Look at all points within detectionRadius.
-    /// - Prefer points with the fewest visits.
-    /// - Avoid going straight back to the lastIndex if there are other options.
-    /// - If only the lastIndex is available, allow it (to reverse at trail end).
+    /// Delete the explored segment from StrokeHistory once we are done exploring
+    /// (no unvisited points left in radius or in branch stack).
+    ///
+    /// Strategy:
+    /// - Find minVisitedIndex and maxVisitedIndex from this session.
+    /// - Call history.ConsumeRange(minVisitedIndex, maxVisitedIndex).
+    /// </summary>
+    private void CleanupExploredHistory(StrokeHistory history)
+    {
+        if (_visitedThisSession.Count == 0)
+            return;
+
+        int minVisited = int.MaxValue;
+        int maxVisited = -1;
+
+        foreach (int idx in _visitedThisSession)
+        {
+            if (idx < minVisited) minVisited = idx;
+            if (idx > maxVisited) maxVisited = idx;
+        }
+
+        if (minVisited == int.MaxValue || maxVisited < 0)
+            return;
+
+        // Clamp to current history size in case something pruned while exploring.
+        if (minVisited >= history.Count)
+            return;
+
+        if (maxVisited >= history.Count)
+            maxVisited = history.Count - 1;
+
+        if (minVisited > maxVisited)
+            return;
+
+        history.ConsumeRange(minVisited, maxVisited);
+
+        _visitCounts.Clear();
+        _visitedThisSession.Clear();
+        _branchStack.Clear();
+        _knownBranchIndices.Clear();
+        _lastIndexPersistent = -1;
+    }
+
+    /// <summary>
+    /// Branch-aware selection of the next index in PersistentTrail mode.
+    /// Stops when there are no UNVISITED points left (neither in radius nor in branches).
     /// </summary>
     private bool ChooseNextPersistentTarget(StrokeHistory history)
     {
@@ -273,7 +321,6 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         Vector2 enemyXZ = new Vector2(pos.x, pos.z);
         float maxDistSq = detectionRadius * detectionRadius;
 
-        // First pass: find all candidates in radius
         List<int> candidates = new List<int>();
         float[] dists = new float[count];
 
@@ -290,10 +337,55 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
             }
         }
 
+        // If no candidates in radius, see if we have some unvisited branch to backtrack to.
         if (candidates.Count == 0)
-            return false;
+        {
+            if (TryPopValidBranchIndex(history, out int branchIndex))
+            {
+                _currentIndex = branchIndex;
 
-        // Among candidates, find the minimal visit count
+                if (debugLogs)
+                {
+                    Debug.Log($"[FollowStrokeBehavior] (Persistent) Dead-end, backtracking to saved branch index={branchIndex}.", this);
+                }
+
+                return true;
+            }
+
+            // No candidates and no unvisited branches → DONE.
+            return false;
+        }
+
+        // Check if there is ANY unvisited point reachable (in radius OR in branch stack).
+        bool hasUnvisitedCandidate = false;
+        foreach (int idx in candidates)
+        {
+            int v = _visitCounts.TryGetValue(idx, out int vc) ? vc : 0;
+            if (v == 0)
+            {
+                hasUnvisitedCandidate = true;
+                break;
+            }
+        }
+
+        bool hasUnvisitedBranch = HasAnyUnvisitedBranch(history);
+
+        // If there is no unvisited candidate AND no unvisited branch,
+        // then every reachable direction has been explored at least once.
+        if (!hasUnvisitedCandidate && !hasUnvisitedBranch)
+        {
+            if (debugLogs)
+            {
+                Debug.Log("[FollowStrokeBehavior] (Persistent) No unvisited candidates or branches left. Exploration complete.", this);
+            }
+            return false;
+        }
+
+        // From here we know that either:
+        // - there is some unvisited candidate in radius, OR
+        // - there is an unvisited branch somewhere further away (we might need to walk back over visited points to get there).
+
+        // Among candidates, find minimal visit count.
         int minVisits = int.MaxValue;
         foreach (int idx in candidates)
         {
@@ -302,7 +394,6 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
                 minVisits = v;
         }
 
-        // Filter to those that have the minimal visit count
         List<int> bestByVisits = new List<int>();
         foreach (int idx in candidates)
         {
@@ -311,7 +402,7 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
                 bestByVisits.Add(idx);
         }
 
-        // If possible, avoid immediately going back to lastIndex
+        // Avoid immediately going back to the last index if possible.
         List<int> filtered = new List<int>();
         foreach (int idx in bestByVisits)
         {
@@ -321,7 +412,6 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
 
         List<int> finalCandidates = filtered.Count > 0 ? filtered : bestByVisits;
 
-        // Choose the nearest among finalCandidates
         int bestIndex = -1;
         float bestDistSq = float.PositiveInfinity;
 
@@ -336,21 +426,108 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         }
 
         if (bestIndex < 0)
+        {
+            // Weird situation: fall back to an unvisited branch if we have one.
+            if (TryPopValidBranchIndex(history, out int branchIndex))
+            {
+                _currentIndex = branchIndex;
+
+                if (debugLogs)
+                {
+                    Debug.Log($"[FollowStrokeBehavior] (Persistent) No suitable candidate, backtracking to branch index={branchIndex}.", this);
+                }
+
+                return true;
+            }
+
             return false;
+        }
+
+        // Save alternatives as potential branches (only unvisited ones).
+        foreach (int idx in finalCandidates)
+        {
+            if (idx == bestIndex)
+                continue;
+
+            bool alreadyVisited = _visitCounts.TryGetValue(idx, out int v) && v > 0;
+            if (alreadyVisited)
+                continue;
+
+            if (_knownBranchIndices.Add(idx))
+            {
+                _branchStack.Push(idx);
+
+                if (debugLogs)
+                {
+                    Debug.Log($"[FollowStrokeBehavior] (Persistent) Saved alternative branch index={idx} for later.", this);
+                }
+            }
+        }
 
         _currentIndex = bestIndex;
 
         if (debugLogs)
         {
             int v = _visitCounts.TryGetValue(bestIndex, out int vc) ? vc : 0;
-            Debug.Log($"[StrokeTrailFollowBehavior] (Persistent) Next index={bestIndex}, dist={Mathf.Sqrt(bestDistSq):F3}, visits={v}", this);
+            Debug.Log($"[FollowStrokeBehavior] (Persistent) Next index={bestIndex}, dist={Mathf.Sqrt(bestDistSq):F3}, visits={v}", this);
         }
 
         return true;
     }
 
+    /// <summary>
+    /// Returns true if there exists at least one UNVISITED branch index still valid in history.
+    /// </summary>
+    private bool HasAnyUnvisitedBranch(StrokeHistory history)
+    {
+        int count = history.Count;
+        if (count == 0 || _branchStack.Count == 0)
+            return false;
+
+        foreach (int idx in _branchStack)
+        {
+            if (idx < 0 || idx >= count)
+                continue;
+
+            int v = _visitCounts.TryGetValue(idx, out int vc) ? vc : 0;
+            if (v == 0)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Pops indices from the branch stack until it finds one that:
+    /// - is still valid in history, AND
+    /// - has never been visited (visit count == 0).
+    /// Returns true if such an index was found.
+    /// </summary>
+    private bool TryPopValidBranchIndex(StrokeHistory history, out int branchIndex)
+    {
+        int count = history.Count;
+
+        while (_branchStack.Count > 0)
+        {
+            int idx = _branchStack.Pop();
+
+            if (idx < 0 || idx >= count)
+                continue;
+
+            int visits = _visitCounts.TryGetValue(idx, out int v) ? v : 0;
+            if (visits > 0)
+                continue; // already explored
+
+            branchIndex = idx;
+            return true;
+        }
+
+        branchIndex = -1;
+        return false;
+    }
+
     // ----------------------------------------------------------------
-    // Target acquisition / CanActivate helper
+    // Helpers
     // ----------------------------------------------------------------
 
     private bool HasAnyPointInRadius(StrokeHistory history)
@@ -375,16 +552,12 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         return false;
     }
 
-    /// <summary>
-    /// Look for the nearest stroke point within detectionRadius (XZ plane).
-    /// If found, set _currentIndex.
-    /// </summary>
     private bool TryAcquireStrokeTarget(StrokeHistory history)
     {
         if (history == null)
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: history is null.", this);
+                Debug.Log("[FollowStrokeBehavior] TryAcquireStrokeTarget: history is null.", this);
             return false;
         }
 
@@ -392,7 +565,7 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         if (count == 0)
         {
             if (debugLogs)
-                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: history empty.", this);
+                Debug.Log("[FollowStrokeBehavior] TryAcquireStrokeTarget: history empty.", this);
             return false;
         }
 
@@ -402,6 +575,7 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
 
         int bestIndex = -1;
         float bestDistSq = float.PositiveInfinity;
+        int bestVisits = int.MaxValue;
 
         for (int i = 0; i < count; i++)
         {
@@ -409,10 +583,27 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
             Vector2 pXZ = new Vector2(p.x, p.z);
             float dSq = (pXZ - enemyXZ).sqrMagnitude;
 
-            if (dSq < bestDistSq && dSq <= maxDistSq)
+            if (dSq > maxDistSq)
+                continue;
+
+            if (followMode == FollowMode.ConsumePoints)
             {
-                bestDistSq = dSq;
-                bestIndex = i;
+                if (dSq < bestDistSq)
+                {
+                    bestDistSq = dSq;
+                    bestIndex = i;
+                }
+            }
+            else
+            {
+                int visits = _visitCounts.TryGetValue(i, out int v) ? v : 0;
+
+                if (visits < bestVisits || (visits == bestVisits && dSq < bestDistSq))
+                {
+                    bestVisits = visits;
+                    bestDistSq = dSq;
+                    bestIndex = i;
+                }
             }
         }
 
@@ -420,12 +611,12 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior
         {
             if (bestIndex < 0)
             {
-                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: no point in radius. " +
+                Debug.Log("[FollowStrokeBehavior] TryAcquireStrokeTarget: no point in radius. " +
                           $"HistoryCount={count}, detectionRadius={detectionRadius}", this);
             }
             else
             {
-                Debug.Log("[StrokeTrailFollowBehavior] TryAcquireStrokeTarget: found index=" + bestIndex +
+                Debug.Log("[FollowStrokeBehavior] TryAcquireStrokeTarget: found index=" + bestIndex +
                           ", dist=" + Mathf.Sqrt(bestDistSq), this);
             }
         }

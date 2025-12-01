@@ -136,21 +136,7 @@ public class StrokeHistory
 
         _samples.RemoveAt(index);
 
-        _cumLength.Clear();
-
-        if (_samples.Count == 0)
-            return;
-
-        // Recompute cumulative length from scratch in world space.
-        _cumLength.Add(0f);
-        float acc = 0f;
-
-        for (int i = 1; i < _samples.Count; i++)
-        {
-            float segLen = Vector3.Distance(_samples[i - 1].WorldPos, _samples[i].WorldPos);
-            acc += segLen;
-            _cumLength.Add(acc);
-        }
+        RebuildCumLength();
     }
 
     /// <summary>
@@ -170,6 +156,51 @@ public class StrokeHistory
             float offset = _cumLength[0];
             for (int i = 0; i < _cumLength.Count; i++)
                 _cumLength[i] -= offset;
+        }
+    }
+
+    /// <summary>
+    /// Remove samples in the middle range [startIndex..endIndexInclusive].
+    /// Used when enemy explored a local segment of the trail that might sit in the middle.
+    /// </summary>
+    public void ConsumeRange(int startIndex, int endIndexInclusive)
+    {
+        if (_samples.Count == 0)
+            return;
+
+        if (startIndex < 0)
+            startIndex = 0;
+
+        if (endIndexInclusive >= _samples.Count)
+            endIndexInclusive = _samples.Count - 1;
+
+        int countRemove = endIndexInclusive - startIndex + 1;
+        if (countRemove <= 0)
+            return;
+
+        _samples.RemoveRange(startIndex, countRemove);
+
+        RebuildCumLength();
+    }
+
+    /// <summary>
+    /// Recomputes _cumLength from scratch for the current _samples.
+    /// </summary>
+    private void RebuildCumLength()
+    {
+        _cumLength.Clear();
+
+        if (_samples.Count == 0)
+            return;
+
+        _cumLength.Add(0f);
+        float acc = 0f;
+
+        for (int i = 1; i < _samples.Count; i++)
+        {
+            float segLen = Vector3.Distance(_samples[i - 1].WorldPos, _samples[i].WorldPos);
+            acc += segLen;
+            _cumLength.Add(acc);
         }
     }
 }

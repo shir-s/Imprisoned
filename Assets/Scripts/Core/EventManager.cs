@@ -24,6 +24,11 @@ public static class EventManager
         
         // Stroke / drawing
         StrokeCrossingDetected, // data: StrokeCrossingEventData
+        
+        KeyCollected,        // data: Transform or GameObject (the key that was collected)
+
+        // NPC / allies
+        FriendlyNpcKilled    // data: GameObject or Transform (the NPC that died)
     }
 
     public static void StartListening(GameEvent eventType, EventAction listener)

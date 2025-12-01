@@ -20,29 +20,31 @@ using UnityEngine;
 public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 {
     [Header("Behavior Priority")]
-    [Tooltip("Higher value = higher priority. Attack should usually be above Follow/Wander.")]
     [SerializeField] private int priority = 20;
 
     [Header("Targeting")]
-    [Tooltip("Layers that can be attacked by this enemy.")]
+    [Tooltip("Layers that count as valid attack targets (e.g. Player).")]
     [SerializeField] private LayerMask targetLayers;
 
-    [Tooltip("Radius in which we search for targets to attack.")]
-    [SerializeField] private float detectionRadius = 4f;
+    [Tooltip("How far we can see a target and decide to attack.")]
+    [SerializeField] private float detectionRadius = 15f;
 
-    [Tooltip("Radius at which we consider the target close enough to attack (and destroy).")]
-    [SerializeField] private float attackRadius = 0.8f;
+    [Tooltip("How close we must be to actually 'hit' and destroy the target.")]
+    [SerializeField] private float attackRadius = 2f;
 
     [Header("Movement")]
-    [Tooltip("Movement speed while chasing a target (world units/sec).")]
-    [SerializeField] private float chaseSpeed = 3f;
+    [Tooltip("Chase speed while attacking (world units/sec).")]
+    [SerializeField] private float chaseSpeed = 4f;
+
+    [Tooltip("If true, the enemy will rotate to face its movement direction.")]
+    [SerializeField] private bool faceMovement = true;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
     [SerializeField] private bool debugGizmos = false;
 
-    // Current target we are chasing
     private Transform _currentTarget;
+    private Collider  _currentTargetCollider;
 
     public int Priority => priority;
 
@@ -52,13 +54,18 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
     public bool CanActivate()
     {
-        // If we already have a valid target in range, we can continue.
-        if (HasValidTargetInRange())
-            return true;
+        // If we already have a target, keep using it as long as it's still valid.
+        if (_currentTarget != null && _currentTargetCollider != null)
+        {
+            if (IsTargetValidAndInDetectionRadius(_currentTarget, _currentTargetCollider))
+                return true;
 
-        // Otherwise, try to acquire a fresh target.
-        TryAcquireTarget();
-        return _currentTarget != null;
+            // Target moved away or got destroyed.
+            ClearTarget();
+        }
+
+        // Otherwise, try to acquire a new one.
+        return TryAcquireTarget();
     }
 
     public void OnEnter()
@@ -67,82 +74,70 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         {
             Debug.Log("[StrokeAttackBehavior] OnEnter", this);
         }
-
-        // Make sure we have a target when entering.
-        if (_currentTarget == null)
-        {
-            TryAcquireTarget();
-        }
     }
 
     public void Tick(float deltaTime)
     {
-        if (deltaTime <= 0f)
-            return;
-
-        if (_currentTarget == null)
+        if (_currentTarget == null || _currentTargetCollider == null)
         {
-            // Try to reacquire if lost (brain will drop us next frame if CanActivate() fails).
-            TryAcquireTarget();
+            // Nothing to do; CanActivate will either reacquire next frame or another
+            // behavior will take over.
             return;
         }
 
-        // If target got destroyed or deactivated, clear it.
-        if (!_currentTarget.gameObject.activeInHierarchy)
+        // Re-check validity & distance with EXACT same logic as CanActivate / TryAcquireTarget.
+        if (!IsTargetValidAndInDetectionRadius(_currentTarget, _currentTargetCollider))
         {
             if (debugLogs)
-                Debug.Log("[StrokeAttackBehavior] Target inactive/destroyed → clear.", this);
-
-            _currentTarget = null;
+            {
+                Debug.Log("[StrokeAttackBehavior] Target left detection radius → clear.", this);
+            }
+            ClearTarget();
             return;
         }
 
         Vector3 pos = transform.position;
         Vector3 targetPos = _currentTarget.position;
 
-        // Work in XZ only
-        Vector3 flatTargetPos = new Vector3(targetPos.x, pos.y, targetPos.z);
-        Vector3 toTarget = flatTargetPos - pos;
-        float dist = toTarget.magnitude;
+        // Work in XZ plane (ignore Y for chasing).
+        Vector3 selfXZ   = new Vector3(pos.x, 0f, pos.z);
+        Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
+        Vector3 toTarget = targetXZ - selfXZ;
+        float   distXZ   = toTarget.magnitude;
 
-        // If within attack radius → destroy target
-        if (dist <= attackRadius)
+        // Inside attack radius → "hit" target.
+        if (distXZ <= attackRadius)
         {
             if (debugLogs)
             {
-                Debug.Log("[StrokeAttackBehavior] In attack radius → Destroy target " + _currentTarget.name, this);
+                Debug.Log($"[StrokeAttackBehavior] ATTACK! Destroying target '{_currentTarget.name}' (dist={distXZ})", this);
             }
 
-            GameObject toDestroy = _currentTarget.gameObject;
-            _currentTarget = null;
-
-            // Destroy target object
-            if (toDestroy != null)
-            {
-                Object.Destroy(toDestroy);
-            }
+            // Destroy target GameObject.
+            GameObject targetGO = _currentTarget.gameObject;
+            ClearTarget();
+            Object.Destroy(targetGO);
 
             return;
         }
 
-        // If outside detection radius, target is considered lost.
-        if (dist > detectionRadius)
+        // Otherwise, move towards target.
+        if (distXZ > 1e-5f)
         {
-            if (debugLogs)
+            Vector3 dirXZ = toTarget / distXZ;
+
+            // Move in XZ, keep our current Y.
+            Vector3 newPos = pos + new Vector3(dirXZ.x, 0f, dirXZ.z) * (chaseSpeed * deltaTime);
+            transform.position = newPos;
+
+            if (faceMovement)
             {
-                Debug.Log("[StrokeAttackBehavior] Target left detection radius → clear.", this);
+                Vector3 forward = new Vector3(dirXZ.x, 0f, dirXZ.z);
+                if (forward.sqrMagnitude > 0.0001f)
+                {
+                    transform.rotation = Quaternion.LookRotation(forward, Vector3.up);
+                }
             }
-
-            _currentTarget = null;
-            return;
-        }
-
-        // Chase towards target
-        if (dist > 1e-5f)
-        {
-            Vector3 dir = toTarget / dist;
-            pos += dir * (chaseSpeed * deltaTime);
-            transform.position = pos;
         }
     }
 
@@ -153,93 +148,95 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             Debug.Log("[StrokeAttackBehavior] OnExit", this);
         }
 
-        _currentTarget = null;
+        // Don't destroy anything on exit; just forget about our current target.
+        ClearTarget();
     }
 
     // --------------------------------------------------------
     // Targeting helpers
     // --------------------------------------------------------
 
-    private bool HasValidTargetInRange()
+    private bool TryAcquireTarget()
     {
-        if (_currentTarget == null)
+        Vector3 origin = transform.position;
+
+        // Physics.OverlapSphere uses true radius in 3D space, but for our logic
+        // we still compute XZ distance for logs/decisions to keep it consistent.
+        Collider[] hits = Physics.OverlapSphere(origin, detectionRadius, targetLayers, QueryTriggerInteraction.Ignore);
+        if (hits.Length == 0)
             return false;
 
-        if (!_currentTarget.gameObject.activeInHierarchy)
-            return false;
+        Collider best = null;
+        float bestDistSqXZ = float.PositiveInfinity;
 
-        // Must still be on a valid layer
-        if ((targetLayers.value & (1 << _currentTarget.gameObject.layer)) == 0)
-            return false;
+        Vector3 selfXZ = new Vector3(origin.x, 0f, origin.z);
 
-        Vector3 pos = transform.position;
-        Vector3 targetPos = _currentTarget.position;
-        targetPos.y = pos.y;
-
-        float dist = (targetPos - pos).magnitude;
-        return dist <= detectionRadius;
-    }
-
-    /// <summary>
-    /// Tries to find the nearest valid target within detectionRadius.
-    /// </summary>
-    private void TryAcquireTarget()
-    {
-        _currentTarget = null;
-
-        if (targetLayers.value == 0 || detectionRadius <= 0f)
-            return;
-
-        Vector3 pos = transform.position;
-
-        Collider[] hits = Physics.OverlapSphere(
-            pos,
-            detectionRadius,
-            targetLayers,
-            QueryTriggerInteraction.Ignore);
-
-        if (hits == null || hits.Length == 0)
-            return;
-
-        float bestDistSq = float.PositiveInfinity;
-        Transform best = null;
-
-        for (int i = 0; i < hits.Length; i++)
+        foreach (Collider c in hits)
         {
-            Collider col = hits[i];
-            if (col == null)
+            if (c == null || c.gameObject == null)
                 continue;
 
-            Transform t = col.transform;
-            if (t == transform)
-                continue;
+            Transform t = c.transform;
+            Vector3 targetPos = t.position;
+            Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
 
-            Vector3 p = t.position;
-            Vector3 flat = new Vector3(p.x, pos.y, p.z);
-            float dSq = (flat - pos).sqrMagnitude;
-
-            if (dSq < bestDistSq)
+            float distSq = (targetXZ - selfXZ).sqrMagnitude;
+            if (distSq < bestDistSqXZ)
             {
-                bestDistSq = dSq;
-                best = t;
+                bestDistSqXZ = distSq;
+                best = c;
             }
         }
 
-        _currentTarget = best;
+        if (best == null)
+            return false;
+
+        float bestDist = Mathf.Sqrt(bestDistSqXZ);
+
+        // Extra safety: enforce detectionRadius in XZ plane as well.
+        if (bestDist > detectionRadius)
+            return false;
+
+        _currentTarget         = best.transform;
+        _currentTargetCollider = best;
 
         if (debugLogs)
         {
-            if (_currentTarget != null)
-            {
-                Debug.Log("[StrokeAttackBehavior] Acquired target: " + _currentTarget.name +
-                          " (dist=" + Mathf.Sqrt(bestDistSq) + ")", this);
-            }
-            else
-            {
-                Debug.Log("[StrokeAttackBehavior] No valid target found in detection radius.", this);
-            }
+            Debug.Log($"[StrokeAttackBehavior] Acquired target: {_currentTarget.name} (dist={bestDist})", this);
         }
+
+        return true;
     }
+
+    private bool IsTargetValidAndInDetectionRadius(Transform t, Collider c)
+    {
+        if (t == null || c == null || c.gameObject == null)
+            return false;
+
+        // If layer changed, treat as invalid.
+        if ((targetLayers.value & (1 << c.gameObject.layer)) == 0)
+            return false;
+
+        Vector3 pos = transform.position;
+        Vector3 targetPos = t.position;
+
+        Vector3 selfXZ   = new Vector3(pos.x, 0f, pos.z);
+        Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
+
+        float dist = Vector3.Distance(selfXZ, targetXZ);
+
+        return dist <= detectionRadius;
+    }
+
+    private void ClearTarget()
+    {
+        _currentTarget = null;
+        _currentTargetCollider = null;
+    }
+
+    // --------------------------------------------------------
+    // Gizmos
+    // --------------------------------------------------------
 
 #if UNITY_EDITOR
     private void OnDrawGizmosSelected()

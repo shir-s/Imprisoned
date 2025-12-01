@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: -2099077964787412294}
   - component: {fileID: -396625711115672213}
   - component: {fileID: 2683065005026541407}
+  - component: {fileID: -872415061014197978}
   m_Layer: 7
   m_Name: NoShapesKinematicDrawingWithModel
   m_TagString: DrawingCube
@@ -181,8 +182,8 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 5
-  useWorldDown: 1
+  rayDistance: 10
+  useWorldDown: 0
   brushBlitMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
   brushSourceTexProperty: _MainTex
   fallbackHalfSizeUV: 0.02
@@ -296,7 +297,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0fef4ab35a26a7a4294d6f74b584e9f9, type: 3}
   m_Name: 
@@ -322,11 +323,11 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 5
-  useWorldDown: 1
+  rayDistance: 10
+  useWorldDown: 0
   minSampleDistance: 1
-  maxHistoryLength: 300
-  maxHistoryPoints: 1000
+  maxHistoryLength: 500
+  maxHistoryPoints: 5000
   useSinglePointPrune: 1
   recordingEnabled: 1
   debugRays: 0
@@ -413,5 +414,29 @@ MonoBehaviour:
   movementSource: {fileID: 7009971931566194860}
   upSource: {fileID: 0}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
-  rotationSmoothness: 10
+  minSpeedToRotate: 0.01
+  directionSmoothness: 8
+--- !u!114 &-872415061014197978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 914cf67e48278514280f6f100094a55d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 29184
+  skinWidth: 0.01
+  maxPushPerStep: 0
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 4096
+  maxPushOtherPerStep: 0.3
+  projectPushOnTrayPlane: 1
+  tray: {fileID: 0}

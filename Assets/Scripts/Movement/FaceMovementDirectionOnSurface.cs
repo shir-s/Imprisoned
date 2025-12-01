@@ -11,6 +11,9 @@ using UnityEngine;
 /// - If not assigned, both are auto-detected:
 ///     * movementSource = parent transform
 ///     * upSource = TiltTray from parent or scene
+///
+/// Uses position delta to infer movement direction, then smooths that direction
+/// over time to avoid shaking / jitter.
 /// </summary>
 [DisallowMultipleComponent]
 public class FaceMovementDirectionOnSurface : MonoBehaviour
@@ -26,14 +29,18 @@ public class FaceMovementDirectionOnSurface : MonoBehaviour
     [SerializeField] private bool autoFindUpSource = true;
 
     [Header("Rotation Settings")]
-    [Tooltip("Minimum speed required to update rotation (prevents jitter).")]
-    [SerializeField] private float minSpeedToRotate = 0.05f;
+    [Tooltip("Minimum planar speed required to update rotation (prevents jitter).")]
+    [SerializeField] private float minSpeedToRotate = 0.02f;
 
-    [Tooltip("How fast rotation interpolates toward the movement direction.")]
-    [SerializeField] private float rotationSmoothness = 10f;
+    [Tooltip("How fast the facing direction follows the actual movement direction.\n" +
+             "Higher = snappier, lower = smoother.")]
+    [SerializeField] private float directionSmoothness = 8f;
 
     private Vector3 _lastPosWorld;
-    private bool _initialized;
+    private bool _hasLastPos;
+
+    private Vector3 _smoothedDir;     // smoothed forward direction on the surface plane
+    private bool _hasSmoothedDir;
 
     private void Start()
     {
@@ -48,8 +55,11 @@ public class FaceMovementDirectionOnSurface : MonoBehaviour
 
         TryFindUpSource();
 
-        _lastPosWorld = movementSource.position;
-        _initialized = true;
+        if (movementSource != null)
+        {
+            _lastPosWorld = movementSource.position;
+            _hasLastPos = true;
+        }
     }
 
     private void TryFindUpSource()
@@ -75,7 +85,7 @@ public class FaceMovementDirectionOnSurface : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (!_initialized || movementSource == null)
+        if (movementSource == null)
             return;
 
         if (upSource == null && autoFindUpSource)
@@ -84,30 +94,62 @@ public class FaceMovementDirectionOnSurface : MonoBehaviour
             TryFindUpSource();
         }
 
-        Vector3 currentPos = movementSource.position;
-        Vector3 delta = currentPos - _lastPosWorld;
-
-        // Choose surface normal (tray up or world up)
         Vector3 surfaceUp = upSource ? upSource.up : Vector3.up;
 
-        // Project movement onto the surface plane so we don't tilt into the tray
-        Vector3 dirOnSurface = Vector3.ProjectOnPlane(delta, surfaceUp);
+        Vector3 currentPos = movementSource.position;
 
-        float dt = Mathf.Max(Time.deltaTime, 1e-6f);
-        float speed = dirOnSurface.magnitude / dt;
-
-        if (speed > minSpeedToRotate)
+        // First frame with a valid pos – just cache it
+        if (!_hasLastPos)
         {
-            Vector3 forward = dirOnSurface.normalized;
-            Quaternion targetRot = Quaternion.LookRotation(forward, surfaceUp);
-
-            transform.rotation = Quaternion.Slerp(
-                transform.rotation,
-                targetRot,
-                rotationSmoothness * Time.deltaTime
-            );
+            _lastPosWorld = currentPos;
+            _hasLastPos = true;
+            return;
         }
 
+        Vector3 delta = currentPos - _lastPosWorld;
         _lastPosWorld = currentPos;
+
+        float dt = Mathf.Max(Time.deltaTime, 1e-6f);
+
+        // Movement projected onto the surface plane
+        Vector3 planarDelta = Vector3.ProjectOnPlane(delta, surfaceUp);
+        float distance = planarDelta.magnitude;
+        if (distance < 1e-6f)
+            return;
+
+        float speed = distance / dt;
+
+        if (speed < minSpeedToRotate)
+            return;
+
+        // Raw desired direction
+        Vector3 desiredDir = planarDelta.normalized;
+
+        // Initialize smoothed direction on first valid movement
+        if (!_hasSmoothedDir)
+        {
+            _smoothedDir = desiredDir;
+            _hasSmoothedDir = true;
+        }
+        else
+        {
+            // Exponential smoothing of direction to avoid twitching
+            float t = 1f - Mathf.Exp(-directionSmoothness * dt);
+            _smoothedDir = Vector3.Slerp(_smoothedDir, desiredDir, t);
+            // Re-project to keep it perfectly on the plane
+            _smoothedDir = Vector3.ProjectOnPlane(_smoothedDir, surfaceUp).normalized;
+        }
+
+        if (_smoothedDir.sqrMagnitude < 1e-6f)
+            return;
+
+        Quaternion targetRot = Quaternion.LookRotation(_smoothedDir, surfaceUp);
+
+        // Only one smooth step here; most smoothing happens on the direction itself
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRot,
+            t: 1f  // we already smoothed direction, so we can go straight to the target rot
+        );
     }
 }

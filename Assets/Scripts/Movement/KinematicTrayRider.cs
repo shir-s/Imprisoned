@@ -68,28 +68,28 @@ public class KinematicTrayRider : MonoBehaviour
     [SerializeField] private bool debugDrawBounds = false;
 
     // Runtime state
-    Rigidbody _rb;
-    Vector2 _velLocalXZ;   // velocity in tray local XZ
-    Vector3 _localPos;     // position in tray local space
-    bool _initialized;
+    private Rigidbody _rb;
+    private Vector2 _velLocalXZ;   // velocity in tray local XZ
+    private Vector3 _localPos;     // position in tray local space
+    private bool _initialized;
 
     // External speed multiplier (used by RiverZone etc.)
     // 1 = normal speed, 0.5 = half speed, 0 = stopped.
-    float _externalSpeedMultiplier = 1f;
+    private float _externalSpeedMultiplier = 1f;
 
-    void Awake()
+    private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
         _rb.isKinematic = true;
         _rb.useGravity = false;
     }
 
-    void Start()
+    private void Start()
     {
         TryInitialize();
     }
 
-    void TryInitialize()
+    private void TryInitialize()
     {
         if (!tray && autoFindTray)
         {
@@ -147,7 +147,7 @@ public class KinematicTrayRider : MonoBehaviour
         _initialized = true;
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         // If not initialized yet, keep trying (helps if cube spawns before tray).
         if (!_initialized)
@@ -175,7 +175,7 @@ public class KinematicTrayRider : MonoBehaviour
         if (slopeMag > 1e-4f)
         {
             Vector2 slopeDir = slopeLocalXZ / slopeMag;
-            // acceleration magnitude proportional to tilt, scaled by river multiplier
+            // acceleration magnitude proportional to tilt, scaled by external multiplier
             accelLocalXZ = slopeDir * slopeAcceleration * slopeMag * speedMul;
         }
 
@@ -189,7 +189,7 @@ public class KinematicTrayRider : MonoBehaviour
             _velLocalXZ *= (1f - damping);
         }
 
-        // Clamp max speed (also scaled by river multiplier)
+        // Clamp max speed (also scaled by external multiplier)
         float speed = _velLocalXZ.magnitude;
         float effectiveMaxSpeed = maxSpeed * speedMul;
 
@@ -277,9 +277,35 @@ public class KinematicTrayRider : MonoBehaviour
             }
         }
     }
+    
+    /// <summary>
+    /// Removes velocity that would push the cube into an obstacle.
+    /// </summary>
+    public void BlockVelocityInDirection(Vector3 worldNormal)
+    {
+        if (!_initialized || tray == null)
+            return;
+
+        Vector3 localNormal = tray.InverseTransformDirection(worldNormal);
+
+        Vector2 localNormalXZ = new Vector2(localNormal.x, localNormal.z);
+        if (localNormalXZ.sqrMagnitude < 1e-6f)
+            return;
+
+        localNormalXZ.Normalize();
+
+        // Dot product of velocity with the collision normal
+        float dot = Vector2.Dot(_velLocalXZ, -localNormalXZ);
+
+        // If velocity is pushing INTO the obstacle → remove that component
+        if (dot > 0f)
+        {
+            _velLocalXZ -= (-localNormalXZ * dot);
+        }
+    }
 
 #if UNITY_EDITOR
-    void OnDrawGizmosSelected()
+    private void OnDrawGizmosSelected()
     {
         if (!tray || !debugDrawBounds)
             return;
@@ -338,5 +364,36 @@ public class KinematicTrayRider : MonoBehaviour
     public void ClearSpeedMultiplier()
     {
         _externalSpeedMultiplier = 1f;
+    }
+
+    /// <summary>
+    /// Called by collision resolvers to push the rider in world space.
+    /// We convert this to tray local space and adjust _localPos there,
+    /// so there is no "fight" between movement and collision.
+    /// </summary>
+    public void ApplyWorldPush(Vector3 worldPush)
+    {
+        if (!tray || !_initialized)
+            return;
+
+        if (worldPush.sqrMagnitude <= 0f)
+            return;
+
+        Vector3 localPush = tray.InverseTransformVector(worldPush);
+        _localPos.x += localPush.x;
+        _localPos.z += localPush.z;
+        // Y stays controlled by localHeightAboveSurface.
+    }
+    
+    /// <summary>
+    /// Returns current movement velocity in WORLD space, based on tray local velocity.
+    /// </summary>
+    public Vector3 GetWorldVelocity()
+    {
+        if (!tray || !_initialized)
+            return Vector3.zero;
+
+        Vector3 localVel3 = new Vector3(_velLocalXZ.x, 0f, _velLocalXZ.y);
+        return tray.TransformDirection(localVel3);
     }
 }
