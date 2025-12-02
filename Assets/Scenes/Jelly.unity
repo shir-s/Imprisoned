@@ -396,6 +396,33 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
   m_PrefabInstance: {fileID: 3826396027844897481}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &59265998 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+  m_PrefabInstance: {fileID: 3826396027844897481}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59265988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab9949d3c44870b47a9d379d9b894797, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RenderTextureTrailPainter
+--- !u!114 &59266006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59265988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b03f2499035c00c4b821d55af9ce7009, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AreaFillShapeDetector
+  paintSurface: {fileID: 1938859131}
+  painter: {fileID: 59265998}
+  uvStep: 0.01
+  debugPolygon: 0
 --- !u!1 &76227346
 GameObject:
   m_ObjectHideFlags: 0
@@ -31093,6 +31120,17 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!114 &1938859131 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3912923314875748924, guid: 0506827b8a094884a89675bf7c81813b, type: 3}
+  m_PrefabInstance: {fileID: 4788864456464467340}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimplePaintSurface
 --- !u!1 &1950920850
 GameObject:
   m_ObjectHideFlags: 0
@@ -31372,6 +31410,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: JellyCube
       objectReference: {fileID: 0}
+    - target: {fileID: 2882001269645547829, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: rayDistance
       value: 1
@@ -31384,7 +31426,10 @@ PrefabInstance:
     - {fileID: 1995196120486927052, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 59266006}
   m_SourcePrefab: {fileID: 100100000, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
 --- !u!1001 &4788864456464467340
 PrefabInstance:
