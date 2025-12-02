@@ -11,7 +11,7 @@ using UnityEngine;
 /// 
 /// Attach this to the cube prefab that gets spawned.
 /// You can:
-///   - Leave "tray" empty and it will auto-find a TiltTray in the scene, OR
+///   - Leave "tray" empty and it will auto-find a tray/map in the scene, OR
 ///   - Drag a specific tray Transform in the inspector.
 /// </summary>
 [DisallowMultipleComponent]
@@ -19,11 +19,14 @@ using UnityEngine;
 public class KinematicTrayRider : MonoBehaviour
 {
     [Header("Tray")]
-    [Tooltip("If left empty, the script will try to auto-find a TiltTray in parents or in the scene.")]
+    [Tooltip("If left empty, the script will try to auto-find a tray in the scene.")]
     [SerializeField] private Transform tray;
     
-    [Tooltip("Try to automatically find a TiltTray if 'tray' is not assigned.")]
+    [Tooltip("Try to automatically find a tray if 'tray' is not assigned.")]
     [SerializeField] private bool autoFindTray = true;
+
+    [Tooltip("If autoFindTray is true and 'tray' is not set, we'll first try to find a GameObject with this tag (e.g. 'Map').")]
+    [SerializeField] private string trayTag = "Map";
 
     [Header("Height")]
     [Tooltip("Height above the tray plane, in tray local Y.")]
@@ -93,12 +96,27 @@ public class KinematicTrayRider : MonoBehaviour
     {
         if (!tray && autoFindTray)
         {
-            // 1) Try a parent TiltTray
-            TiltTray parentTray = GetComponentInParent<TiltTray>();
-            if (parentTray != null)
+            // 0) Try tagged map/tray object first
+            if (!string.IsNullOrEmpty(trayTag))
             {
-                tray = parentTray.transform;
-                if (debugLogs) Debug.Log("[KinematicTrayRider] Using parent TiltTray: " + tray.name, this);
+                GameObject tagged = GameObject.FindGameObjectWithTag(trayTag);
+                if (tagged != null)
+                {
+                    tray = tagged.transform;
+                    if (debugLogs)
+                        Debug.Log("[KinematicTrayRider] Using tray by tag '" + trayTag + "': " + tray.name, this);
+                }
+            }
+
+            // 1) If still null, try a parent TiltTray
+            if (!tray)
+            {
+                TiltTray parentTray = GetComponentInParent<TiltTray>();
+                if (parentTray != null)
+                {
+                    tray = parentTray.transform;
+                    if (debugLogs) Debug.Log("[KinematicTrayRider] Using parent TiltTray: " + tray.name, this);
+                }
             }
 
             // 2) If still null, try any TiltTray in the scene

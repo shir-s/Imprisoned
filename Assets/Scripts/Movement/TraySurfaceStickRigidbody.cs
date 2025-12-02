@@ -1,6 +1,22 @@
 // FILEPATH: Assets/Scripts/Movement/TraySurfaceStickRigidbody.cs
 using UnityEngine;
 
+/// <summary>
+/// Keeps a kinematic rigidbody stuck to a tilted tray:
+/// - Projects current position onto the tray plane.
+/// - Sets its height along the tray's normal (tray.up).
+/// - Optionally aligns rotation to the tray.
+///
+/// Sinking behaviour (for bridge blocks etc.):
+/// - If allowSinkingInRiver is true and this object's collider CENTER
+///   is inside any RiverZone collider, it sinks smoothly down along tray.up
+///   up to sinkDepth.
+/// - If it leaves the river BEFORE reaching sinkDepth, it rises back to baseHeight.
+/// - Once it has sunk to sinkDepth, it is considered "locked"/sunk:
+///     * IsSunk becomes true
+///     * optionally disables KinematicCollisionResolver so it cannot be pushed anymore
+///     * it no longer rises back, even if not inside the river afterwards.
+/// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody), typeof(Collider))]
 public class TraySurfaceStickRigidbody : MonoBehaviour
@@ -21,6 +37,7 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
     [SerializeField] private bool lockPushWhenSunk = true;
 
     [Header("River Detection")]
+    [Tooltip("Layer mask used to detect river colliders (e.g. Water layer).")]
     [SerializeField] private LayerMask riverMask = ~0;
 
     [Header("Layer Switching When Sunk")]
@@ -36,33 +53,34 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool debugSinking = false;
 
-    Rigidbody _rb;
-    Collider _ownCollider;
+    private Rigidbody _rb;
+    private Collider _ownCollider;
 
-    float _currentSinkOffset;
-    bool _isSunk;
-    bool _hasTray;
+    private float _currentSinkOffset;
+    private bool _isSunk;
+    private bool _hasTray;
 
-    const float EPS = 0.0001f;
+    private const float EPS = 0.0001f;
 
+    /// <summary>True when the object has finished sinking to sinkDepth and is "committed".</summary>
     public bool IsSunk => _isSunk;
 
-    void Awake()
+    private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
         _ownCollider = GetComponent<Collider>();
 
-        _rb.useGravity = false;
-        _rb.isKinematic = true;
+        _rb.useGravity = false;   // height controlled manually
+        _rb.isKinematic = true;   // fully script driven movement
     }
 
-    void Start()
+    private void Start()
     {
         TryFindTray();
         ApplyLayer(); // apply initial state
     }
 
-    void TryFindTray()
+    private void TryFindTray()
     {
         if (tray != null || !autoFindTray)
         {
@@ -70,6 +88,7 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
             return;
         }
 
+        // 1) Try parent TiltTray
         TiltTray parentTray = GetComponentInParent<TiltTray>();
         if (parentTray != null)
         {
@@ -78,6 +97,7 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
             return;
         }
 
+        // 2) Try any TiltTray in the scene
         TiltTray anyTray = FindObjectOfType<TiltTray>();
         if (anyTray != null)
         {
@@ -86,7 +106,7 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
         }
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
         if (!_hasTray)
         {
@@ -97,16 +117,17 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
 
         float dt = Time.fixedDeltaTime;
 
-        // 1) Update sinking or rising logic
+        // 1) Update sinking / rising
         UpdateSinkingState(dt);
 
-        // 2) Stick to the tray plane with height offset
+        // 2) Stick to tray plane at (baseHeight - currentSinkOffset)
         Vector3 trayUp = tray.up;
         Plane trayPlane = new Plane(trayUp, tray.position);
 
         Vector3 currentPos = transform.position;
         float distanceToPlane = trayPlane.GetDistanceToPoint(currentPos);
 
+        // Point on tray plane directly under/over current position
         Vector3 onPlane = currentPos - trayUp * distanceToPlane;
 
         float targetHeight = baseHeight - _currentSinkOffset;
@@ -120,7 +141,7 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
         }
     }
 
-    void UpdateSinkingState(float dt)
+    private void UpdateSinkingState(float dt)
     {
         if (!allowSinkingInRiver)
             return;
@@ -129,8 +150,8 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
         if (_isSunk)
             return;
 
-        bool fullyInsideRiver = IsFullyInsideAnyRiver();
-        float targetOffset = fullyInsideRiver ? sinkDepth : 0f;
+        bool insideRiver = IsCenterInsideAnyRiver();
+        float targetOffset = insideRiver ? sinkDepth : 0f;
 
         float speed = (targetOffset > _currentSinkOffset) ? sinkingSpeed : risingSpeed;
 
@@ -139,18 +160,19 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
 
         if (debugSinking && !Mathf.Approximately(before, _currentSinkOffset))
         {
-            Debug.Log($"[TraySurfaceStickRigidbody] sink {before:F3} -> {_currentSinkOffset:F3}", this);
+            Debug.Log($"[TraySurfaceStickRigidbody] sink {before:F3} -> {_currentSinkOffset:F3} (insideRiver={insideRiver})", this);
         }
 
-        // Case 1: Reached FULL sink depth inside river → becomes sunk permanently
+        // Case 1: Reached FULL sink depth while inside river → lock as sunk.
         if (!_isSunk &&
             Mathf.Abs(_currentSinkOffset - sinkDepth) < EPS &&
-            fullyInsideRiver)
+            insideRiver)
         {
             _isSunk = true;
 
             if (lockPushWhenSunk)
             {
+                // Disable custom collision-based pushing so it becomes static.
                 var resolver = GetComponent<KinematicCollisionResolver>();
                 if (resolver != null)
                     resolver.enabled = false;
@@ -159,7 +181,9 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
             ApplyLayer(); // switch layer
 
             if (debugSinking)
+            {
                 Debug.Log("[TraySurfaceStickRigidbody] Fully sunk -> locked and layer switched.", this);
+            }
 
             return;
         }
@@ -172,15 +196,16 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
     }
 
     // --------------------------------------------------------------------
-    // RIVER CHECK
+    // RIVER CHECK (simple: center inside any RiverZone collider)
     // --------------------------------------------------------------------
 
-    bool IsFullyInsideAnyRiver()
+    private bool IsCenterInsideAnyRiver()
     {
         if (_ownCollider == null)
             return false;
 
         Bounds myBounds = _ownCollider.bounds;
+        Vector3 center = myBounds.center;
 
         Collider[] hits = Physics.OverlapBox(
             myBounds.center,
@@ -190,22 +215,34 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
             QueryTriggerInteraction.Collide
         );
 
+        if (debugSinking)
+        {
+            Debug.Log($"[TraySurfaceStickRigidbody] River hits count = {hits.Length}", this);
+        }
+
         foreach (var hit in hits)
         {
-            if (hit == _ownCollider)
+            if (hit == null || hit == _ownCollider)
                 continue;
 
-            RiverZone river = hit.GetComponent<RiverZone>();
+            // Colliders can be on children of the RiverZone object
+            RiverZone river = hit.GetComponentInParent<RiverZone>();
             if (river == null)
                 continue;
 
-            Bounds riverBounds = hit.bounds;
-
-            if (riverBounds.Contains(myBounds.min) &&
-                riverBounds.Contains(myBounds.max))
+            if (hit.bounds.Contains(center))
             {
+                if (debugSinking)
+                {
+                    Debug.Log($"[TraySurfaceStickRigidbody] Center inside river '{river.name}'.", this);
+                }
                 return true;
             }
+        }
+
+        if (debugSinking)
+        {
+            Debug.Log("[TraySurfaceStickRigidbody] Center not inside any river.", this);
         }
 
         return false;
@@ -252,7 +289,7 @@ public class TraySurfaceStickRigidbody : MonoBehaviour
         ApplyLayer(); // revert to normal layer
     }
 
-    void OnValidate()
+    private void OnValidate()
     {
         if (sinkDepth < 0f) sinkDepth = 0f;
         if (sinkingSpeed < 0f) sinkingSpeed = 0f;

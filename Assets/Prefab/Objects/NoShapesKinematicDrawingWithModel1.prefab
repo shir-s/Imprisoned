@@ -24,7 +24,7 @@ GameObject:
   - component: {fileID: 2683065005026541407}
   - component: {fileID: -872415061014197978}
   m_Layer: 7
-  m_Name: NoShapesKinematicDrawingWithModel 1
+  m_Name: NoShapesKinematicDrawingWithModel1
   m_TagString: DrawingCube
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -40,7 +40,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 2.3, y: 14.21, z: 15.28}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -386,6 +386,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::KinematicTrayRider
   tray: {fileID: 0}
   autoFindTray: 1
+  trayTag: Map
   localHeightAboveSurface: 1.5
   slopeAcceleration: 5
   maxSpeed: 0.5
@@ -398,7 +399,7 @@ MonoBehaviour:
   boundsHalfSize: {x: 0.49, y: 0.49}
   bounceStrength: 0.8
   debugLogs: 0
-  debugDrawBounds: 0
+  debugDrawBounds: 1
 --- !u!114 &2683065005026541407
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -433,10 +434,10 @@ MonoBehaviour:
     m_Bits: 25088
   skinWidth: 0.01
   maxPushPerStep: 0
-  allowPushingOthers: 1
+  allowPushingOthers: 0
   pushableMask:
     serializedVersion: 2
-    m_Bits: 4096
+    m_Bits: 0
   maxPushOtherPerStep: 0.3
   projectPushOnTrayPlane: 1
   autoFindTray: 1

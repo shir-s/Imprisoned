@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5035019279919633324}
   - component: {fileID: 2496313275506525071}
   - component: {fileID: 583132185574426175}
+  - component: {fileID: -7243684158164499137}
   m_Layer: 12
   m_Name: PushableBlock
   m_TagString: Untagged
@@ -31,7 +32,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 1.07778, y: 3, z: -44.17091}
-  m_LocalScale: {x: 7, y: 7, z: 7}
+  m_LocalScale: {x: 2.64, y: 2.64, z: 2.64}
   m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
@@ -69,7 +70,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 2dab095e942fe2f4b9904cee9986bb18, type: 2}
+  - {fileID: 2100000, guid: ac268c37cde83f54c9ea3001ed2b31e5, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -154,7 +155,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TraySurfaceStickRigidbody
   tray: {fileID: 0}
   autoFindTray: 1
-  baseHeight: 4.5
+  baseHeight: 2
   alignRotationToTray: 1
   allowSinkingInRiver: 1
   sinkDepth: 6
@@ -168,3 +169,18 @@ MonoBehaviour:
   normalLayer: Pushable
   applyLayerToChildren: 1
   debugSinking: 0
+--- !u!114 &-7243684158164499137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8247292325941471142}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 11989433f9aff354695dd97813be84eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BoxKinematicCollisionResolver
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 128
