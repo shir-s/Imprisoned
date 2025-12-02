@@ -5700,6 +5700,18 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
     - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
       propertyPath: m_LocalPosition.x
       value: 14.66
       objectReference: {fileID: 0}
@@ -11004,6 +11016,18 @@ PrefabInstance:
       propertyPath: cubePrefab
       value: 
       objectReference: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7.08
@@ -26083,6 +26107,9 @@ MonoBehaviour:
   initialMainCube: {fileID: 59265988}
   wornScaleFractionThreshold: 0.1
   absoluteMinScaleY: 0.02
+  growAmountPerPickup: 0.5
+  uniformGrow: 1
+  maxScale: 3
   logEvents: 0
 --- !u!4 &1771454594
 Transform:
@@ -26111,6 +26138,18 @@ PrefabInstance:
       propertyPath: cubePrefab
       value: 
       objectReference: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7584022310289139969, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3.7
@@ -31325,6 +31364,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2346779412233461447, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: maxSpeed
+      value: 25
+      objectReference: {fileID: 0}
     - target: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: m_Name
       value: JellyCube
@@ -31332,6 +31375,10 @@ PrefabInstance:
     - target: {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: rayDistance
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6518572221285644113, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: useRigidbodyVelocity
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 1995196120486927052, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}

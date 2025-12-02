@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Collider))]
-public class CubePlayerSlimeController : MonoBehaviour
+public class CubePlayerKeyboardController : MonoBehaviour
 {
     [Header("Movement")]
     [SerializeField] private float maxSpeed = 8f;
@@ -19,7 +19,17 @@ public class CubePlayerSlimeController : MonoBehaviour
     [SerializeField] private Vector2 boundsHalfSize = new Vector2(50f, 50f);
 
     private Vector3 _velocity = Vector3.zero;
-
+    
+    private float _sizeFactor = 1f;
+    /// <summary>
+    /// Called by CubeStackManager whenever the cube grows.
+    /// sizeFactor = approx local scale (x or y).
+    /// </summary>
+    public void SetSizeFactor(float sizeFactor)
+    {
+        // קצת הגנה שלא יהיה 0
+        _sizeFactor = Mathf.Max(0.1f, sizeFactor);
+    }
     private void Update()
     {
         float dt = Time.deltaTime;
