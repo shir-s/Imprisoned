@@ -17,7 +17,7 @@ using UnityEngine;
 /// - Flee: 15 (higher than wander/travel, but could be lower than attack depending on your needs)
 /// </summary>
 [DisallowMultipleComponent]
-public class FleeBehavior : MonoBehaviour, IEnemyBehavior
+public class FleeBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
 {
     [Header("Behavior Priority")]
     [Tooltip("Higher value = higher priority. Flee is usually high (e.g. 15).")]
@@ -75,6 +75,29 @@ public class FleeBehavior : MonoBehaviour, IEnemyBehavior
 
     [Tooltip("If completely stuck for this many seconds, temporarily ignore obstacles and push through.")]
     [SerializeField] private float stuckTimeout = 1.5f;
+
+    [Header("Sound")]
+    [Tooltip("If disabled, this behavior will not produce any sound.")]
+    [SerializeField] private bool enableSound = true;
+
+    [Tooltip("How the sound for this behavior should be played.\nNone = no sound even if enableSound is true.")]
+    [SerializeField] private SoundPlaybackMode soundMode = SoundPlaybackMode.Loop;
+
+    [Tooltip("Base interval in seconds (used for FixedInterval and as MIN for RandomInterval).")]
+    [SerializeField] private float soundInterval = 0.8f;
+
+    [Tooltip("MAX interval (seconds) for RandomInterval mode. Ignored for other modes.")]
+    [SerializeField] private float maxRandomInterval = 1.5f;
+
+    [Tooltip("Name of the sound to play for this behavior (must exist in AudioSettings).")]
+    [SerializeField] private string soundName = "EnemyFlee";
+
+    [Tooltip("If true, use custom volume instead of default from AudioSettings.")]
+    [SerializeField] private bool useCustomVolume = false;
+
+    [Tooltip("Custom volume (0..1) when useCustomVolume is enabled.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float soundVolume = 1f;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
@@ -588,4 +611,67 @@ public class FleeBehavior : MonoBehaviour, IEnemyBehavior
         }
     }
 #endif
+
+    // --------------------------------------------------------
+    // IEnemySound
+    // --------------------------------------------------------
+
+    /// <summary>
+    /// How should sound be played while this behavior is active?
+    /// If enableSound is false, returns None to completely mute this behavior.
+    /// </summary>
+    public SoundPlaybackMode GetSoundMode()
+    {
+        if (!enableSound)
+            return SoundPlaybackMode.None;
+
+        return soundMode;
+    }
+
+    /// <summary>
+    /// Base interval for FixedInterval and MIN interval for RandomInterval.
+    /// </summary>
+    public float GetSoundInterval()
+    {
+        return soundInterval;
+    }
+
+    /// <summary>
+    /// MAX interval for RandomInterval mode.
+    /// </summary>
+    public float GetMaxSoundInterval()
+    {
+        return maxRandomInterval;
+    }
+
+    /// <summary>
+    /// Name of the sound to play. If sound is disabled, returns null.
+    /// </summary>
+    public string GetSoundName()
+    {
+        if (!enableSound)
+            return null;
+
+        return soundName;
+    }
+
+    /// <summary>
+    /// Optional custom volume for this behavior.
+    /// </summary>
+    public float GetSoundVolume()
+    {
+        if (!enableSound)
+            return -1f;
+
+        return useCustomVolume ? soundVolume : -1f;
+    }
+
+    /// <summary>
+    /// Called every time before a sound is played.
+    /// Uses enableSound so you can flip it at runtime in the inspector.
+    /// </summary>
+    public bool ShouldPlaySound()
+    {
+        return enableSound;
+    }
 }

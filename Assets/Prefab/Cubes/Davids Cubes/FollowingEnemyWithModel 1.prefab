@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &6354224984375237740
+--- !u!1 &124898646003009457
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,54 +8,56 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4977077031313652785}
-  - component: {fileID: 1898406021297240940}
-  - component: {fileID: 1057741875150727793}
-  - component: {fileID: 4979386954210245849}
-  - component: {fileID: 7814527345188295018}
-  - component: {fileID: -3747301097098019548}
-  - component: {fileID: -8591710702020635188}
-  - component: {fileID: 7566574375738423124}
-  - component: {fileID: 5443064426042331080}
-  - component: {fileID: 8365639804091011447}
-  - component: {fileID: -3317984760709812228}
-  m_Layer: 0
-  m_Name: HuntingEnemyWithModel
+  - component: {fileID: 7195986100845458235}
+  - component: {fileID: 5312054964799385873}
+  - component: {fileID: 2151269487138681816}
+  - component: {fileID: 6131469836112484318}
+  - component: {fileID: 4022140240894779756}
+  - component: {fileID: 5220889306712330974}
+  - component: {fileID: 93140521555573387}
+  - component: {fileID: 9152543737884920981}
+  - component: {fileID: 6481171617428672872}
+  - component: {fileID: 866935587530978211}
+  - component: {fileID: 986824771288498793}
+  - component: {fileID: 2255093764421806901}
+  - component: {fileID: 2955249166854479478}
+  m_Layer: 11
+  m_Name: FollowingEnemyWithModel 1
   m_TagString: Monster
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4977077031313652785
+--- !u!4 &7195986100845458235
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -19.35485, y: -0.68307, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalRotation: {x: -0, y: 0.7423059, z: -0, w: 0.67006123}
+  m_LocalPosition: {x: 0.383, y: 2, z: -0.393}
+  m_LocalScale: {x: 0.0057471264, y: 0.6, z: 0.00589391}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &1898406021297240940
+  m_LocalEulerAnglesHint: {x: 0, y: 95.856, z: 0}
+--- !u!33 &5312054964799385873
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Mesh: {fileID: 5299187233241849003, guid: 7ece3e83e61ec4cf3a9d2060fa3ea029, type: 3}
---- !u!23 &1057741875150727793
+--- !u!23 &2151269487138681816
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -97,13 +99,13 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &4979386954210245849
+--- !u!65 &6131469836112484318
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -118,13 +120,13 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.4246502, y: 5.8831964, z: 3.9032056}
   m_Center: {x: -0.1027956, y: 2.8199441, z: -1.3841788}
---- !u!114 &7814527345188295018
+--- !u!114 &4022140240894779756
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de4b17997ccb11f4aa16a705facd9cef, type: 3}
@@ -133,15 +135,15 @@ MonoBehaviour:
   recorder: {fileID: 7739526055780409110, guid: 6900d4e4b131f8047812ee712785b8db, type: 3}
   autoBindToBestRecorder: 1
   isFriendlyNpc: 0
-  debugLogs: 0
+  debugLogs: 1
   logBehaviorSwitch: 1
---- !u!114 &-3747301097098019548
+--- !u!114 &5220889306712330974
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c68ab739fe3cc0e40bc44b29e281b264, type: 3}
@@ -161,77 +163,88 @@ MonoBehaviour:
   maxLocalZ: 0.495
   debugRays: 0
   debugBoundsGizmos: 0
---- !u!114 &-8591710702020635188
+--- !u!114 &93140521555573387
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 568e4f56439e3234faeb87615a7483ca, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FaceMovementDirection
-  movementSource: {fileID: 4977077031313652785}
+  movementSource: {fileID: 7195986100845458235}
   upSource: {fileID: 0}
   autoFindUpSource: 1
   minSpeedToRotate: 0.05
   directionSmoothness: 8
---- !u!114 &7566574375738423124
+--- !u!114 &9152543737884920981
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7ab2a49398e10ef4790036965292e332, type: 3}
+  m_Script: {fileID: 11500000, guid: 12613e98ba8b40a4b87a49b7c70b7ffd, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailWanderBehavior
-  priority: 0
-  wanderSpeed: 15
-  wanderDirectionChangeInterval: 7
-  avoidRadius: 1.5
-  avoidLayers:
-    serializedVersion: 2
-    m_Bits: 512
-  awayBias: 0.7
-  useHomeRadius: 0
-  homeRadius: 5
-  autoReturnIfOutside: 1
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailFollowBehavior
+  priority: 10
+  followMode: 1
+  detectionRadius: 6
+  reachThreshold: 0.5
+  followSpeed: 10
+  enableSound: 1
+  soundMode: 2
+  soundInterval: 2
+  maxRandomInterval: 4
+  soundName: EnemyFollowStroke
+  useCustomVolume: 0
+  soundVolume: 1
   debugLogs: 0
-  debugGizmos: 0
---- !u!114 &5443064426042331080
+  debugGizmos: 1
+--- !u!114 &6481171617428672872
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8e9f3ace75630724ca6692de09070177, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StrokeAttackBehavior
   priority: 20
-  targetPriorities: []
-  detectionRadius: 15
+  targetPriorities:
+  - layer:
+      layerIndex: 7
+    attackPriority: 10
+    customDetectionRadius: 11
+    customAttackRadius: 3
+  - layer:
+      layerIndex: 18
+    attackPriority: 5
+    customDetectionRadius: 8
+    customAttackRadius: 3
+  detectionRadius: 10
   attackRadius: 3
-  chaseSpeed: 40
+  chaseSpeed: 12
   faceMovement: 1
   maxTurnDegreesPerSecond: 360
   obstacleLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 29184
   avoidRadius: 2
   enemyRadius: 0.4
   preferredClearance: 0.3
   commitToTargetDistance: 1.5
   avoidanceSamples: 12
-  debugLogs: 0
-  debugGizmos: 0
+  debugLogs: 1
+  debugGizmos: 1
   enableSound: 1
   soundMode: 6
   soundInterval: 0.7
@@ -239,45 +252,124 @@ MonoBehaviour:
   soundName: EnemyAttack
   useCustomVolume: 0
   soundVolume: 1
---- !u!114 &8365639804091011447
+--- !u!114 &866935587530978211
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dab40115fd11f3d4c91b917caa6664d6, type: 3}
+  m_Script: {fileID: 11500000, guid: 914cf67e48278514280f6f100094a55d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HuntBehavior
-  priority: 10
-  initialTrailDetectionRadius: 10
-  resniffRadius: 9
-  forwardDotThreshold: 0.1
-  huntSpeed: 30
-  faceMovement: 1
-  wanderSideAmplitude: 0.4
-  wanderFrequency: 0.6
-  maxDistancePerDirection: 40
-  gapSearchTravelBeforeSearch: 2
-  gapSearchRadius: 10
-  riverProbeRadius: 2
-  debugLogs: 1
-  debugGizmos: 1
---- !u!114 &-3317984760709812228
+  m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 29184
+  skinWidth: 0.01
+  maxPushPerStep: 0.3
+  allowPushingOthers: 0
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
+  projectPushOnTrayPlane: 1
+  autoFindTray: 1
+  tray: {fileID: 0}
+--- !u!114 &986824771288498793
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6354224984375237740}
+  m_GameObject: {fileID: 124898646003009457}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7d0d33d500d7275438f10f9fb42474b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaypointRouteBehavior
+  priority: 5
+  waypoints:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  waypointReachThreshold: 1
+  travelSpeed: 10
+  wanderDuration: 5
+  wanderRadius: 10
+  wanderSpeed: 5
+  wanderDirectionChangeInterval: 5
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 29184
+  avoidRadius: 2
+  enemyRadius: 0.4
+  preferredClearance: 0.3
+  commitToWaypointDistance: 1.5
+  avoidanceSamples: 12
+  avoidStrength: 0.7
+  maxTurnDegreesPerSecond: 1000
+  debugLogs: 1
+  debugGizmos: 0
+  enableSound: 1
+  soundMode: 2
+  soundInterval: 3
+  maxRandomInterval: 6
+  soundName: EnemyWander
+  useCustomVolume: 0
+  soundVolume: 1
+--- !u!114 &2255093764421806901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 124898646003009457}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81ecc7d1464dae740af4dec7882e9396, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UnstuckBehavior
+  priority: 100
+  stuckDistanceThreshold: 0.1
+  stuckTimeThreshold: 3
+  detectOscillation: 1
+  oscillationCountThreshold: 4
+  oscillationTimeWindow: 1
+  oscillationAngleThreshold: 90
+  recoverySpeed: 2.5
+  obstacleLayers:
+    serializedVersion: 2
+    m_Bits: 8704
+  obstacleCheckRadius: 2
+  recoveryDistance: 1.5
+  maxRecoveryTime: 3
+  escapeDirectionSamples: 16
+  cooldownAfterRecovery: 2
+  debugLogs: 0
+  debugGizmos: 0
+--- !u!114 &2955249166854479478
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 124898646003009457}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dd6a08ff8cd4ace4aacdee624f3bb04e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AICharacterSound
-  behaviorManager: {fileID: 7814527345188295018}
+  behaviorManager: {fileID: 0}
   defaultSoundName: 
   defaultInterval: 2
   defaultMode: 1

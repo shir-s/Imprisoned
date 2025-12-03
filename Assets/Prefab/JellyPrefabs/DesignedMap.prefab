@@ -1571,6 +1571,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 6477826315957487351}
   - {fileID: 5795236925619608603}
   - {fileID: 3637524424366854386}
   - {fileID: 673845438507482211}
@@ -1618,7 +1619,6 @@ Transform:
   - {fileID: 7865779001371263756}
   - {fileID: 5109276630335907929}
   - {fileID: 4875507027771777050}
-  - {fileID: 6477826315957487351}
   m_Father: {fileID: 7047618197199369291}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &812497083107514385
@@ -5587,8 +5587,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.8667575, y: 3.4589298, z: 0.24799062}
-  m_Center: {x: 0.0000076293945, y: 0, z: -0.0000038146973}
+  m_Size: {x: 1.8667575, y: 3.4589298, z: 0.45769083}
+  m_Center: {x: 0.000007567405, y: 7.98721e-24, z: 0.2600092}
 --- !u!114 &1723521415917282540
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -8284,8 +8284,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.8667575, y: 3.4589298, z: 0.24799062}
-  m_Center: {x: 0, y: 0, z: 0.0000038146973}
+  m_Size: {x: 1.8667575, y: 3.4589298, z: 0.64479715}
+  m_Center: {x: 0.000000047303946, y: 0, z: 0.19840722}
 --- !u!114 &6234249331884220585
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10608,7 +10608,7 @@ MonoBehaviour:
   leftPart: {fileID: 6328686678815521717}
   rightPart: {fileID: 8044989155111802870}
   openOffset: -2
-  closedOffset: 1
+  closedOffset: 0
   cycleDuration: 2
   dangerStart: 0.3
   dangerEnd: 0.7
@@ -12515,6 +12515,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 4529005985621706853}
   - {fileID: 1769382147076672775}
   - {fileID: 2198024248418447159}
   - {fileID: 7802752219931446861}
@@ -12562,7 +12563,6 @@ Transform:
   - {fileID: 6451352025732282266}
   - {fileID: 7048254010223077262}
   - {fileID: 3175317250323052027}
-  - {fileID: 4529005985621706853}
   m_Father: {fileID: 7047618197199369291}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7942806122903797270

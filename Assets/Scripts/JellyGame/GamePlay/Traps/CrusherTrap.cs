@@ -8,6 +8,7 @@ using UnityEngine;
 /// <summary>
 /// Moves two parts of a crusher trap in and out in a constant rhythm,
 /// and can crush objects that are simultaneously touching both sides.
+/// After a successful crush the trap closes fully and stays closed.
 /// </summary>
 public class CrusherTrap : MonoBehaviour
 {
@@ -54,20 +55,28 @@ public class CrusherTrap : MonoBehaviour
 
     Vector3 leftBaseLocalPos;
     Vector3 rightBaseLocalPos;
+    float currentOffset;
 
     // מי נוגע בכל צד כרגע
     readonly HashSet<Collider> leftContacts  = new HashSet<Collider>();
     readonly HashSet<Collider> rightContacts = new HashSet<Collider>();
 
+    // האם המלכודת כבר "ננעלה" אחרי מחיצה
+    bool isDeactivated = false;
+
     void Awake()
     {
         leftBaseLocalPos  = leftPart.localPosition;
         rightBaseLocalPos = rightPart.localPosition;
+
+        currentOffset = openOffset;
+        ApplyCurrentOffset();
     }
 
     void Update()
     {
-        if (cycleDuration <= 0f) return;
+        if (cycleDuration <= 0f || isDeactivated)
+            return;
 
         // t: 0→1→0→1…
         float t = Mathf.PingPong(Time.time / (cycleDuration * 0.5f), 1f);
@@ -76,12 +85,17 @@ public class CrusherTrap : MonoBehaviour
         float targetClosedOffset = Mathf.Lerp(openOffset, closedOffset, depth01);
 
         // האנימציה זזה בין פתוח לגובה הסגירה שנקבע ע"י depth01
-        float currentOffset = Mathf.Lerp(openOffset, targetClosedOffset, t);
-
-        leftPart.localPosition  = leftBaseLocalPos  + Vector3.left  * currentOffset;
-        rightPart.localPosition = rightBaseLocalPos + Vector3.right * currentOffset;
+        currentOffset = Mathf.Lerp(openOffset, targetClosedOffset, t);
 
         IsDangerPhase = (t >= dangerStart && t <= dangerEnd);
+
+        ApplyCurrentOffset();
+    }
+
+    void ApplyCurrentOffset()
+    {
+        leftPart.localPosition  = leftBaseLocalPos  + Vector3.left  * currentOffset;
+        rightPart.localPosition = rightBaseLocalPos + Vector3.right * currentOffset;
     }
 
     /// <summary>
@@ -90,6 +104,32 @@ public class CrusherTrap : MonoBehaviour
     public void SetDepth01(float value)
     {
         Depth01 = value;
+    }
+
+    /// <summary>
+    /// Called once after a successful crush: stop motion, close fully and stay closed.
+    /// </summary>
+    void DeactivateTrap()
+    {
+        if (isDeactivated)
+            return;
+
+        isDeactivated = true;
+
+        // לא מסוכן יותר (לא אמורות להיות מחיצות נוספות)
+        IsDangerPhase = false;
+
+        // מנקים מגעים קיימים
+        leftContacts.Clear();
+        rightContacts.Clear();
+
+        // סוגרים לגמרי לפי עומק
+        float targetClosedOffset = Mathf.Lerp(openOffset, closedOffset, depth01);
+        currentOffset = targetClosedOffset;
+        ApplyCurrentOffset();
+
+        // אם את רוצה גם להפסיק לגמרי את ה-Update:
+        // enabled = false;
     }
 
     // נקראות מהטריגרים שבצדדים
@@ -113,12 +153,17 @@ public class CrusherTrap : MonoBehaviour
 
     void TryCrush(Collider col)
     {
+        if (isDeactivated)
+            return;
+
         // חייבים להיות גם בשמאל וגם בימין
         if (!leftContacts.Contains(col) || !rightContacts.Contains(col))
             return;
 
         if (!IsDangerPhase)
             return;
+
+        bool crushedSomething = false;
 
         // מחפש קומפוננטת חיים על האובייקט או ההורה שלו
         var playerHealth = col.GetComponentInParent<PlayerHealth>();
@@ -128,16 +173,26 @@ public class CrusherTrap : MonoBehaviour
                 playerHealth.Kill();
             else
                 playerHealth.TakeDamage(playerDamage);
-            return;
+
+            crushedSomething = true;
+        }
+        else
+        {
+            var enemyHealth = col.GetComponentInParent<EnemyHealth>();
+            if (enemyHealth != null && enemyHealth.CurrentHealth > 0)
+            {
+                if (killEnemyInstantly)
+                    enemyHealth.Kill();
+                else
+                    enemyHealth.TakeDamage(enemyDamage);
+
+                crushedSomething = true;
+            }
         }
 
-        var enemyHealth = col.GetComponentInParent<EnemyHealth>();
-        if (enemyHealth != null && enemyHealth.CurrentHealth > 0)
+        if (crushedSomething)
         {
-            if (killEnemyInstantly)
-                enemyHealth.Kill();
-            else
-                enemyHealth.TakeDamage(enemyDamage);
+            DeactivateTrap();
         }
     }
 
