@@ -7,7 +7,7 @@ using System;
 /// Enable debugLogs and watch the Console to see what's happening.
 /// </summary>
 [DisallowMultipleComponent]
-public class AttackBehavior : MonoBehaviour, IEnemyBehavior
+public class AttackBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
 {
     [Serializable]
     public struct TargetLayerPriority
@@ -82,6 +82,29 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
     [Header("Debug")]
     [SerializeField] private bool debugLogs = true;  // Default to TRUE
     [SerializeField] private bool debugGizmos = true;
+    
+    [Header("Sound")]
+    [Tooltip("If disabled, this behavior will not produce any sound.")]
+    [SerializeField] private bool enableSound = true;
+
+    [Tooltip("How the sound for this behavior should be played.\nNone = no sound even if enableSound is true.")]
+    [SerializeField] private SoundPlaybackMode soundMode = SoundPlaybackMode.OnEnterLoop;
+
+    [Tooltip("Base interval in seconds (used for FixedInterval and as MIN for RandomInterval).")]
+    [SerializeField] private float soundInterval = 0.7f;
+
+    [Tooltip("MAX interval (seconds) for RandomInterval mode. Ignored for other modes.")]
+    [SerializeField] private float maxRandomInterval = 1.2f;
+
+    [Tooltip("Name of the sound to play for this behavior (must exist in AudioSettings).")]
+    [SerializeField] private string soundName = "EnemyAttack";
+
+    [Tooltip("If true, use custom volume instead of default from AudioSettings.")]
+    [SerializeField] private bool useCustomVolume = false;
+
+    [Tooltip("Custom volume (0..1) when useCustomVolume is enabled.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float soundVolume = 1f;
 
     private Transform _currentTarget;
     private Collider _currentTargetCollider;
@@ -762,6 +785,70 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         _currentTargetPriority = int.MinValue;
         _currentTargetAttackRadius = attackRadius;
     }
+    
+    // --------------------------------------------------------
+    // IEnemySound
+    // --------------------------------------------------------
+
+    /// <summary>
+    /// How should sound be played while this behavior is active?
+    /// If enableSound is false, returns None to completely mute this behavior.
+    /// </summary>
+    public SoundPlaybackMode GetSoundMode()
+    {
+        if (!enableSound)
+            return SoundPlaybackMode.None;
+
+        return soundMode;
+    }
+
+    /// <summary>
+    /// Base interval for FixedInterval and MIN interval for RandomInterval.
+    /// </summary>
+    public float GetSoundInterval()
+    {
+        return soundInterval;
+    }
+
+    /// <summary>
+    /// MAX interval for RandomInterval mode.
+    /// </summary>
+    public float GetMaxSoundInterval()
+    {
+        return maxRandomInterval;
+    }
+
+    /// <summary>
+    /// Name of the sound to play. If sound is disabled, returns null.
+    /// </summary>
+    public string GetSoundName()
+    {
+        if (!enableSound)
+            return null;
+
+        return soundName;
+    }
+
+    /// <summary>
+    /// Optional custom volume for this behavior.
+    /// </summary>
+    public float GetSoundVolume()
+    {
+        if (!enableSound)
+            return -1f;
+
+        return useCustomVolume ? soundVolume : -1f;
+    }
+
+    /// <summary>
+    /// Only play sound while we actually have a valid target.
+    /// Lets you toggle sound in inspector and avoids idle attack sounds.
+    /// </summary>
+    public bool ShouldPlaySound()
+    {
+        return enableSound && _currentTarget != null;
+    }
+
 
     // --------------------------------------------------------
     // Gizmos
