@@ -17,12 +17,17 @@ GameObject:
   - component: {fileID: 2314850770022543249}
   - component: {fileID: 1558133357534088690}
   - component: {fileID: 2883896336634138054}
-  - component: {fileID: 2523794048035890911}
   - component: {fileID: 2463429873015552788}
   - component: {fileID: 4148614733988395559}
   - component: {fileID: 953310700036890121}
   - component: {fileID: -3301710990218042283}
   - component: {fileID: 6158964790517734281}
+  - component: {fileID: 2580086825652719394}
+  - component: {fileID: -6770147162634958670}
+  - component: {fileID: -2474602075988917771}
+  - component: {fileID: 7739526055780409110}
+  - component: {fileID: -7444170565681963680}
+  - component: {fileID: -2099077964787412294}
   m_Layer: 7
   m_Name: DrawingCube
   m_TagString: DrawingCube
@@ -130,9 +135,9 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
   serializedVersion: 5
-  m_Mass: 1
+  m_Mass: 50
   m_LinearDamping: 0
-  m_AngularDamping: 0.05
+  m_AngularDamping: 0.15
   m_CenterOfMass: {x: 0, y: 0, z: 0}
   m_InertiaTensor: {x: 1, y: 1, z: 1}
   m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
@@ -167,7 +172,7 @@ MonoBehaviour:
   accel: 12
   maxHorizontalSpeed: 6
   idleDamp: 8
-  tintWhenSelected: 1
+  tintWhenSelected: 0
   selectedTint: {r: 1, g: 0.9, b: 0.25, a: 1}
 --- !u!114 &2314850770022543249
 MonoBehaviour:
@@ -187,7 +192,7 @@ MonoBehaviour:
   useRigidbodyVelocity: 1
   shrinkAxis: 1
   anchorNegativeEnd: 1
-  minAxisScale: 0.01
+  minAxisScale: 0.1
   drawEnabled: 1
   surfaceMask:
     serializedVersion: 2
@@ -195,8 +200,9 @@ MonoBehaviour:
   groundCheckPadding: 0.5
   destroyWhenFullyWorn: 1
   triggerCubeDestroyedEvent: 1
-  logWear: 1
+  logWear: 0
   debugGroundCheck: 0
+  adjustPositionToAnchor: 0
 --- !u!114 &1558133357534088690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,13 +210,13 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f050c55caf79082449ed56d54c5d36fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ExtraDownForce
-  extraGravity: 1500
-  rayDistance: 1
+  extraGravity: 80
+  rayDistance: 10
   groundMask:
     serializedVersion: 2
     m_Bits: 64
@@ -226,36 +232,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 966aaab7052887c4da41c7be47038afe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MovementPaintController
-  minStepDistance: 0.001
+  minStepDistance: 0.0001
   maxSegmentLength: 0.01
   maxSegmentsPerFrame: 12
-  useAllPainters: 0
-  activePainterIndex: 1
+  useAllPainters: 1
+  activePainterIndex: 0
   logSteps: 0
---- !u!114 &2523794048035890911
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ad608a403bf072e4da52d14c44a2b44f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailPainter
-  surfaceMask:
-    serializedVersion: 2
-    m_Bits: 64
-  rayDistance: 2
-  useWorldDown: 1
-  strokeMaterial: {fileID: 2100000, guid: 6ac3d290fd33f514ba43cc8123fd01ff, type: 2}
-  strokeColor: {r: 0, g: 0, b: 0, a: 1}
-  strokeDiameter: 1
-  strokeLift: 0.003
-  minPointSpacing: 0.0015
-  stampDotOnStart: 1
-  debugRays: 0
 --- !u!114 &2463429873015552788
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -271,17 +253,17 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 2
+  rayDistance: 5
   useWorldDown: 1
   brushBlitMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
   brushSourceTexProperty: _MainTex
   fallbackHalfSizeUV: 0.02
   sizeWorldMultiplier: 1.5
   brushHardness: 0.5
-  opacityPerMeter: 0.75
+  opacityPerMeter: 0.85
   brushColor: {r: 0, g: 0, b: 0, a: 1}
   minWorldStep: 0
-  debugRays: 1
+  debugRays: 0
 --- !u!82 &4148614733988395559
 AudioSource:
   m_ObjectHideFlags: 0
@@ -410,7 +392,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UprightRigidbodyConstraints
   freezeAllRotation: 0
-  zeroAngularVelocity: 1
+  zeroAngularVelocity: 0
   limitLinearSpeed: 1
   maxLinearSpeed: 40
   limitAngularSpeed: 1
@@ -422,7 +404,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6460519158208371866}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d862027d2fb8d0e4493b06bb28992dd9, type: 3}
   m_Name: 
@@ -430,10 +412,131 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  searchDistance: 0.5
+  surfaceOffset: 0.005
+  extraSearchDistance: 0.2
+  drawDebug: 0
+--- !u!114 &2580086825652719394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06eb9948aaee43de952e4f2f175a8078, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SurfaceAlignAndSlide
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  extraSearchDistance: 0.3
   surfaceOffset: 0.001
-  floatTolerance: 0.001
-  maxCorrectionPerStep: 0.02
-  dampAwayFromSurfaceVelocity: 1
-  awayVelocityDamp: 1
-  drawDebugRays: 0
+  planeSeparation: 0
+  alignSpeed: 10
+  snapRotation: 0
+  enableDownhillSliding: 1
+  downhillTurnSpeed: 8
+  drawDebug: 0
+--- !u!114 &-6770147162634958670
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f1c4fd8be3cb4c41abfb20757c814f2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailAnalyzer
+  closureMaxDistance: 0.6
+  minLoopIndexSeparation: 10
+  minCornerSeparationMeters: 5
+  debugLoop: 1
+  debugLoopVerbose: 0
+--- !u!114 &-2474602075988917771
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d116d55f8d07d0e47813ce995468ebbf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RectangleShapeDetector
+  rectangleMinPerimeter: 0.3
+  rectangleMaxPerimeter: 1000
+  rectangleMinSideLength: 0.01
+  rectangleMaxAspectRatio: 4
+  requiredCornerClusters: 4
+  minSharpCornerClusters: 4
+  rampPrefab: {fileID: 2156941403158890620, guid: 17cc6528ae26ca64bab548dfea97d9c1, type: 3}
+  rampHeightOffset: 0.01
+  rampTiltAngleDeg: 45
+  scaleRampToRectangle: 1
+  debugShapes: 1
+--- !u!114 &7739526055780409110
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9af267a14e5cf1f4a8255873402cb376, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailRecorder
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 64
+  rayDistance: 5
+  useWorldDown: 1
+  minSampleDistance: 1
+  maxHistoryLength: 300
+  maxHistoryPoints: 1000
+  debugRays: 0
+  debugSampleNormals: 0
+--- !u!114 &-7444170565681963680
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8665c6751acf0e445a624a0a80097778, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailVisualizer
+  recorder: {fileID: 7739526055780409110}
+  crossingDetector: {fileID: -2099077964787412294}
+  normalColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  smallTurnColor: {r: 0, g: 1, b: 0, a: 1}
+  mediumTurnColor: {r: 1, g: 0, b: 1, a: 1}
+  sharpTurnColor: {r: 1, g: 0, b: 0, a: 1}
+  crossingSmallColor: {r: 0, g: 1, b: 0, a: 1}
+  crossingMediumColor: {r: 1, g: 0, b: 1, a: 1}
+  crossingSharpColor: {r: 1, g: 0, b: 0, a: 1}
+  pointRadius: 0.3
+--- !u!114 &-2099077964787412294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6460519158208371866}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a1d39703e80d6d4ebbd0fe399d477c1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StrokeCrossingDetector
+  recorder: {fileID: 7739526055780409110}
+  crossingRadius: 0.8
+  minIndexSeparation: 3
+  directionWindow: 2
+  parallelAngleMax: 15
+  debugCrossings: 1
