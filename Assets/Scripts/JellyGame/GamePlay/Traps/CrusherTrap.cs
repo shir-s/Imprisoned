@@ -19,7 +19,7 @@ public class CrusherTrap : MonoBehaviour
     [Tooltip("Local offset from center when the trap is fully OPEN.")]
     [SerializeField] private float openOffset = 1.0f;
 
-    [Tooltip("Local offset from center when the trap is fully CLOSED.")]
+    [Tooltip("Local offset from center when the trap is fully CLOSED (max depth).")]
     [SerializeField] private float closedOffset = 0.2f;
 
     [Tooltip("Seconds for a full open→close→open cycle.")]
@@ -28,8 +28,14 @@ public class CrusherTrap : MonoBehaviour
     [Tooltip("0..1 range within the cycle where the trap can crush.")]
     [Range(0f, 1f)]
     [SerializeField] private float dangerStart = 0.3f;
+
     [Range(0f, 1f)]
     [SerializeField] private float dangerEnd = 0.7f;
+
+    [Header("Depth")]
+    [Tooltip("0 = almost not closing, 1 = full closedOffset. Can be changed from other scripts.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float depth01 = 1f;
 
     [Header("Crush Settings")]
     [SerializeField] private bool killPlayerInstantly = true;
@@ -39,6 +45,12 @@ public class CrusherTrap : MonoBehaviour
     [SerializeField] private int enemyDamage = 9999;
 
     public bool IsDangerPhase { get; private set; }
+
+    public float Depth01
+    {
+        get => depth01;
+        set => depth01 = Mathf.Clamp01(value);
+    }
 
     Vector3 leftBaseLocalPos;
     Vector3 rightBaseLocalPos;
@@ -60,12 +72,24 @@ public class CrusherTrap : MonoBehaviour
         // t: 0→1→0→1…
         float t = Mathf.PingPong(Time.time / (cycleDuration * 0.5f), 1f);
 
-        float currentOffset = Mathf.Lerp(openOffset, closedOffset, t);
+        // עומק הסגירה בפועל: בין openOffset ל-closedOffset לפי depth01
+        float targetClosedOffset = Mathf.Lerp(openOffset, closedOffset, depth01);
+
+        // האנימציה זזה בין פתוח לגובה הסגירה שנקבע ע"י depth01
+        float currentOffset = Mathf.Lerp(openOffset, targetClosedOffset, t);
 
         leftPart.localPosition  = leftBaseLocalPos  + Vector3.left  * currentOffset;
         rightPart.localPosition = rightBaseLocalPos + Vector3.right * currentOffset;
 
         IsDangerPhase = (t >= dangerStart && t <= dangerEnd);
+    }
+
+    /// <summary>
+    /// Set how deep the crusher closes (0..1).
+    /// </summary>
+    public void SetDepth01(float value)
+    {
+        Depth01 = value;
     }
 
     // נקראות מהטריגרים שבצדדים
