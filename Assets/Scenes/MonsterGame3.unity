@@ -804,13 +804,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &26598999
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -1996,13 +2001,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &64824916
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -2250,13 +2260,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &67803744
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -11037,13 +11052,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &285512379
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -12780,13 +12800,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &378987339
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -13638,13 +13663,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &437120386
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -16058,13 +16088,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &598891714
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -18977,13 +19012,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &742559093
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -19434,13 +19474,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &780491505
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -19729,13 +19774,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &780614931
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -28530,13 +28580,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1057786117
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -29033,13 +29088,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1075134783
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -29460,13 +29520,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1100323064
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -30171,13 +30236,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1140908930
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -31193,7 +31263,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 8f147f2184d0b4d8a9492c852fd88960, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -40325,13 +40395,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1489173442
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -47060,13 +47135,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1632343570
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -61338,13 +61418,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &1984842755
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -61911,13 +61996,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &2071750262
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -62543,13 +62633,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &2092681182
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -62838,13 +62933,18 @@ MonoBehaviour:
   surfaceOffset: 1
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!136 &2115664928
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -63631,7 +63731,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8f147f2184d0b4d8a9492c852fd88960, type: 2}
+  - {fileID: 2100000, guid: ac268c37cde83f54c9ea3001ed2b31e5, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -63928,13 +64028,18 @@ MonoBehaviour:
   surfaceOffset: 0
   rayDistance: 5
   alignRotationToTray: 1
+  ySmoothTime: 0.1
+  validateTrayHit: 1
   useLocalBounds: 1
   minLocalX: -0.495
   maxLocalX: 0.495
   minLocalZ: -0.495
   maxLocalZ: 0.495
+  fallbackMode: 0
+  upwardRayDistance: 10
   debugRays: 0
   debugBoundsGizmos: 0
+  debugLogs: 0
 --- !u!1 &6354224985629386687
 GameObject:
   m_ObjectHideFlags: 0
