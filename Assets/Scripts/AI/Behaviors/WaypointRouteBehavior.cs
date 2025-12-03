@@ -18,7 +18,7 @@ using UnityEngine;
 ///   → So avoidance can bend the path, but never flip it or send it far away.
 /// </summary>
 [DisallowMultipleComponent]
-public class WaypointRouteBehavior : MonoBehaviour, IEnemyBehavior
+public class WaypointRouteBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
 {
     [Header("Behavior Priority")]
     [Tooltip("Higher value = higher priority. Route travel is usually above Wander but below Attack etc.")]
@@ -79,6 +79,95 @@ public class WaypointRouteBehavior : MonoBehaviour, IEnemyBehavior
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
     [SerializeField] private bool debugGizmos = false;
+    
+    // NEW FIELDS (put before [Header("Debug")])
+    [Header("Sound")]
+    [Tooltip("If disabled, this behavior will not produce any sound.")]
+    [SerializeField] private bool enableSound = true;
+
+    [Tooltip("How the sound for this behavior should be played.\nNone = no sound even if enableSound is true.")]
+    [SerializeField] private SoundPlaybackMode soundMode = SoundPlaybackMode.RandomInterval;
+
+    [Tooltip("Base interval in seconds (used for FixedInterval and as MIN for RandomInterval).")]
+    [SerializeField] private float soundInterval = 2.5f;
+
+    [Tooltip("MAX interval (seconds) for RandomInterval mode. Ignored for other modes.")]
+    [SerializeField] private float maxRandomInterval = 5.0f;
+
+    [Tooltip("Name of the sound to play for this behavior (must exist in AudioSettings).")]
+    [SerializeField] private string soundName = "EnemyRoute";
+
+    [Tooltip("If true, use custom volume instead of default from AudioSettings.")]
+    [SerializeField] private bool useCustomVolume = false;
+
+    [Tooltip("Custom volume (0..1) when useCustomVolume is enabled.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float soundVolume = 1f;
+
+    // NEW: IEnemySound implementation (add near the bottom, before #if UNITY_EDITOR)
+    // -------------------------------------------------
+    // IEnemySound
+    // -------------------------------------------------
+
+    /// <summary>
+    /// How should sound be played while this behavior is active?
+    /// If enableSound is false, returns None to completely mute this behavior.
+    /// </summary>
+    public SoundPlaybackMode GetSoundMode()
+    {
+        if (!enableSound)
+            return SoundPlaybackMode.None;
+
+        return soundMode;
+    }
+
+    /// <summary>
+    /// Base interval for FixedInterval and MIN interval for RandomInterval.
+    /// </summary>
+    public float GetSoundInterval()
+    {
+        return soundInterval;
+    }
+
+    /// <summary>
+    /// MAX interval for RandomInterval mode.
+    /// </summary>
+    public float GetMaxSoundInterval()
+    {
+        return maxRandomInterval;
+    }
+
+    /// <summary>
+    /// Name of the sound to play. If sound is disabled, returns null.
+    /// </summary>
+    public string GetSoundName()
+    {
+        if (!enableSound)
+            return null;
+
+        return soundName;
+    }
+
+    /// <summary>
+    /// Optional custom volume for this behavior.
+    /// </summary>
+    public float GetSoundVolume()
+    {
+        if (!enableSound)
+            return -1f;
+
+        return useCustomVolume ? soundVolume : -1f;
+    }
+
+    /// <summary>
+    /// Only play sound while we are actively traveling between waypoints.
+    /// Avoids spamming sound during idle / local wandering.
+    /// </summary>
+    public bool ShouldPlaySound()
+    {
+        return enableSound && _state == State.TravelingToWaypoint;
+    }
+
 
     private enum State
     {

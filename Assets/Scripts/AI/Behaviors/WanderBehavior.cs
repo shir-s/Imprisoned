@@ -18,7 +18,7 @@ using UnityEngine;
 /// behavior that can activate, the controller will use this one.
 /// </summary>
 [DisallowMultipleComponent]
-public class WanderBehavior : MonoBehaviour, IEnemyBehavior
+public class WanderBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
 {
     [Header("Behavior Priority")]
     [Tooltip("Higher value = higher priority. Wander is usually the lowest (e.g. 0).")]
@@ -55,6 +55,93 @@ public class WanderBehavior : MonoBehaviour, IEnemyBehavior
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
     [SerializeField] private bool debugGizmos = false;
+    
+    [Header("Sound")]
+    [Tooltip("If disabled, this behavior will not produce any sound.")]
+    [SerializeField] private bool enableSound = true;
+
+    [Tooltip("How the sound for this behavior should be played.\nNone = no sound even if enableSound is true.")]
+    [SerializeField] private SoundPlaybackMode soundMode = SoundPlaybackMode.RandomInterval;
+
+    [Tooltip("Base interval in seconds (used for FixedInterval and as MIN for RandomInterval).")]
+    [SerializeField] private float soundInterval = 3.0f;
+
+    [Tooltip("MAX interval (seconds) for RandomInterval mode. Ignored for other modes.")]
+    [SerializeField] private float maxRandomInterval = 6.0f;
+
+    [Tooltip("Name of the sound to play for this behavior (must exist in AudioSettings).")]
+    [SerializeField] private string soundName = "EnemyWander";
+
+    [Tooltip("If true, use custom volume instead of default from AudioSettings.")]
+    [SerializeField] private bool useCustomVolume = false;
+
+    [Tooltip("Custom volume (0..1) when useCustomVolume is enabled.")]
+    [Range(0f, 1f)]
+    [SerializeField] private float soundVolume = 1f;
+
+    // --------------------------------------------------------
+    // IEnemySound
+    // --------------------------------------------------------
+
+    /// <summary>
+    /// How should sound be played while this behavior is active?
+    /// If enableSound is false, returns None to completely mute this behavior.
+    /// </summary>
+    public SoundPlaybackMode GetSoundMode()
+    {
+        if (!enableSound)
+            return SoundPlaybackMode.None;
+
+        return soundMode;
+    }
+
+    /// <summary>
+    /// Base interval for FixedInterval and MIN interval for RandomInterval.
+    /// </summary>
+    public float GetSoundInterval()
+    {
+        return soundInterval;
+    }
+
+    /// <summary>
+    /// MAX interval for RandomInterval mode.
+    /// </summary>
+    public float GetMaxSoundInterval()
+    {
+        return maxRandomInterval;
+    }
+
+    /// <summary>
+    /// Name of the sound to play. If sound is disabled, returns null.
+    /// </summary>
+    public string GetSoundName()
+    {
+        if (!enableSound)
+            return null;
+
+        return soundName;
+    }
+
+    /// <summary>
+    /// Optional custom volume for this behavior.
+    /// </summary>
+    public float GetSoundVolume()
+    {
+        if (!enableSound)
+            return -1f;
+
+        return useCustomVolume ? soundVolume : -1f;
+    }
+
+    /// <summary>
+    /// Only play sound while we actually have some wander direction.
+    /// Lets you toggle sound in inspector and avoids playing when idle.
+    /// </summary>
+    public bool ShouldPlaySound()
+    {
+        return enableSound && _wanderDir.sqrMagnitude > 1e-4f;
+    }
+
 
     // Internal state
     private Vector3 _wanderDir;
