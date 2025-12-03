@@ -1,14 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// Keeps an enemy "stuck" to a tilted tray, similar to the cube:
-/// - Rays toward the tray each frame.
-/// - Snaps position to the tray surface + a small offset.
-/// - Optionally aligns rotation so enemy up == tray.up.
-/// - Optionally constrains the enemy inside a rectangular region
-///   in tray-local XZ (so it can't leave the map).
-///
-/// Attach this to the enemy along with StrokeTrailFollowerAI.
+/// FIXED VERSION: Keeps an enemy "stuck" to a tilted tray BUT respects movement
+/// from behaviors (like AttackBehavior).
+/// 
+/// The fix: Instead of raycasting from the current position (which may have just been
+/// updated by AttackBehavior), we first let the behavior move the enemy, THEN we raycast
+/// from the NEW position to stick it to the tray surface at that XZ location.
+/// 
+/// This way:
+/// - AttackBehavior (or any behavior) moves the enemy in XZ
+/// - EnemyTrayStick adjusts the Y position to keep it on the tray surface
+/// - The enemy can move freely while staying stuck to the tray
 /// </summary>
 [DisallowMultipleComponent]
 public class EnemyTrayStick : MonoBehaviour
@@ -59,16 +62,30 @@ public class EnemyTrayStick : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// CRITICAL FIX: We now respect the position that was set by behaviors in Update().
+    /// We only adjust Y and clamp to bounds, we don't override the XZ movement.
+    /// </summary>
     private void LateUpdate()
     {
         if (!tray)
             return;
 
         Vector3 trayUp = tray.up;
+        
+        // IMPORTANT: Use CURRENT position (which may have just been updated by AttackBehavior)
+        // as the starting point for our raycast, not some previous position
+        Vector3 currentPos = transform.position;
 
-        // Start ray a bit above current position (along tray up),
-        // and cast in -trayUp direction toward the surface.
-        Vector3 origin = transform.position + trayUp * (rayDistance * 0.5f);
+        // Clamp XZ to bounds FIRST (before raycasting) so we don't raycast outside valid area
+        Vector3 clampedPos = currentPos;
+        if (useLocalBounds)
+        {
+            clampedPos = ClampToTrayLocalBounds(currentPos);
+        }
+
+        // Now raycast from ABOVE this clamped XZ position to find tray surface
+        Vector3 origin = clampedPos + trayUp * (rayDistance * 0.5f);
         Vector3 dir = -trayUp;
 
         if (debugRays)
@@ -89,17 +106,21 @@ public class EnemyTrayStick : MonoBehaviour
         }
 
         if (!hitSomething)
-            return;
-
-        // Snap position to tray surface + offset
-        Vector3 targetPos = hit.point + trayUp * surfaceOffset;
-
-        // Clamp inside tray-local bounds if enabled
-        if (useLocalBounds)
         {
-            targetPos = ClampToTrayLocalBounds(targetPos);
+            // No tray found - just clamp to bounds and keep current Y
+            if (useLocalBounds)
+            {
+                Vector3 bounded = ClampToTrayLocalBounds(currentPos);
+                bounded.y = currentPos.y;
+                transform.position = bounded;
+            }
+            return;
         }
 
+        // Snap to tray surface at the clamped XZ location
+        Vector3 targetPos = hit.point + trayUp * surfaceOffset;
+
+        // Final position respects the XZ movement from behaviors, only adjusts Y
         transform.position = targetPos;
 
         if (alignRotationToTray)

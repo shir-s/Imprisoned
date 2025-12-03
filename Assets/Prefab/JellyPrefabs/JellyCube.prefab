@@ -68,7 +68,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: -2474602075988917771, guid: 744b71ca7470a714f80428a636c3de41, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -93,8 +94,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fff1c3aaea9caa64fb7fc561e7f1eadc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CubePlayerKeyboardController
-  moveSpeed: 10
-  fixedY: 1
+  maxSpeed: 8
+  acceleration: 25
+  deceleration: 20
   useBounds: 0
   boundsCenter: {x: 0, y: 0}
   boundsHalfSize: {x: 50, y: 50}

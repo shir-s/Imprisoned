@@ -112,8 +112,17 @@ public class TiltTray : MonoBehaviour
         float v = rawV;
         float h = rawH;
 
+        // Determine if camera-relative input is actually active this frame:
+        // - option enabled
+        // - we have a camera
+        // - that camera is active in the hierarchy
+        bool cameraRelativeThisFrame =
+            useCameraRelativeInput &&
+            inputCamera != null &&
+            inputCamera.gameObject.activeInHierarchy;
+
         // If enabled, reinterpret input relative to a camera's right/forward on the tray plane.
-        if (useCameraRelativeInput && inputCamera != null && (rawV != 0 || rawH != 0))
+        if (cameraRelativeThisFrame && (rawV != 0 || rawH != 0))
         {
             Vector3 trayUp = transform.up;
 
@@ -133,8 +142,12 @@ public class TiltTray : MonoBehaviour
                 float alongForward = Vector3.Dot(desiredDirWorld, transform.forward);
                 float alongRight = Vector3.Dot(desiredDirWorld, transform.right);
 
-                v = alongForward;
-                h = alongRight;
+                // Map to tilt input.
+                // We flip both signs so:
+                //  - pressing Right tilts the tray so the cube moves to camera-right
+                //  - pressing Up   tilts the tray so the cube moves to camera-forward
+                v = -alongForward;
+                h = -alongRight;
             }
             else
             {
@@ -151,7 +164,7 @@ public class TiltTray : MonoBehaviour
         // When using camera-relative input, we want arrows to feel correct
         // from camera POV even if the tray uses inverted axes.
         // So we counteract invertX/invertZ here (effectively ignoring them).
-        if (useCameraRelativeInput && compensateInvertForCamera)
+        if (cameraRelativeThisFrame && compensateInvertForCamera)
         {
             if (invertX) xSign *= -1f;  // -1 -> 1
             if (invertZ) zSign *= -1f;  // -1 -> 1

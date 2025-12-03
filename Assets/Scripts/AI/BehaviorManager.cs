@@ -40,7 +40,11 @@ public class BehaviorManager : MonoBehaviour
     [SerializeField] private bool isFriendlyNpc = false;
 
     [Header("Debug")]
+    [Tooltip("Verbose logging for all behavior manager operations.")]
     [SerializeField] private bool debugLogs = false;
+
+    [Tooltip("If true, logs once each time the active behavior changes (less verbose than debugLogs).")]
+    [SerializeField] private bool logBehaviorSwitch = true;
 
     // Cached behaviors (same GameObject)
     private IEnemyBehavior[] _behaviors;
@@ -53,6 +57,12 @@ public class BehaviorManager : MonoBehaviour
 
     /// <summary>Shortcut to Recorder.History (may be null if recorder is null).</summary>
     public StrokeHistory CurrentHistory => recorder != null ? recorder.History : null;
+
+    /// <summary>The currently active behavior (may be null).</summary>
+    public IEnemyBehavior CurrentBehavior => _currentBehavior;
+
+    /// <summary>Name of the currently active behavior, or "None" if no behavior is active.</summary>
+    public string CurrentBehaviorName => _currentBehavior != null ? _currentBehavior.GetType().Name : "None";
 
     private void Awake()
     {
@@ -81,8 +91,14 @@ public class BehaviorManager : MonoBehaviour
                 Debug.Log($"[BehaviorManager] Current behavior '{_currentBehavior.GetType().Name}' no longer CanActivate() → OnExit().", this);
             }
 
+            string exitingName = _currentBehavior.GetType().Name;
             _currentBehavior.OnExit();
             _currentBehavior = null;
+
+            if (logBehaviorSwitch)
+            {
+                Debug.Log($"[{name}] Behavior: {exitingName} → None", this);
+            }
         }
 
         // 2) Find the best behavior that *can* activate right now.
@@ -117,10 +133,17 @@ public class BehaviorManager : MonoBehaviour
             {
                 // No current → just take the best.
                 _currentBehavior = best;
+                
                 if (debugLogs)
                 {
                     Debug.Log($"[BehaviorManager] No current behavior → OnEnter '{_currentBehavior.GetType().Name}'.", this);
                 }
+
+                if (logBehaviorSwitch)
+                {
+                    Debug.Log($"[{name}] Behavior: None → {_currentBehavior.GetType().Name} (P={_currentBehavior.Priority})", this);
+                }
+
                 _currentBehavior.OnEnter();
             }
             else if (!ReferenceEquals(best, _currentBehavior))
@@ -128,16 +151,24 @@ public class BehaviorManager : MonoBehaviour
                 // There is a current behavior; only switch if new one has strictly higher priority.
                 if (best.Priority > _currentBehavior.Priority)
                 {
+                    string oldName = _currentBehavior.GetType().Name;
+                    int oldPriority = _currentBehavior.Priority;
+
                     if (debugLogs)
                     {
                         Debug.Log(
-                            $"[BehaviorManager] Switching behavior '{_currentBehavior.GetType().Name}'(P={_currentBehavior.Priority}) " +
+                            $"[BehaviorManager] Switching behavior '{oldName}'(P={oldPriority}) " +
                             $"→ '{best.GetType().Name}'(P={best.Priority}).", this);
                     }
 
                     _currentBehavior.OnExit();
                     _currentBehavior = best;
                     _currentBehavior.OnEnter();
+
+                    if (logBehaviorSwitch)
+                    {
+                        Debug.Log($"[{name}] Behavior: {oldName} (P={oldPriority}) → {_currentBehavior.GetType().Name} (P={_currentBehavior.Priority})", this);
+                    }
                 }
                 // If best.Priority <= current.Priority, stay on current behavior.
             }
@@ -148,6 +179,8 @@ public class BehaviorManager : MonoBehaviour
             // No behavior wants control right now.
             if (_currentBehavior != null)
             {
+                string exitingName = _currentBehavior.GetType().Name;
+
                 if (debugLogs)
                 {
                     Debug.Log("[BehaviorManager] No behaviors CanActivate() → exiting current behavior.", this);
@@ -155,6 +188,11 @@ public class BehaviorManager : MonoBehaviour
 
                 _currentBehavior.OnExit();
                 _currentBehavior = null;
+
+                if (logBehaviorSwitch)
+                {
+                    Debug.Log($"[{name}] Behavior: {exitingName} → None (no behaviors can activate)", this);
+                }
             }
         }
 
