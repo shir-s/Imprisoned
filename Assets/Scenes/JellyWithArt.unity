@@ -210,6 +210,12 @@ MonoBehaviour:
   target: {fileID: 0}
   followDistance: 6
   followHeight: 6
+  occlusionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxExtraHeight: 4
+  overheadCheckDistance: 3
+  hardLockCenter: 1
   followSmooth: 10
   lookSmooth: 10
   listenToActiveCubeEvent: 1
@@ -433,8 +439,12 @@ MonoBehaviour:
   - {fileID: 1842931654}
   - {fileID: 1313683924}
   painter: {fileID: 59265998}
-  uvStep: 0.01
+  worldStepSize: 0.05
+  fillHeightTolerance: 0.5
+  maxPointsPerFrame: 300
+  useAsyncFill: 1
   debugPolygon: 0
+  debugFillPoints: 0
 --- !u!114 &59266022
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31680,7 +31690,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -2.87
+      value: -3.3
       objectReference: {fileID: 0}
     - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: m_LocalPosition.z
