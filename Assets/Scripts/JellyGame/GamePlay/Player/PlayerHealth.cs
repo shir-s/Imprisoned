@@ -18,6 +18,7 @@ namespace JellyGame.GamePlay.Player
 
         public void TakeDamage(int amount)
         {
+            print("Player took " + amount + " damage.");
             if (CurrentHealth <= 0) return;
 
             CurrentHealth -= amount;
