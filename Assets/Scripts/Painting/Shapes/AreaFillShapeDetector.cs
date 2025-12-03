@@ -106,19 +106,39 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         surface = null;
         uv = default;
 
+        float bestDistSqr = float.MaxValue;
+        SimplePaintSurface bestSurface = null;
+        Vector2 bestUv = default;
+
         foreach (var s in paintSurfaces)
         {
-            if (s == null) continue;
+            if (s == null) 
+                continue;
 
-            if (s.TryWorldToPaintUV(worldPos, out uv))
+            // Try map world position to UV on this surface
+            if (s.TryWorldToPaintUV(worldPos, out Vector2 candidateUv))
             {
-                surface = s;
-                return true;
+                // Pick the surface whose transform is closest to the world position
+                float distSqr = (s.transform.position - worldPos).sqrMagnitude;
+                if (distSqr < bestDistSqr)
+                {
+                    bestDistSqr = distSqr;
+                    bestSurface = s;
+                    bestUv = candidateUv;
+                }
             }
+        }
+
+        if (bestSurface != null)
+        {
+            surface = bestSurface;
+            uv = bestUv;
+            return true;
         }
 
         return false;
     }
+
 
     private bool IsPointInPolygon(Vector2 p, List<Vector2> poly)
     {
