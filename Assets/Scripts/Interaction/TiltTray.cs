@@ -37,6 +37,13 @@ public class TiltTray : MonoBehaviour
     [SerializeField] private bool invertZ = false;
     [SerializeField] private bool physicsDriven = true;
 
+    [Header("Camera-relative input (for follow camera)")]
+    [Tooltip("If true, arrow keys are interpreted relative to the given camera's right/forward.")]
+    [SerializeField] private bool useCameraRelativeInput = false;
+
+    [Tooltip("Camera whose right/forward are used when camera-relative input is enabled.")]
+    [SerializeField] private Transform inputCamera;
+
     private Rigidbody _rb;
     private Quaternion _baseRot;
     private Vector2 _targetTiltXZ;
@@ -92,8 +99,43 @@ public class TiltTray : MonoBehaviour
 
     private void HandleInput(float dt)
     {
-        int v = (Input.GetKey(upKey) ? 1 : 0) - (Input.GetKey(downKey) ? 1 : 0);
-        int h = (Input.GetKey(rightKey) ? 1 : 0) - (Input.GetKey(leftKey) ? 1 : 0);
+        // Raw input from keys (camera-agnostic).
+        int rawV = (Input.GetKey(upKey) ? 1 : 0) - (Input.GetKey(downKey) ? 1 : 0);
+        int rawH = (Input.GetKey(rightKey) ? 1 : 0) - (Input.GetKey(leftKey) ? 1 : 0);
+
+        float v = rawV;
+        float h = rawH;
+
+        // If enabled, reinterpret input relative to a camera's right/forward on the tray plane.
+        if (useCameraRelativeInput && inputCamera != null && (rawV != 0 || rawH != 0))
+        {
+            Vector3 trayUp = transform.up;
+
+            // Project camera axes onto the tray plane so tilt is always along the surface.
+            Vector3 camRight = Vector3.ProjectOnPlane(inputCamera.right, trayUp).normalized;
+            Vector3 camForward = Vector3.ProjectOnPlane(inputCamera.forward, trayUp).normalized;
+
+            // Desired move direction on the tray, from player's point of view.
+            // Up arrow = "forward from camera", Right arrow = "right from camera".
+            Vector3 desiredDirWorld = camForward * rawV + camRight * rawH;
+
+            if (desiredDirWorld.sqrMagnitude > 0.0001f)
+            {
+                desiredDirWorld.Normalize();
+
+                // Express that direction in the tray's local basis (forward/right).
+                float alongForward = Vector3.Dot(desiredDirWorld, transform.forward);
+                float alongRight = Vector3.Dot(desiredDirWorld, transform.right);
+
+                v = alongForward;
+                h = alongRight;
+            }
+            else
+            {
+                v = 0f;
+                h = 0f;
+            }
+        }
 
         float xSign = invertX ? -1f : 1f;
         float zSign = invertZ ? -1f : 1f;
@@ -104,9 +146,10 @@ public class TiltTray : MonoBehaviour
         _targetTiltXZ.x = Mathf.Clamp(_targetTiltXZ.x, -maxTiltDeg, maxTiltDeg);
         _targetTiltXZ.y = Mathf.Clamp(_targetTiltXZ.y, -maxTiltDeg, maxTiltDeg);
 
-        if (autoRecenter && v == 0)
+        // Recentering is based on whether the player is pressing keys, not the camera mapping.
+        if (autoRecenter && rawV == 0)
             _targetTiltXZ.x = MoveToward(_targetTiltXZ.x, 0f, recenterDegPerSec * dt);
-        if (autoRecenter && h == 0)
+        if (autoRecenter && rawH == 0)
             _targetTiltXZ.y = MoveToward(_targetTiltXZ.y, 0f, recenterDegPerSec * dt);
     }
 
@@ -127,6 +170,28 @@ public class TiltTray : MonoBehaviour
 
     private static float MoveToward(float current, float target, float maxDelta)
         => Mathf.MoveTowards(current, target, maxDelta);
+
+    /// <summary>
+    /// Configure which camera should define "left/right/up" for camera-relative controls.
+    /// Call this from your camera-switch script when toggling between top and follow cameras.
+    /// </summary>
+    public void SetInputCamera(Transform cam, bool enableCameraRelativeInput)
+    {
+        inputCamera = cam;
+        useCameraRelativeInput = enableCameraRelativeInput;
+    }
+
+    public Transform InputCamera
+    {
+        get => inputCamera;
+        set => inputCamera = value;
+    }
+
+    public bool UseCameraRelativeInput
+    {
+        get => useCameraRelativeInput;
+        set => useCameraRelativeInput = value;
+    }
 
     // --------------------------------
     // SELECT / DESELECT (only visual by default)

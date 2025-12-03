@@ -203,4 +203,46 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
             _tempRT = null;
         }
     }
+    
+    // In RenderTextureTrailPainter
+    public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
+    {
+        if (surface == null || brushBlitMaterial == null)
+            return;
+
+        var rt = surface.PaintRT;
+        if (rt == null)
+            return;
+
+        Vector2 halfSizeUV = new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV);
+
+        brushBlitMaterial.SetVector("_BrushCenter",   new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+        brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
+
+        // <<< add this line
+        brushBlitMaterial.SetFloat("_BrushOpacity", 1f);
+        // >>>
+
+        if (_tempRT == null ||
+            _tempRT.width != rt.width ||
+            _tempRT.height != rt.height ||
+            _tempRT.format != rt.format)
+        {
+            if (_tempRT != null)
+                _tempRT.Release();
+
+            _tempRT = new RenderTexture(rt.descriptor);
+            _tempRT.Create();
+        }
+
+        _tempRT.wrapMode = rt.wrapMode;
+        _tempRT.filterMode = rt.filterMode;
+
+        brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
+        Graphics.Blit(rt, _tempRT, brushBlitMaterial);
+        Graphics.Blit(_tempRT, rt);
+    }
+
+
+
 }

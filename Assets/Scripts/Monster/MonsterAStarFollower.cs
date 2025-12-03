@@ -41,13 +41,32 @@ public class MonsterAStarFollower : MonoBehaviour
     private List<Vector3> _currentPathWorld = new List<Vector3>();
     private int _currentPathIndex = 0;
     private float _nextPathTime = 0f;
+    
+    [Header("Surface Sticking")]
+    [SerializeField] private LayerMask surfaceLayers;        // Layers that represent the board/surface
+    [SerializeField] private float surfaceRayHeight = 5f;    // Height above the surface from which to shoot the ray downward
+    [SerializeField] private float alignRotationSpeed = 10f; // How fast to align rotation with the surface normal
 
-    // NEW: cache Rigidbody so we move it in FixedUpdate
+    // --- runtime ---
     private Rigidbody _rb;
+    private Collider _col;
 
     private void Awake()
     {
         _rb = GetComponent<Rigidbody>();
+        _col = GetComponent<Collider>();
+
+        if (_rb != null)
+        {
+            // ✦ Let physics control the Y axis (gravity / vertical motion)
+            _rb.useGravity = true;
+            _rb.isKinematic = false;
+            _rb.interpolation = RigidbodyInterpolation.Interpolate;
+
+            // Prevent the monster from tipping over on its side
+            _rb.constraints = RigidbodyConstraints.FreezeRotationX |
+                              RigidbodyConstraints.FreezeRotationZ;
+        }
     }
 
     private void Reset()
@@ -57,7 +76,7 @@ public class MonsterAStarFollower : MonoBehaviour
     }
 
     // -------------------------------------------------------
-    // UPDATE – רק לוגיקת מטרה ונתיב, בלי להזיז פיזיקה
+    // UPDATE – only target & path logic, no physics movement
     // -------------------------------------------------------
     private void Update()
     {
@@ -79,10 +98,27 @@ public class MonsterAStarFollower : MonoBehaviour
     }
 
     // -------------------------------------------------------
-    // FIXED UPDATE – תנועה בפיזיקה
+    // FIXED UPDATE – physics movement
     // -------------------------------------------------------
     private void FixedUpdate()
     {
+        if (_rb != null)
+        {
+            // 💡 Here we "lock" physics on the X,Z axes:
+            // We allow only Y velocity (gravity / collisions with the board)
+#if UNITY_6000_0_OR_NEWER    // if you're on a Unity version that has linearVelocity
+            Vector3 v = _rb.linearVelocity;
+            v.x = 0f;
+            v.z = 0f;
+            _rb.linearVelocity = v;
+#else
+            Vector3 v = _rb.velocity;
+            v.x = 0f;
+            v.z = 0f;
+            _rb.velocity = v;
+#endif
+        }
+
         FollowPathPhysics(Time.fixedDeltaTime);
     }
 
@@ -97,11 +133,13 @@ public class MonsterAStarFollower : MonoBehaviour
         if (_currentPathIndex < 0 || _currentPathIndex >= _currentPathWorld.Count)
             return;
 
-        Vector3 targetPos = _currentPathWorld[_currentPathIndex];
         Vector3 pos = _rb.position;
+        Vector3 targetPos = _currentPathWorld[_currentPathIndex];
 
-        Vector3 to = targetPos - pos;
-        to.y = 0f; // move only in XZ plane
+        // Move only in the horizontal plane (XZ)
+        Vector3 flatFrom = new Vector3(pos.x, 0f, pos.z);
+        Vector3 flatTo   = new Vector3(targetPos.x, 0f, targetPos.z);
+        Vector3 to       = flatTo - flatFrom;
 
         float dist = to.magnitude;
         if (dist < arriveThreshold)
@@ -117,15 +155,25 @@ public class MonsterAStarFollower : MonoBehaviour
         if (step > dist)
             step = dist;
 
-        Vector3 newPos = pos + dir * step;
+        // XZ follow A*, Y is controlled by physics
+        Vector3 newPos = new Vector3(
+            pos.x + dir.x * step,
+            pos.y,                  // Y stays as determined by physics
+            pos.z + dir.z * step
+        );
 
-        // Move via Rigidbody so SurfaceAlignAndSlide יכול לתקן גובה וכיוון
+        // Before moving – sync rotation to the surface
+        newPos = StickToSurface(newPos, dt);
+
+        // Move via Rigidbody
         _rb.MovePosition(newPos);
 
-        // Optional: face movement direction
+        // Rotate to face movement direction along the surface
         if (dir.sqrMagnitude > 0.001f)
         {
-            transform.forward = dir;
+            Vector3 projectedForward = Vector3.ProjectOnPlane(dir, transform.up).normalized;
+            if (projectedForward.sqrMagnitude > 0.001f)
+                transform.forward = projectedForward;
         }
     }
 
@@ -146,7 +194,7 @@ public class MonsterAStarFollower : MonoBehaviour
     }
 
     // -------------------------------------------------------
-    // PATHFINDING (נשאר כמו שהיה)
+    // PATHFINDING (unchanged)
     // -------------------------------------------------------
     private void RecalculatePath()
     {
@@ -194,7 +242,7 @@ public class MonsterAStarFollower : MonoBehaviour
         {
             if (trailGrid.GridToWorld(cell.x, cell.y, out Vector3 wp))
             {
-                // Y will be adjusted by SurfaceAlignAndSlide anyway
+                // Y comes from physics, so we don't care here
                 wp.y = transform.position.y;
                 _currentPathWorld.Add(wp);
             }
@@ -339,4 +387,33 @@ public class MonsterAStarFollower : MonoBehaviour
         }
     }
 #endif
+    
+    private Vector3 StickToSurface(Vector3 tentativePos, float dt)
+    {
+        if (surfaceLayers.value == 0 || _rb == null)
+            return tentativePos;
+
+        Vector3 rayOrigin = tentativePos + Vector3.up * surfaceRayHeight;
+
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, surfaceRayHeight * 2f, surfaceLayers))
+        {
+            // Here we do NOT change the Y position (it stays driven by physics),
+            // we only align the rotation to match the surface normal.
+            Quaternion currentRot = transform.rotation;
+            Quaternion targetRot = Quaternion.FromToRotation(transform.up, hit.normal) * currentRot;
+
+            Quaternion smoothRot = Quaternion.Slerp(
+                currentRot,
+                targetRot,
+                alignRotationSpeed * dt
+            );
+
+            _rb.MoveRotation(smoothRot);
+
+            // Return a position with XZ from A*, and Y from physics
+            return new Vector3(tentativePos.x, _rb.position.y, tentativePos.z);
+        }
+
+        return tentativePos;
+    }
 }

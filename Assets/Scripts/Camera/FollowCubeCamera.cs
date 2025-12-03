@@ -15,11 +15,17 @@ public class FollowCubeCamera : MonoBehaviour
     [SerializeField] private float followHeight = 6f;
 
     [Header("Smoothness")]
-    [SerializeField] private float followSmooth = 10f;
-    [SerializeField] private float lookSmooth = 10f;
+    [Tooltip("Smooth time (in seconds) for following position. Larger = slower, smoother.")]
+    [SerializeField] private float followSmooth = 0.4f;
+
+    [Tooltip("Maximum rotation speed in degrees per second.")]
+    [SerializeField] private float lookSmooth = 120f;
 
     [Header("Events")]
     [SerializeField] private bool listenToActiveCubeEvent = true;
+
+    // Internal velocity used by SmoothDamp
+    private Vector3 _followVelocity = Vector3.zero;
 
     private void Awake()
     {
@@ -53,26 +59,36 @@ public class FollowCubeCamera : MonoBehaviour
         if (target == null)
             return;
 
-        // --- FOLLOW FROM BEHIND ---
+        // --- FOLLOW FROM BEHIND (desired position) ---
         Vector3 cubeForward = target.forward;
 
-        // Desired position = behind cube + above cube
         Vector3 desiredPos =
             target.position
             - cubeForward * followDistance      // behind
             + Vector3.up * followHeight;        // above
 
-        // Smoothly move camera
-        float tPos = 1f - Mathf.Exp(-followSmooth * Time.deltaTime);
-        transform.position = Vector3.Lerp(transform.position, desiredPos, tPos);
+        // Very smooth position using SmoothDamp
+        float smoothTime = Mathf.Max(0.01f, followSmooth);
+        transform.position = Vector3.SmoothDamp(
+            transform.position,
+            desiredPos,
+            ref _followVelocity,
+            smoothTime
+        );
 
-        // --- LOOK AT THE CUBE ---
-        Vector3 dir = (target.position - transform.position);
+        // --- LOOK AT THE CUBE (smoothed rotation) ---
+        Vector3 dir = target.position - transform.position;
         if (dir.sqrMagnitude > 0.0001f)
         {
             Quaternion desiredRot = Quaternion.LookRotation(dir.normalized, Vector3.up);
-            float tRot = 1f - Mathf.Exp(-lookSmooth * Time.deltaTime);
-            transform.rotation = Quaternion.Slerp(transform.rotation, desiredRot, tRot);
+
+            // limit rotation speed (degrees per second)
+            float maxDegreesPerSecond = Mathf.Max(1f, lookSmooth);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                desiredRot,
+                maxDegreesPerSecond * Time.deltaTime
+            );
         }
     }
 

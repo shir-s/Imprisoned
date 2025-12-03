@@ -75,7 +75,7 @@ public class StrokeHistory
     }
 
     /// <summary>
-    /// New behaviour:
+    /// Legacy / "scrolling snake" prune:
     /// - Ignore length for pruning (you can still pass it in, it's just unused).
     /// - Only when Count > maxHistoryPoints we delete the OLDEST 5% of samples.
     ///   This keeps a long "snake" and slowly scrolls it.
@@ -109,6 +109,37 @@ public class StrokeHistory
     }
 
     /// <summary>
+    /// Boss-mode prune:
+    /// - If Count > maxHistoryPoints, remove ONLY the oldest one sample.
+    /// - Used when we want "never delete everything at once", just slowly eat the tail.
+    /// </summary>
+    public void PruneSingleOldest(int maxHistoryPoints)
+    {
+        if (maxHistoryPoints <= 0)
+            return;
+
+        if (_samples.Count <= maxHistoryPoints)
+            return;
+
+        // Remove just the very oldest sample.
+        RemoveAt(0);
+    }
+
+    /// <summary>
+    /// Remove a SINGLE sample at a given index and rebuild cumulative length.
+    /// Used by enemy AI when it "consumes" a point.
+    /// </summary>
+    public void RemoveAt(int index)
+    {
+        if (index < 0 || index >= _samples.Count)
+            return;
+
+        _samples.RemoveAt(index);
+
+        RebuildCumLength();
+    }
+
+    /// <summary>
     /// Remove samples [0..endIndexInclusive] – used when a detector consumes a shape.
     /// </summary>
     public void ConsumeUpTo(int endIndexInclusive)
@@ -125,6 +156,51 @@ public class StrokeHistory
             float offset = _cumLength[0];
             for (int i = 0; i < _cumLength.Count; i++)
                 _cumLength[i] -= offset;
+        }
+    }
+
+    /// <summary>
+    /// Remove samples in the middle range [startIndex..endIndexInclusive].
+    /// Used when enemy explored a local segment of the trail that might sit in the middle.
+    /// </summary>
+    public void ConsumeRange(int startIndex, int endIndexInclusive)
+    {
+        if (_samples.Count == 0)
+            return;
+
+        if (startIndex < 0)
+            startIndex = 0;
+
+        if (endIndexInclusive >= _samples.Count)
+            endIndexInclusive = _samples.Count - 1;
+
+        int countRemove = endIndexInclusive - startIndex + 1;
+        if (countRemove <= 0)
+            return;
+
+        _samples.RemoveRange(startIndex, countRemove);
+
+        RebuildCumLength();
+    }
+
+    /// <summary>
+    /// Recomputes _cumLength from scratch for the current _samples.
+    /// </summary>
+    private void RebuildCumLength()
+    {
+        _cumLength.Clear();
+
+        if (_samples.Count == 0)
+            return;
+
+        _cumLength.Add(0f);
+        float acc = 0f;
+
+        for (int i = 1; i < _samples.Count; i++)
+        {
+            float segLen = Vector3.Distance(_samples[i - 1].WorldPos, _samples[i].WorldPos);
+            acc += segLen;
+            _cumLength.Add(acc);
         }
     }
 }

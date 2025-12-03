@@ -1,4 +1,4 @@
-// FILEPATH: Assets/Scripts/Painting/Shapes/StrokeTrailRecorder.cs
+// FILEPATH: Assets/Scripts/Painting/Trails/StrokeTrailRecorder.cs
 using UnityEngine;
 
 /// <summary>
@@ -8,6 +8,7 @@ using UnityEngine;
 /// - Applying pruning rules.
 ///
 /// Does NOT clear history between strokes – so the trail is continuous.
+/// Recording can be turned on/off at runtime via RecordingEnabled.
 /// </summary>
 [DisallowMultipleComponent]
 public class StrokeTrailRecorder : MonoBehaviour, IMovementPainter
@@ -27,11 +28,30 @@ public class StrokeTrailRecorder : MonoBehaviour, IMovementPainter
 
     [SerializeField] private int maxHistoryPoints = 1000;
 
+    [Header("History Mode")]
+    [Tooltip("If true, when maxHistoryPoints is exceeded we delete ONLY one oldest point per new sample (boss/enemy mode).\n" +
+             "If false, we delete a 5% chunk (scrolling snake mode used by shape detection scenes).")]
+    [SerializeField] private bool useSinglePointPrune = false;
+
+    [Header("Recording")]
+    [Tooltip("If false, movement events will not add new samples to the history.")]
+    [SerializeField] private bool recordingEnabled = true;
+
     [Header("Debug")]
     [SerializeField] private bool debugRays = false;
     [SerializeField] private bool debugSampleNormals = false;
 
     public StrokeHistory History { get; } = new StrokeHistory();
+
+    /// <summary>
+    /// Global toggle for whether this recorder should add new stroke samples.
+    /// Does NOT clear existing history, only stops new points.
+    /// </summary>
+    public bool RecordingEnabled
+    {
+        get => recordingEnabled;
+        set => recordingEnabled = value;
+    }
 
     private Transform _currentSurface;
 
@@ -57,6 +77,10 @@ public class StrokeTrailRecorder : MonoBehaviour, IMovementPainter
 
     private void TryRecordAt(Vector3 worldPos)
     {
+        // NEW: global gate for rivers / special zones
+        if (!recordingEnabled)
+            return;
+
         if (!TryRaycastSurface(worldPos, out var hit))
         {
             _currentSurface = null;
@@ -87,7 +111,18 @@ public class StrokeTrailRecorder : MonoBehaviour, IMovementPainter
         };
 
         History.AddSample(s);
-        History.Prune(maxHistoryLength, maxHistoryPoints);
+
+        // Choose prune mode
+        if (useSinglePointPrune)
+        {
+            // Boss / enemy mode: never nuke a whole segment, only eat one oldest point.
+            History.PruneSingleOldest(maxHistoryPoints);
+        }
+        else
+        {
+            // Original "scrolling snake" behavior.
+            History.Prune(maxHistoryLength, maxHistoryPoints);
+        }
 
         if (debugSampleNormals)
         {
