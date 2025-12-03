@@ -44,10 +44,16 @@ public class TiltTray : MonoBehaviour
     [Tooltip("Camera whose right/forward are used when camera-relative input is enabled.")]
     [SerializeField] private Transform inputCamera;
 
+    [Tooltip("When using camera-relative input, compensate for invertX/invertZ so arrows always match camera view.")]
+    [SerializeField] private bool compensateInvertForCamera = true;
+
     private Rigidbody _rb;
     private Quaternion _baseRot;
     private Vector2 _targetTiltXZ;
     private Vector2 _currentTiltXZ;
+
+    public bool InvertX => invertX;
+    public bool InvertZ => invertZ;
 
     private void Awake()
     {
@@ -137,8 +143,19 @@ public class TiltTray : MonoBehaviour
             }
         }
 
+        // Base signs from invert flags
         float xSign = invertX ? -1f : 1f;
         float zSign = invertZ ? -1f : 1f;
+
+        // OPTIONAL COMPENSATION:
+        // When using camera-relative input, we want arrows to feel correct
+        // from camera POV even if the tray uses inverted axes.
+        // So we counteract invertX/invertZ here (effectively ignoring them).
+        if (useCameraRelativeInput && compensateInvertForCamera)
+        {
+            if (invertX) xSign *= -1f;  // -1 -> 1
+            if (invertZ) zSign *= -1f;  // -1 -> 1
+        }
 
         _targetTiltXZ.x += xSign * v * tiltAccelDegPerSec * dt;
         _targetTiltXZ.y += zSign * -h * tiltAccelDegPerSec * dt;
@@ -191,6 +208,12 @@ public class TiltTray : MonoBehaviour
     {
         get => useCameraRelativeInput;
         set => useCameraRelativeInput = value;
+    }
+
+    public bool CompensateInvertForCamera
+    {
+        get => compensateInvertForCamera;
+        set => compensateInvertForCamera = value;
     }
 
     // --------------------------------

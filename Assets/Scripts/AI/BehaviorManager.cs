@@ -2,7 +2,7 @@
 using UnityEngine;
 
 /// <summary>
-/// Enemy AI "brain" that manages a set of behaviors (IEnemyBehavior).
+/// AI "brain" that manages a set of behaviors (IEnemyBehavior / ICharacterBehavior).
 /// 
 /// Responsibilities:
 /// - Owns the stroke context (recorder + auto-bind logic).
@@ -16,9 +16,13 @@ using UnityEngine;
 /// Notes:
 /// - Behaviors are separate components that implement IEnemyBehavior.
 /// - Typical setup on the enemy GameObject:
-///     * StrokeTrailFollowerAI  (this brain)
-///     * StrokeTrailWanderBehavior
-///     * StrokeTrailFollowBehavior
+///     * BehaviorManager        (this brain)
+///     * WanderBehavior
+///     * FollowStrokeBehavior
+/// 
+/// Extra:
+/// - If isFriendlyNpc is true and this object is destroyed in play mode,
+///   it will trigger the FriendlyNpcKilled event.
 /// </summary>
 [DisallowMultipleComponent]
 public class BehaviorManager : MonoBehaviour
@@ -30,6 +34,10 @@ public class BehaviorManager : MonoBehaviour
     [Header("Auto binding")]
     [Tooltip("If true, the AI will keep trying to re-bind to the StrokeTrailRecorder that has the most points in its history.")]
     [SerializeField] private bool autoBindToBestRecorder = true;
+
+    [Header("NPC Type")]
+    [Tooltip("If true, this brain is on a friendly NPC. When this NPC is destroyed in play mode, a FriendlyNpcKilled event will be fired.")]
+    [SerializeField] private bool isFriendlyNpc = false;
 
     [Header("Debug")]
     [SerializeField] private bool debugLogs = false;
@@ -52,7 +60,7 @@ public class BehaviorManager : MonoBehaviour
         _behaviors = GetComponents<IEnemyBehavior>();
         if (debugLogs)
         {
-            Debug.Log($"[StrokeTrailFollowerAI] Found {_behaviors.Length} IEnemyBehavior components on {name}.", this);
+            Debug.Log($"[BehaviorManager] Found {_behaviors.Length} IEnemyBehavior components on {name}.", this);
         }
     }
 
@@ -70,7 +78,7 @@ public class BehaviorManager : MonoBehaviour
         {
             if (debugLogs)
             {
-                Debug.Log($"[StrokeTrailFollowerAI] Current behavior '{_currentBehavior.GetType().Name}' no longer CanActivate() → OnExit().", this);
+                Debug.Log($"[BehaviorManager] Current behavior '{_currentBehavior.GetType().Name}' no longer CanActivate() → OnExit().", this);
             }
 
             _currentBehavior.OnExit();
@@ -111,7 +119,7 @@ public class BehaviorManager : MonoBehaviour
                 _currentBehavior = best;
                 if (debugLogs)
                 {
-                    Debug.Log($"[StrokeTrailFollowerAI] No current behavior → OnEnter '{_currentBehavior.GetType().Name}'.", this);
+                    Debug.Log($"[BehaviorManager] No current behavior → OnEnter '{_currentBehavior.GetType().Name}'.", this);
                 }
                 _currentBehavior.OnEnter();
             }
@@ -123,7 +131,7 @@ public class BehaviorManager : MonoBehaviour
                     if (debugLogs)
                     {
                         Debug.Log(
-                            $"[StrokeTrailFollowerAI] Switching behavior '{_currentBehavior.GetType().Name}'(P={_currentBehavior.Priority}) " +
+                            $"[BehaviorManager] Switching behavior '{_currentBehavior.GetType().Name}'(P={_currentBehavior.Priority}) " +
                             $"→ '{best.GetType().Name}'(P={best.Priority}).", this);
                     }
 
@@ -142,7 +150,7 @@ public class BehaviorManager : MonoBehaviour
             {
                 if (debugLogs)
                 {
-                    Debug.Log("[StrokeTrailFollowerAI] No behaviors CanActivate() → exiting current behavior.", this);
+                    Debug.Log("[BehaviorManager] No behaviors CanActivate() → exiting current behavior.", this);
                 }
 
                 _currentBehavior.OnExit();
@@ -154,6 +162,24 @@ public class BehaviorManager : MonoBehaviour
         if (_currentBehavior != null)
         {
             _currentBehavior.Tick(dt);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // Only fire gameplay events when actually playing, not when stopping the editor, recompiling, etc.
+        if (!Application.isPlaying)
+            return;
+
+        if (isFriendlyNpc)
+        {
+            if (debugLogs)
+            {
+                Debug.Log("[BehaviorManager] Friendly NPC destroyed → triggering FriendlyNpcKilled event.", this);
+            }
+
+            // Send this NPC (or its GameObject) as event data so listeners know which one died.
+            EventManager.TriggerEvent(EventManager.GameEvent.FriendlyNpcKilled, gameObject);
         }
     }
 
@@ -193,7 +219,7 @@ public class BehaviorManager : MonoBehaviour
 
             if (debugLogs)
             {
-                Debug.Log("[StrokeTrailFollowerAI] Bound to recorder: " + recorder.name +
+                Debug.Log("[BehaviorManager] Bound to recorder: " + recorder.name +
                           " (HistoryCount=" + bestCount + ")", this);
             }
         }
@@ -201,11 +227,11 @@ public class BehaviorManager : MonoBehaviour
         {
             if (all.Length == 0)
             {
-                Debug.Log("[StrokeTrailFollowerAI] No StrokeTrailRecorder found in scene.", this);
+                Debug.Log("[BehaviorManager] No StrokeTrailRecorder found in scene.", this);
             }
             else
             {
-                Debug.Log("[StrokeTrailFollowerAI] Found " + all.Length +
+                Debug.Log("[BehaviorManager] Found " + all.Length +
                           " StrokeTrailRecorder(s), but none have points yet.", this);
             }
         }
