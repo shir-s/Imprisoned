@@ -1,0 +1,190 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &3614356560054617352
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 900882933803077552, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 7b6ea2b671a6d7548a86c50091c57f2b, type: 2}
+    - target: {fileID: 1860474426767327192, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: fixedY
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1860474426767327192, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: moveSpeed
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3.89
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 20.93
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2346779412233461447, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: maxSpeed
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_Name
+      value: JellyCube Variant 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2882001269645547829, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5932144606747481350, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: useAllPainters
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5932144606747481350, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: activePainterIndex
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: rayDistance
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6518572221285644113, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      propertyPath: useRigidbodyVelocity
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 1995196120486927052, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+    - {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2077894725945354971}
+    - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2402546326559688736}
+  m_SourcePrefab: {fileID: 100100000, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+--- !u!1 &1285223208898462034 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+  m_PrefabInstance: {fileID: 3614356560054617352}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2077894725945354971
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1285223208898462034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b03f2499035c00c4b821d55af9ce7009, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AreaFillShapeDetector
+  paintSurface: {fileID: 0}
+  painter: {fileID: 0}
+  uvStep: 0.01
+  debugPolygon: 0
+--- !u!114 &2402546326559688736
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1285223208898462034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4350275774e9467a945b9d41158cf602, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Painting.Trails.LineTrailPainter
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 576
+  rayDistance: 2
+  useWorldDown: 1
+  baseLineMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
+  lineWidth: 1
+  endWidthScale: 1
+  cornerVertices: 4
+  capVertices: 4
+  colorSource: 1
+  overrideColor: {r: 0, g: 1, b: 1, a: 1}
+  useColorGradient: 0
+  colorGradient:
+    serializedVersion: 2
+    key0: {r: 1, g: 1, b: 1, a: 1}
+    key1: {r: 1, g: 1, b: 1, a: 1}
+    key2: {r: 0, g: 0, b: 0, a: 0}
+    key3: {r: 0, g: 0, b: 0, a: 0}
+    key4: {r: 0, g: 0, b: 0, a: 0}
+    key5: {r: 0, g: 0, b: 0, a: 0}
+    key6: {r: 0, g: 0, b: 0, a: 0}
+    key7: {r: 0, g: 0, b: 0, a: 0}
+    ctime0: 0
+    ctime1: 65535
+    ctime2: 0
+    ctime3: 0
+    ctime4: 0
+    ctime5: 0
+    ctime6: 0
+    ctime7: 0
+    atime0: 0
+    atime1: 65535
+    atime2: 0
+    atime3: 0
+    atime4: 0
+    atime5: 0
+    atime6: 0
+    atime7: 0
+    m_Mode: 0
+    m_ColorSpace: -1
+    m_NumColorKeys: 2
+    m_NumAlphaKeys: 2
+  minPointSpacing: 0.0015
+  maxPointsPerSegment: 256
+  liftFromSurface: 0.0002
+  parentToSimplePaintSurface: 1
+  fallbackToColliderTransform: 1
+  debugRays: 1
+  debugLogSegments: 1
