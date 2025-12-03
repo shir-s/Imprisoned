@@ -27,7 +27,6 @@ public class CubePlayerKeyboardController : MonoBehaviour
     /// </summary>
     public void SetSizeFactor(float sizeFactor)
     {
-        // קצת הגנה שלא יהיה 0
         _sizeFactor = Mathf.Max(0.1f, sizeFactor);
     }
     private void Update()
@@ -51,11 +50,36 @@ public class CubePlayerKeyboardController : MonoBehaviour
             _velocity = Vector3.MoveTowards(_velocity, Vector3.zero, deceleration * dt);
         }
 
-        // 3) Position update
-        Vector3 pos = transform.position;
-        pos += _velocity * dt;
+        // 3) Intended movement
+        Vector3 pos   = transform.position;
+        Vector3 delta = _velocity * dt;
 
-        // 4) Optional bounds clamp (X,Z only)
+        if (delta.sqrMagnitude > 0.0001f)
+        {
+            Vector3 dir  = delta.normalized;
+            float   dist = delta.magnitude;
+
+            float castDistance = dist + 0.1f;
+            float radius       = 0.49f * _sizeFactor;
+
+            if (Physics.SphereCast(pos, radius, dir, out RaycastHit hit, castDistance))
+            {
+                // Slide along the wall instead of stopping completely
+                Vector3 normal   = hit.normal;
+                Vector3 slideVel = Vector3.ProjectOnPlane(_velocity, normal); // remove into-wall component
+
+                _velocity = slideVel;
+                delta = _velocity * dt;
+                pos += delta;
+            }
+            else
+            {
+                // No hit: free movement
+                pos += delta;
+            }
+        }
+
+        // 4) Optional bounds clamp
         if (useBounds)
         {
             float minX = boundsCenter.x - boundsHalfSize.x;
@@ -69,4 +93,5 @@ public class CubePlayerKeyboardController : MonoBehaviour
 
         transform.position = pos;
     }
+
 }

@@ -1,4 +1,3 @@
-// FILEPATH: Assets/Scripts/Painting/Shapes/AreaFillShapeDetector.cs
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,7 +5,8 @@ using UnityEngine;
 public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
 {
     [Header("References")]
-    [SerializeField] private SimplePaintSurface paintSurface;
+    // Support multiple paint surfaces (different floor pieces)
+    [SerializeField] private List<SimplePaintSurface> paintSurfaces = new();
     [SerializeField] private RenderTextureTrailPainter painter;
 
     [Header("Fill sampling (UV space)")]
@@ -16,7 +16,8 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
     public bool TryHandleShape(StrokeLoopSegment seg)
     {
-        if (paintSurface == null || painter == null || seg.history == null)
+        if (paintSurfaces == null || paintSurfaces.Count == 0 ||
+            painter == null || seg.history == null)
             return false;
 
         StrokeHistory history = seg.history;
@@ -26,25 +27,36 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (endIndexInclusive <= startIndex + 2)
             return false;
 
-        // 1) Build polygon in UV from the loop samples.
+        // Active surface = the floor piece where the loop is drawn
+        SimplePaintSurface activeSurface = null;
         List<Vector2> uvPolygon = new List<Vector2>();
 
+        // 1) Build polygon in UV from the loop samples.
         for (int i = startIndex; i <= endIndexInclusive; i++)
         {
             StrokeSample sample = history[i];
             Vector3 worldPos    = sample.WorldPos;
 
-            if (!paintSurface.TryWorldToPaintUV(worldPos, out Vector2 uv))
+            if (!TryWorldToPaintUVOnAnySurface(worldPos, out SimplePaintSurface surface, out Vector2 uv))
                 continue;
+
+            // First hit decides which surface we are filling
+            if (activeSurface == null)
+                activeSurface = surface;
+            else if (surface != activeSurface)
+            {
+                // Ignore points on a different surface
+                continue;
+            }
 
             uvPolygon.Add(uv);
         }
 
-        if (uvPolygon.Count < 3)
+        if (activeSurface == null || uvPolygon.Count < 3)
             return false;
 
         if (debugPolygon)
-            DebugDrawUvPolygon(uvPolygon);
+            DebugDrawUvPolygon(uvPolygon, activeSurface);
 
         // 2) Compute UV bounding box.
         float minU =  1f;
@@ -73,7 +85,7 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
                 Vector2 p = new Vector2(u, v);
                 if (IsPointInPolygon(p, uvPolygon))
                 {
-                    painter.PaintAtUV(paintSurface, p);
+                    painter.PaintAtUV(activeSurface, p);
                 }
             }
         }
@@ -81,6 +93,52 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         // Shape handled: we filled the area.
         return true;
     }
+
+    /// <summary>
+    /// Tries to map a world position to UV on any of the paint surfaces.
+    /// Returns the surface that succeeded and the UV.
+    /// </summary>
+    private bool TryWorldToPaintUVOnAnySurface(
+        Vector3 worldPos,
+        out SimplePaintSurface surface,
+        out Vector2 uv)
+    {
+        surface = null;
+        uv = default;
+
+        float bestDistSqr = float.MaxValue;
+        SimplePaintSurface bestSurface = null;
+        Vector2 bestUv = default;
+
+        foreach (var s in paintSurfaces)
+        {
+            if (s == null) 
+                continue;
+
+            // Try map world position to UV on this surface
+            if (s.TryWorldToPaintUV(worldPos, out Vector2 candidateUv))
+            {
+                // Pick the surface whose transform is closest to the world position
+                float distSqr = (s.transform.position - worldPos).sqrMagnitude;
+                if (distSqr < bestDistSqr)
+                {
+                    bestDistSqr = distSqr;
+                    bestSurface = s;
+                    bestUv = candidateUv;
+                }
+            }
+        }
+
+        if (bestSurface != null)
+        {
+            surface = bestSurface;
+            uv = bestUv;
+            return true;
+        }
+
+        return false;
+    }
+
 
     private bool IsPointInPolygon(Vector2 p, List<Vector2> poly)
     {
@@ -103,16 +161,15 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         return inside;
     }
 
-    private void DebugDrawUvPolygon(List<Vector2> poly)
+    private void DebugDrawUvPolygon(List<Vector2> poly, SimplePaintSurface surface)
     {
-        // Optional: only if SimplePaintSurface has a UV→world helper.
         for (int i = 0; i < poly.Count; i++)
         {
             Vector2 a = poly[i];
             Vector2 b = poly[(i + 1) % poly.Count];
 
-            if (paintSurface.TryPaintUVToWorld(a, out Vector3 wa) &&
-                paintSurface.TryPaintUVToWorld(b, out Vector3 wb))
+            if (surface.TryPaintUVToWorld(a, out Vector3 wa) &&
+                surface.TryPaintUVToWorld(b, out Vector3 wb))
             {
                 Debug.DrawLine(wa + Vector3.up * 0.1f,
                                wb + Vector3.up * 0.1f,
