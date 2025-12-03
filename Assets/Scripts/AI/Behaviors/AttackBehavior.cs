@@ -1,26 +1,10 @@
-// FILEPATH: Assets/Scripts/AI/StrokeAttackBehavior.cs
+// FILEPATH: Assets/Scripts/AI/AttackBehavior_Debug.cs
 using UnityEngine;
 using System;
 
 /// <summary>
-/// Attack behavior:
-/// - Looks for targets (colliders) on specified layers within detectionRadius.
-/// - If a target is found, it becomes active and starts chasing that target.
-/// - Moves towards the target (XZ plane) at chaseSpeed, avoiding obstacles.
-/// - When inside attackRadius, destroys the target GameObject.
-/// 
-/// Target Priority:
-/// - Each layer can have its own attack priority.
-/// - Higher priority targets are chosen over lower priority ones.
-/// - If priorities are equal, the closest target is chosen.
-/// 
-/// CanActivate():
-/// - True if there is at least one valid target within detectionRadius.
-/// 
-/// Typical priorities:
-/// - Attack: 20
-/// - Follow trail: 10
-/// - Wander: 0
+/// DEBUG VERSION of AttackBehavior with extensive logging to diagnose the stuck issue.
+/// Enable debugLogs and watch the Console to see what's happening.
 /// </summary>
 [DisallowMultipleComponent]
 public class AttackBehavior : MonoBehaviour, IEnemyBehavior
@@ -41,9 +25,6 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         public float customAttackRadius;
     }
 
-    /// <summary>
-    /// Helper struct to select a single layer in the Inspector.
-    /// </summary>
     [Serializable]
     public struct SingleLayer
     {
@@ -99,33 +80,22 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
     [SerializeField] private int avoidanceSamples = 12;
 
     [Header("Debug")]
-    [SerializeField] private bool debugLogs = false;
-    [SerializeField] private bool debugGizmos = false;
+    [SerializeField] private bool debugLogs = true;  // Default to TRUE
+    [SerializeField] private bool debugGizmos = true;
 
     private Transform _currentTarget;
     private Collider _currentTargetCollider;
     private int _currentTargetPriority;
     private float _currentTargetAttackRadius;
 
+    private Vector3 _lastPosition;
+    private int _tickCount = 0;
+
     public int Priority => priority;
 
-    /// <summary>
-    /// Combined layer mask of all target layers.
-    /// </summary>
-    private int CombinedTargetMask
+    private void Awake()
     {
-        get
-        {
-            int mask = 0;
-            if (targetPriorities != null)
-            {
-                foreach (var tp in targetPriorities)
-                {
-                    mask |= tp.layer.LayerMask;
-                }
-            }
-            return mask;
-        }
+        _lastPosition = transform.position;
     }
 
     // --------------------------------------------------------
@@ -138,11 +108,9 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         {
             if (IsTargetValidAndInDetectionRadius(_currentTarget, _currentTargetCollider))
             {
-                // Check if there's a higher priority target available
                 if (TryFindBetterTarget(out Transform betterTarget, out Collider betterCollider, 
                     out int betterPriority, out float betterAttackRadius))
                 {
-                    // Switch to the better target
                     _currentTarget = betterTarget;
                     _currentTargetCollider = betterCollider;
                     _currentTargetPriority = betterPriority;
@@ -159,21 +127,37 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             ClearTarget();
         }
 
-        return TryAcquireTarget();
+        bool canActivate = TryAcquireTarget();
+        
+        if (debugLogs)
+        {
+            Debug.Log($"[AttackBehavior] CanActivate() = {canActivate}, HasTarget = {_currentTarget != null}", this);
+        }
+        
+        return canActivate;
     }
 
     public void OnEnter()
     {
+        _tickCount = 0;
+        _lastPosition = transform.position;
+        
         if (debugLogs)
         {
-            Debug.Log("[AttackBehavior] OnEnter", this);
+            Debug.Log($"[AttackBehavior] OnEnter - Target: {(_currentTarget != null ? _currentTarget.name : "NULL")}", this);
         }
     }
 
     public void Tick(float deltaTime)
     {
+        _tickCount++;
+        
         if (_currentTarget == null || _currentTargetCollider == null)
         {
+            if (debugLogs && _tickCount % 30 == 0)
+            {
+                Debug.LogWarning($"[AttackBehavior] Tick #{_tickCount} - NO TARGET!", this);
+            }
             return;
         }
 
@@ -194,6 +178,15 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
         Vector3 toTarget = targetXZ - selfXZ;
         float distXZ = toTarget.magnitude;
+
+        // Log every 30 ticks
+        if (debugLogs && _tickCount % 30 == 0)
+        {
+            float movedDist = Vector3.Distance(pos, _lastPosition);
+            Debug.Log($"[AttackBehavior] Tick #{_tickCount} - Target: {_currentTarget.name}, Dist: {distXZ:F2}, " +
+                      $"Moved: {movedDist:F3}, DeltaTime: {deltaTime:F4}", this);
+            _lastPosition = pos;
+        }
 
         // Inside attack radius → "hit" target.
         float effectiveAttackRadius = _currentTargetAttackRadius > 0f ? _currentTargetAttackRadius : attackRadius;
@@ -219,8 +212,22 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             // Compute steering direction (handles avoidance)
             Vector3 desiredDir = ComputeSteeringDirection(pos, toTargetDir, distXZ);
 
-            // Move in the computed direction
-            Vector3 newPos = pos + new Vector3(desiredDir.x, 0f, desiredDir.z) * (chaseSpeed * deltaTime);
+            if (debugLogs && _tickCount % 30 == 0)
+            {
+                Debug.Log($"[AttackBehavior] ToTargetDir: {toTargetDir}, DesiredDir: {desiredDir}, " +
+                          $"Angle diff: {Vector3.Angle(toTargetDir, desiredDir):F1}°", this);
+            }
+
+            // CRITICAL: Check if we're actually moving
+            Vector3 movement = new Vector3(desiredDir.x, 0f, desiredDir.z) * (chaseSpeed * deltaTime);
+            Vector3 newPos = pos + movement;
+            
+            if (debugLogs && _tickCount % 30 == 0)
+            {
+                Debug.Log($"[AttackBehavior] Movement vector: {movement}, Magnitude: {movement.magnitude:F4}, " +
+                          $"Speed: {chaseSpeed}, DT: {deltaTime:F4}", this);
+            }
+            
             transform.position = newPos;
 
             // Rotate to face movement direction
@@ -229,13 +236,20 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
                 RotateTowardDirection(desiredDir, deltaTime);
             }
         }
+        else
+        {
+            if (debugLogs)
+            {
+                Debug.LogWarning($"[AttackBehavior] distXZ too small: {distXZ}", this);
+            }
+        }
     }
 
     public void OnExit()
     {
         if (debugLogs)
         {
-            Debug.Log("[AttackBehavior] OnExit", this);
+            Debug.Log($"[AttackBehavior] OnExit after {_tickCount} ticks", this);
         }
 
         ClearTarget();
@@ -249,17 +263,36 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
     {
         // If very close to target, just go straight
         if (distToTarget <= commitToTargetDistance)
+        {
+            if (debugLogs && _tickCount % 30 == 0)
+            {
+                Debug.Log($"[AttackBehavior] Close to target ({distToTarget:F2} <= {commitToTargetDistance}), going straight", this);
+            }
             return toTargetDir;
+        }
 
         // Skip avoidance if no obstacle layers set
         if (obstacleLayers.value == 0)
+        {
+            if (debugLogs && _tickCount == 1)
+            {
+                Debug.Log("[AttackBehavior] No obstacle layers set, no avoidance", this);
+            }
             return toTargetDir;
+        }
 
         float checkDistance = Mathf.Min(avoidRadius, distToTarget);
         float totalRadius = enemyRadius + preferredClearance;
 
         // Check if direct path is clear
-        if (IsPathClear(position, toTargetDir, checkDistance, totalRadius))
+        bool pathClear = IsPathClear(position, toTargetDir, checkDistance, totalRadius);
+        
+        if (debugLogs && _tickCount % 30 == 0)
+        {
+            Debug.Log($"[AttackBehavior] Path clear: {pathClear}, CheckDist: {checkDistance:F2}, Radius: {totalRadius:F2}", this);
+        }
+
+        if (pathClear)
         {
             // Direct path is clear - check if we need to nudge away from nearby walls
             Vector3 nudge = ComputeClearanceNudge(position, toTargetDir, totalRadius);
@@ -267,26 +300,80 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             {
                 Vector3 nudgedDir = (toTargetDir + nudge * 0.5f).normalized;
                 if (Vector3.Dot(nudgedDir, toTargetDir) > 0.5f)
+                {
+                    if (debugLogs && _tickCount % 30 == 0)
+                    {
+                        Debug.Log($"[AttackBehavior] Applying nudge: {nudge}", this);
+                    }
                     return nudgedDir;
+                }
             }
             return toTargetDir;
         }
 
         // Direct path is blocked - find best alternative
+        if (debugLogs && _tickCount % 30 == 0)
+        {
+            Debug.Log("[AttackBehavior] Path blocked, finding alternative", this);
+        }
+        
         return FindBestAvoidanceDirection(position, toTargetDir, checkDistance, totalRadius);
     }
 
     private bool IsPathClear(Vector3 position, Vector3 direction, float distance, float radius)
     {
-        return !Physics.SphereCast(
+        RaycastHit[] hits = Physics.SphereCastAll(
             position,
             radius,
             direction,
-            out RaycastHit hit,
             distance,
             obstacleLayers,
             QueryTriggerInteraction.Ignore
         );
+
+        if (debugLogs && _tickCount % 30 == 0)
+        {
+            Debug.Log($"[AttackBehavior] SphereCast found {hits.Length} hits", this);
+        }
+
+        // Check all hits - ignore self and current target
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider == null)
+                continue;
+
+            Transform hitTransform = hit.collider.transform;
+            
+            // Ignore self
+            if (hitTransform == transform || hitTransform.IsChildOf(transform) || transform.IsChildOf(hitTransform))
+            {
+                if (debugLogs && _tickCount % 30 == 0)
+                {
+                    Debug.Log($"[AttackBehavior] Ignoring self hit: {hit.collider.name}", this);
+                }
+                continue;
+            }
+            
+            // Ignore current target
+            if (_currentTarget != null && (hitTransform == _currentTarget || hitTransform.IsChildOf(_currentTarget) || _currentTarget.IsChildOf(hitTransform)))
+            {
+                if (debugLogs && _tickCount % 30 == 0)
+                {
+                    Debug.Log($"[AttackBehavior] Ignoring target hit: {hit.collider.name}", this);
+                }
+                continue;
+            }
+
+            // Found a real obstacle
+            if (debugLogs && _tickCount % 30 == 0)
+            {
+                Debug.Log($"[AttackBehavior] Real obstacle found: {hit.collider.name} at distance {hit.distance:F2}", this);
+            }
+            return false;
+        }
+
+        // No blocking obstacles found
+        return true;
     }
 
     private bool HasEnoughClearance(Vector3 position, Vector3 moveDirection, float requiredWidth)
@@ -298,12 +385,14 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
         if (Physics.Raycast(position, -right, out RaycastHit leftHit, requiredWidth * 2f, obstacleLayers, QueryTriggerInteraction.Ignore))
         {
-            leftDist = leftHit.distance;
+            if (!ShouldIgnoreCollider(leftHit.collider))
+                leftDist = leftHit.distance;
         }
 
         if (Physics.Raycast(position, right, out RaycastHit rightHit, requiredWidth * 2f, obstacleLayers, QueryTriggerInteraction.Ignore))
         {
-            rightDist = rightHit.distance;
+            if (!ShouldIgnoreCollider(rightHit.collider))
+                rightDist = rightHit.distance;
         }
 
         float totalWidth = leftDist + rightDist;
@@ -317,19 +406,25 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
         if (Physics.Raycast(position, -right, out RaycastHit leftHit, desiredClearance * 1.5f, obstacleLayers, QueryTriggerInteraction.Ignore))
         {
-            float penetration = desiredClearance - leftHit.distance;
-            if (penetration > 0)
+            if (!ShouldIgnoreCollider(leftHit.collider))
             {
-                nudge += right * (penetration / desiredClearance);
+                float penetration = desiredClearance - leftHit.distance;
+                if (penetration > 0)
+                {
+                    nudge += right * (penetration / desiredClearance);
+                }
             }
         }
 
         if (Physics.Raycast(position, right, out RaycastHit rightHit, desiredClearance * 1.5f, obstacleLayers, QueryTriggerInteraction.Ignore))
         {
-            float penetration = desiredClearance - rightHit.distance;
-            if (penetration > 0)
+            if (!ShouldIgnoreCollider(rightHit.collider))
             {
-                nudge -= right * (penetration / desiredClearance);
+                float penetration = desiredClearance - rightHit.distance;
+                if (penetration > 0)
+                {
+                    nudge -= right * (penetration / desiredClearance);
+                }
             }
         }
 
@@ -359,10 +454,17 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
                 if (!HasEnoughClearance(aheadPos, testDir, clearanceRadius))
                     continue;
 
-                float dotScore = Vector3.Dot(testDir, toTargetDir);
-                float progressScore = Vector3.Dot(testDir, toTargetDir);
+                float alignmentScore = Vector3.Dot(testDir, toTargetDir);
+                
+                Vector3 targetPos = _currentTarget != null ? _currentTarget.position : position + toTargetDir * 100f;
+                Vector3 projectedPos = position + testDir * checkDistance;
+                Vector3 toTargetFromProjected = targetPos - projectedPos;
+                toTargetFromProjected.y = 0f;
+                float currentToTarget = (targetPos - position).magnitude;
+                float projectedToTarget = toTargetFromProjected.magnitude;
+                float progressScore = Mathf.Clamp01((currentToTarget - projectedToTarget) / checkDistance);
 
-                float totalScore = dotScore + progressScore * 0.5f;
+                float totalScore = alignmentScore * 2f + progressScore;
 
                 if (totalScore > bestScore)
                 {
@@ -387,6 +489,11 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
     {
         if (Physics.Raycast(position, toTargetDir, out RaycastHit hit, checkDistance, obstacleLayers, QueryTriggerInteraction.Ignore))
         {
+            if (ShouldIgnoreCollider(hit.collider))
+            {
+                return toTargetDir;
+            }
+
             Vector3 normal = hit.normal;
             normal.y = 0f;
             normal.Normalize();
@@ -408,6 +515,23 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         }
 
         return toTargetDir;
+    }
+
+    private bool ShouldIgnoreCollider(Collider col)
+    {
+        if (col == null)
+            return true;
+
+        Transform colTransform = col.transform;
+
+        if (colTransform == transform || colTransform.IsChildOf(transform) || transform.IsChildOf(colTransform))
+            return true;
+
+        if (_currentTarget != null && 
+            (colTransform == _currentTarget || colTransform.IsChildOf(_currentTarget) || _currentTarget.IsChildOf(colTransform)))
+            return true;
+
+        return false;
     }
 
     private void RotateTowardDirection(Vector3 desiredDir, float deltaTime)
@@ -437,7 +561,13 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
     private bool TryAcquireTarget()
     {
         if (targetPriorities == null || targetPriorities.Length == 0)
+        {
+            if (debugLogs)
+            {
+                Debug.LogWarning("[AttackBehavior] No target priorities configured!", this);
+            }
             return false;
+        }
 
         Vector3 origin = transform.position;
         Vector3 selfXZ = new Vector3(origin.x, 0f, origin.z);
@@ -448,7 +578,6 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         float bestDistSq = float.PositiveInfinity;
         float bestAttackRadius = attackRadius;
 
-        // Check each priority layer
         foreach (var tp in targetPriorities)
         {
             if (tp.layer.LayerMask == 0)
@@ -457,6 +586,11 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             float effectiveDetectionRadius = tp.customDetectionRadius > 0f ? tp.customDetectionRadius : detectionRadius;
 
             Collider[] hits = Physics.OverlapSphere(origin, effectiveDetectionRadius, tp.layer.LayerMask, QueryTriggerInteraction.Ignore);
+
+            if (debugLogs && hits.Length > 0)
+            {
+                Debug.Log($"[AttackBehavior] Found {hits.Length} potential targets on layer {tp.layer.LayerIndex}", this);
+            }
 
             foreach (Collider c in hits)
             {
@@ -469,9 +603,6 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
                 float distSq = (targetXZ - selfXZ).sqrMagnitude;
 
-                // Check if this target is better:
-                // 1. Higher priority wins
-                // 2. If same priority, closer wins
                 bool isBetter = false;
                 if (tp.attackPriority > bestPriority)
                 {
@@ -504,15 +635,12 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
         if (debugLogs)
         {
             float dist = Mathf.Sqrt(bestDistSq);
-            Debug.Log($"[AttackBehavior] Acquired target: {_currentTarget.name} (dist={dist:F2}, priority={_currentTargetPriority})", this);
+            Debug.Log($"<color=green>[AttackBehavior] *** ACQUIRED TARGET ***: {_currentTarget.name} (dist={dist:F2}, priority={_currentTargetPriority})</color>", this);
         }
 
         return true;
     }
 
-    /// <summary>
-    /// Check if there's a target with higher priority than the current one.
-    /// </summary>
     private bool TryFindBetterTarget(out Transform betterTarget, out Collider betterCollider, 
         out int betterPriority, out float betterAttackRadius)
     {
@@ -529,7 +657,6 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
         foreach (var tp in targetPriorities)
         {
-            // Only check layers with higher priority than current target
             if (tp.attackPriority <= _currentTargetPriority)
                 continue;
 
@@ -573,7 +700,7 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             return false;
 
         int targetLayer = c.gameObject.layer;
-        
+    
         // Find the matching layer priority entry
         float effectiveDetectionRadius = detectionRadius;
         bool foundLayer = false;
@@ -584,7 +711,9 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             {
                 if (tp.layer.LayerIndex == targetLayer)
                 {
-                    effectiveDetectionRadius = tp.customDetectionRadius > 0f ? tp.customDetectionRadius : detectionRadius;
+                    effectiveDetectionRadius = tp.customDetectionRadius > 0f 
+                        ? tp.customDetectionRadius 
+                        : detectionRadius;
                     foundLayer = true;
                     break;
                 }
@@ -602,11 +731,32 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
         float dist = Vector3.Distance(selfXZ, targetXZ);
 
-        return dist <= effectiveDetectionRadius;
+        // CRITICAL FIX: Add hysteresis
+        // Physics.OverlapSphere uses 3D distance, but we measure XZ distance
+        // This can cause targets to be found at slightly different distances
+        // Add a buffer zone so targets don't immediately flip-flop
+        // 
+        // Acquisition: uses radius R (via OverlapSphere)
+        // Validation: uses radius R + 3 (extra buffer)
+        //
+        // With your values:
+        // - Detection radius: 11
+        // - Target found at: 12.55
+        // - Validation radius: 11 + 3 = 14
+        // - 12.55 < 14 = TRUE, target stays valid!
+        const float HYSTERESIS_BUFFER = 3f;
+        float validationRadius = effectiveDetectionRadius + HYSTERESIS_BUFFER;
+    
+        return dist <= validationRadius;
     }
 
     private void ClearTarget()
     {
+        if (debugLogs && _currentTarget != null)
+        {
+            Debug.Log($"[AttackBehavior] Clearing target: {_currentTarget.name}", this);
+        }
+        
         _currentTarget = null;
         _currentTargetCollider = null;
         _currentTargetPriority = int.MinValue;
@@ -625,11 +775,9 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
 
         Vector3 pos = transform.position;
 
-        // Default detection radius
         Gizmos.color = new Color(1f, 0.4f, 0.1f, 0.2f);
         Gizmos.DrawWireSphere(pos, detectionRadius);
 
-        // Per-layer detection radii (if different from default)
         if (targetPriorities != null)
         {
             foreach (var tp in targetPriorities)
@@ -642,26 +790,22 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior
             }
         }
 
-        // Default attack radius
         Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
         Gizmos.DrawWireSphere(pos, attackRadius);
 
-        // Avoid radius
         if (obstacleLayers.value != 0)
         {
             Gizmos.color = new Color(1f, 1f, 0f, 0.15f);
             Gizmos.DrawWireSphere(pos, avoidRadius);
         }
 
-        // Current target line
         if (Application.isPlaying && _currentTarget != null)
         {
             Gizmos.color = Color.red;
             Gizmos.DrawLine(pos, _currentTarget.position);
             
-            // Draw attack radius around target
-            Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
             float effectiveAttackRadius = _currentTargetAttackRadius > 0f ? _currentTargetAttackRadius : attackRadius;
+            Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
             Gizmos.DrawWireSphere(_currentTarget.position, effectiveAttackRadius);
         }
     }
