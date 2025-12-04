@@ -5921,6 +5921,48 @@ MonoBehaviour:
     m_Bits: 128
   amount: 0.2
   destroyOnCollect: 0
+--- !u!1 &708335765 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8008131797913609105, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &708335769
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708335765}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d80dd3f6c9d64ee0b91f0ee2ac4ea77d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Traps.FallingTrap.TrapPressureZone
+  enemyLayers:
+    serializedVersion: 2
+    m_Bits: 2048
+  crusher: {fileID: 0}
+--- !u!65 &708335770
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 708335765}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.943988, y: 0.13712206, z: 3.5445154}
+  m_Center: {x: 0, y: 0, z: -0.000002861023}
 --- !u!1 &725658947
 GameObject:
   m_ObjectHideFlags: 0
@@ -16551,6 +16593,55 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1825856562}
   m_SourcePrefab: {fileID: 100100000, guid: e2775f030b889244c88f500aada85d8c, type: 3}
+--- !u!1 &1501478763 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5362403676994691512, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1501478764 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 709545580381538824, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1501478767
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1501478763}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a9723fafbb8d44688044c7f7af16de05, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Traps.FallingTrap.FallTrap
+  crusherTop: {fileID: 1501478764}
+  crushY: -3
+  speed: 10
+  stayDownTime: 3
+  killEnemyInstantly: 1
+  enemyDamage: 50
+--- !u!65 &1501478768
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1501478763}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.943988, y: 1.2075789, z: 3.5445154}
+  m_Center: {x: 0, y: 0, z: -0.000002861023}
 --- !u!1 &1556865129
 GameObject:
   m_ObjectHideFlags: 0
@@ -32297,7 +32388,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -3.3
+      value: -3
       objectReference: {fileID: 0}
     - target: {fileID: 1954265591619016812, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: m_LocalPosition.z
@@ -33050,6 +33141,18 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8008131797913609105, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 708335770}
+    - targetCorrespondingSourceObject: {fileID: 8008131797913609105, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 708335769}
+    - targetCorrespondingSourceObject: {fileID: 5362403676994691512, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1501478768}
+    - targetCorrespondingSourceObject: {fileID: 5362403676994691512, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1501478767}
     - targetCorrespondingSourceObject: {fileID: 314472991911443608, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 542582105}
