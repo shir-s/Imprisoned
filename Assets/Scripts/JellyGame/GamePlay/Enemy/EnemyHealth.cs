@@ -1,8 +1,9 @@
+using System;
 using UnityEngine;
 using UnityEngine.Events;
+
 namespace JellyGame.GamePlay.Enemy
 {
-
     [DisallowMultipleComponent]
     public class EnemyHealth : MonoBehaviour
     {
@@ -11,6 +12,9 @@ namespace JellyGame.GamePlay.Enemy
         public int CurrentHealth { get; private set; }
 
         public UnityEvent onEnemyDeath;
+
+        // event קוד-צדדי – לאוניטי אין מושג ממנו, זה רק למנהלים
+        public event Action<EnemyHealth> EnemyDied;
 
         void Awake()
         {
@@ -36,7 +40,9 @@ namespace JellyGame.GamePlay.Enemy
 
         void Die()
         {
-            onEnemyDeath?.Invoke();
+            onEnemyDeath?.Invoke();       
+            EnemyDied?.Invoke(this);     
+
             Destroy(gameObject);
         }
     }

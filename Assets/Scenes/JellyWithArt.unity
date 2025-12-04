@@ -21732,6 +21732,91 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!1 &1620619971
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1620619973}
+  - component: {fileID: 1620619972}
+  m_Layer: 0
+  m_Name: EnemyGroupManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1620619972
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1620619971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d1651cb6d6254e9695d4110289485abd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.EnemyGroupsManager
+  groups:
+  - groupName: FirstDoor
+    enemies:
+    - {fileID: 1191945748}
+    raisesFirstEnemyDied: 1
+    countTowardsAll: 0
+    onGroupCleared:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 6384719083779380376}
+          m_TargetAssemblyTypeName: JellyGame.GamePlay.Doors.DoorController, Assembly-CSharp
+          m_MethodName: OpenDoor
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+  - groupName: EndOfLevelDoor
+    enemies:
+    - {fileID: 1825856563}
+    raisesFirstEnemyDied: 0
+    countTowardsAll: 1
+    onGroupCleared:
+      m_PersistentCalls:
+        m_Calls:
+        - m_Target: {fileID: 6384719083779380375}
+          m_TargetAssemblyTypeName: JellyGame.GamePlay.Doors.DoorController, Assembly-CSharp
+          m_MethodName: OpenDoor
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
+--- !u!4 &1620619973
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1620619971}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -15.62159, y: -3.71748, z: 71.98544}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1690901417
 GameObject:
   m_ObjectHideFlags: 0
@@ -33321,6 +33406,28 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1317201394}
   m_SourcePrefab: {fileID: 100100000, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+--- !u!114 &6384719083779380375 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 9030104834382434969, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f4f114ed22643a3822e749c0f0125f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Doors.DoorController
+--- !u!114 &6384719083779380376 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7650234586072097171, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f4f114ed22643a3822e749c0f0125f3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Doors.DoorController
 --- !u!4 &8750807273186122018 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6328686678815521717, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
@@ -33354,3 +33461,4 @@ SceneRoots:
   - {fileID: 1373710564}
   - {fileID: 6384719083779380374}
   - {fileID: 3798501403325701815}
+  - {fileID: 1620619973}

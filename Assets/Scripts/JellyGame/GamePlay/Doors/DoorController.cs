@@ -1,8 +1,8 @@
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace JellyGame.GamePlay.Doors
 {
+    [DisallowMultipleComponent]
     public class DoorController : MonoBehaviour
     {
         [Header("Door Parts")]
@@ -10,60 +10,32 @@ namespace JellyGame.GamePlay.Doors
         [SerializeField] private Transform rightDoor;
 
         [Header("Settings")]
-        [SerializeField] private float openAngle = 90f;      // כמה הדלתות ייפתחו
-        [SerializeField] private float openDuration = 1f;    // כמה זמן האנימציה
-        [SerializeField] private bool startClosed = true;
+        [SerializeField] private float openAngle = 90f;
+        [SerializeField] private float openDuration = 1f;
 
-        [Header("Events")]
-        public UnityEvent OnDoorOpened;   // תוכלי לחבר כל דבר מהאינספקטור
-        public UnityEvent OnDoorClosed;
-
-        bool isOpen = false;
-        Quaternion leftClosedRot, rightClosedRot;
-        Quaternion leftOpenRot, rightOpenRot;
+        bool _isOpen;
+        Quaternion _leftClosedRot, _rightClosedRot;
+        Quaternion _leftOpenRot, _rightOpenRot;
 
         void Awake()
         {
-            // שמירת הרוטציות המקוריות
-            leftClosedRot = leftDoor.localRotation;
-            rightClosedRot = rightDoor.localRotation;
+            _leftClosedRot = leftDoor.localRotation;
+            _rightClosedRot = rightDoor.localRotation;
 
-            // חישוב הרוטציה הפתוחה
-            leftOpenRot = leftClosedRot * Quaternion.Euler(0, -openAngle, 0);
-            rightOpenRot = rightClosedRot * Quaternion.Euler(0, openAngle, 0);
-
-            if (!startClosed)
-            {
-                leftDoor.localRotation = leftOpenRot;
-                rightDoor.localRotation = rightOpenRot;
-                isOpen = true;
-            }
-        }
-
-        public void ToggleDoor()
-        {
-            if (isOpen)
-                CloseDoor();
-            else
-                OpenDoor();
+            _leftOpenRot = _leftClosedRot * Quaternion.Euler(0, -openAngle, 0);
+            _rightOpenRot = _rightClosedRot * Quaternion.Euler(0, openAngle, 0);
         }
 
         public void OpenDoor()
         {
-            if (!isOpen)
-                StartCoroutine(AnimateDoor(leftOpenRot, rightOpenRot, true));
+            if (_isOpen) return;
+            StopAllCoroutines();
+            StartCoroutine(AnimateDoor(_leftOpenRot, _rightOpenRot, true));
         }
 
-        public void CloseDoor()
-        {
-            if (isOpen)
-                StartCoroutine(AnimateDoor(leftClosedRot, rightClosedRot, false));
-        }
-
-        private System.Collections.IEnumerator AnimateDoor(Quaternion leftTarget, Quaternion rightTarget, bool opening)
+        System.Collections.IEnumerator AnimateDoor(Quaternion leftTarget, Quaternion rightTarget, bool opening)
         {
             float t = 0f;
-
             Quaternion leftStart = leftDoor.localRotation;
             Quaternion rightStart = rightDoor.localRotation;
 
@@ -72,20 +44,13 @@ namespace JellyGame.GamePlay.Doors
                 float lerp = t / openDuration;
                 leftDoor.localRotation = Quaternion.Lerp(leftStart, leftTarget, lerp);
                 rightDoor.localRotation = Quaternion.Lerp(rightStart, rightTarget, lerp);
-
                 t += Time.deltaTime;
                 yield return null;
             }
 
             leftDoor.localRotation = leftTarget;
             rightDoor.localRotation = rightTarget;
-
-            isOpen = opening;
-
-            if (opening)
-                OnDoorOpened?.Invoke();
-            else
-                OnDoorClosed?.Invoke();
+            _isOpen = opening;
         }
     }
 }
