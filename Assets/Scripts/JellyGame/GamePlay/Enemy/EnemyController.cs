@@ -17,6 +17,9 @@ public class EnemyController : MonoBehaviour
     [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float directionChangeInterval = 2f;
 
+    // Speed multiplier for slow effects
+    private float _speedMultiplier = 1.0f;
+
     [Header("Detection")]
     [SerializeField] private float detectionRadius = 6f;
     [SerializeField] private float chaseDuration = 4f;
@@ -141,7 +144,7 @@ public class EnemyController : MonoBehaviour
             );
         }
 
-        Vector3 delta = direction * moveSpeed * Time.deltaTime;
+        Vector3 delta = direction * moveSpeed * _speedMultiplier * Time.deltaTime;
         Vector3 targetPos = transform.position + delta;
         targetPos.y = _baseY;
 
@@ -173,6 +176,11 @@ public class EnemyController : MonoBehaviour
             case 2: _currentDirection = Vector3.right;   break;
             case 3: _currentDirection = Vector3.left;    break;
         }
+    }
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
     }
 
     private void OnDrawGizmosSelected()

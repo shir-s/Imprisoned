@@ -41,7 +41,7 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         if (brushBlitMaterial != null)
         {
             brushBlitMaterial.SetFloat("_BrushHardness", brushHardness);
-            brushBlitMaterial.SetColor("_BrushColor", brushColor);
+            UpdatePaintColor(); // Use ability-based color if available
         }
     }
 
@@ -116,6 +116,9 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         Vector2 halfSizeUV = ComputeHalfSizeUV(worldPoint, uvCenter);
         if (!float.IsFinite(halfSizeUV.x) || halfSizeUV.x <= 0f)
             halfSizeUV = new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV);
+
+        // Update paint color based on stickiness ability
+        UpdatePaintColor();
 
         brushBlitMaterial.SetVector("_BrushCenter",   new Vector4(uvCenter.x, uvCenter.y, 0, 0));
         brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
@@ -195,6 +198,25 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
         return Physics.Raycast(start, dir, out hit, rayDistance, surfaceMask, QueryTriggerInteraction.Collide);
     }
 
+    /// <summary>
+    /// Updates the brush color based on stickiness ability state
+    /// </summary>
+    private void UpdatePaintColor()
+    {
+        if (brushBlitMaterial == null)
+            return;
+
+        Color currentColor = brushColor;
+
+        // Check if player has stickiness ability
+        if (PlayerAbilityManager.Instance != null)
+        {
+            currentColor = PlayerAbilityManager.Instance.CurrentPaintColor;
+        }
+
+        brushBlitMaterial.SetColor("_BrushColor", currentColor);
+    }
+
     private void OnDestroy()
     {
         if (_tempRT != null)
@@ -216,12 +238,12 @@ public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
 
         Vector2 halfSizeUV = new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV);
 
+        // Update paint color based on stickiness ability
+        UpdatePaintColor();
+
         brushBlitMaterial.SetVector("_BrushCenter",   new Vector4(uvCenter.x, uvCenter.y, 0, 0));
         brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
-
-        // <<< add this line
         brushBlitMaterial.SetFloat("_BrushOpacity", 1f);
-        // >>>
 
         if (_tempRT == null ||
             _tempRT.width != rt.width ||

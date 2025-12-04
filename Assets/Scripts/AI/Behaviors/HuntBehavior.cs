@@ -49,6 +49,9 @@ public class HuntBehavior : MonoBehaviour, IEnemyBehavior
     [Tooltip("Base movement speed while hunting (world units/sec).")]
     [SerializeField] private float huntSpeed = 3.5f;
 
+    // Speed multiplier for slow effects
+    private float _speedMultiplier = 1.0f;
+
     [Tooltip("If true, enemy rotates to face its movement direction.")]
     [SerializeField] private bool faceMovement = true;
 
@@ -288,7 +291,7 @@ public class HuntBehavior : MonoBehaviour, IEnemyBehavior
         Vector3 moveDir = (fwd + side * offset).normalized;
 
         Vector3 pos = transform.position;
-        Vector3 delta = moveDir * (huntSpeed * dt);
+        Vector3 delta = moveDir * (huntSpeed * _speedMultiplier * dt);
         Vector3 newPos = pos + delta;
         newPos.y = pos.y;
 
@@ -668,6 +671,15 @@ public class HuntBehavior : MonoBehaviour, IEnemyBehavior
         }
 
         return false;
+    }
+
+    // -----------------------------------------------------------------------
+    // Speed Multiplier
+    // -----------------------------------------------------------------------
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
     }
 
     // -----------------------------------------------------------------------
