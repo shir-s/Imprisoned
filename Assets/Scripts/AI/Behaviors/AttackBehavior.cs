@@ -54,6 +54,9 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
     [Tooltip("Chase speed while attacking (world units/sec).")]
     [SerializeField] private float chaseSpeed = 4f;
 
+    // Speed multiplier for slow effects
+    private float _speedMultiplier = 1.0f;
+
     [Tooltip("If true, the enemy will rotate to face its movement direction.")]
     [SerializeField] private bool faceMovement = true;
 
@@ -242,7 +245,7 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
             }
 
             // CRITICAL: Check if we're actually moving
-            Vector3 movement = new Vector3(desiredDir.x, 0f, desiredDir.z) * (chaseSpeed * deltaTime);
+            Vector3 movement = new Vector3(desiredDir.x, 0f, desiredDir.z) * (chaseSpeed * _speedMultiplier * deltaTime);
             Vector3 newPos = pos + movement;
             
             if (debugLogs && _tickCount % 30 == 0)
@@ -849,6 +852,15 @@ public class AttackBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
         return enableSound && _currentTarget != null;
     }
 
+
+    // --------------------------------------------------------
+    // Speed Multiplier
+    // --------------------------------------------------------
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
+    }
 
     // --------------------------------------------------------
     // Gizmos

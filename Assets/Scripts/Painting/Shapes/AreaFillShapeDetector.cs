@@ -23,6 +23,10 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [Tooltip("Fill over multiple frames to avoid freezing")]
     [SerializeField] private bool useAsyncFill = true;
 
+    [Header("Stickiness Ability")]
+    [Tooltip("Prefab with SlowZone component to spawn on fills")]
+    [SerializeField] private GameObject slowZonePrefab;
+
     [Header("Debug")]
     [SerializeField] private bool debugPolygon = false;
     [SerializeField] private bool debugFillPoints = false;
@@ -143,6 +147,9 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (debugPolygon)
             Debug.Log($"[AreaFill] Completed {fillCount} points");
 
+        // Spawn slow zone if stickiness ability is active
+        SpawnSlowZone(polygonXZ, avgHeight);
+
         _currentFillCoroutine = null;
     }
 
@@ -173,6 +180,9 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
         if (debugPolygon)
             Debug.Log($"[AreaFill] Filled {fillCount} points");
+
+        // Spawn slow zone if stickiness ability is active
+        SpawnSlowZone(polygonXZ, avgHeight);
 
         return anyFilled;
     }
@@ -232,5 +242,95 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
             Vector3 b = poly[(i + 1) % poly.Count];
             Debug.DrawLine(a + Vector3.up * 0.15f, b + Vector3.up * 0.15f, Color.yellow, 3f);
         }
+    }
+
+    // ========== STICKINESS ABILITY: SLOW ZONE SPAWNING ==========
+
+    /// <summary>
+    /// Spawn a slow zone matching the filled polygon shape
+    /// </summary>
+    private void SpawnSlowZone(List<Vector2> polygonXZ, float avgHeight)
+    {
+        // Check if player has ability
+        if (PlayerAbilityManager.Instance == null || 
+            !PlayerAbilityManager.Instance.HasStickinessAbility)
+            return;
+
+        if (slowZonePrefab == null)
+        {
+            Debug.LogWarning("[AreaFill] No slow zone prefab assigned! Assign it in Inspector.");
+            return;
+        }
+
+        // Create mesh from polygon
+        Mesh zoneMesh = CreateMeshFromPolygon(polygonXZ, avgHeight);
+        if (zoneMesh == null)
+            return;
+
+        // Spawn zone object
+        GameObject zoneObj = Instantiate(slowZonePrefab, Vector3.zero, Quaternion.identity);
+        zoneObj.name = "SlowZone_" + Time.time;
+
+        // Setup mesh collider
+        // Note: Must be convex to use as trigger (Unity limitation)
+        MeshCollider meshCol = zoneObj.GetComponent<MeshCollider>();
+        if (meshCol == null)
+            meshCol = zoneObj.AddComponent<MeshCollider>();
+        
+        meshCol.sharedMesh = zoneMesh;
+        meshCol.convex = true; // Must be convex for triggers
+        meshCol.isTrigger = true;
+
+        // Optional: setup visual mesh
+        MeshFilter mf = zoneObj.GetComponent<MeshFilter>();
+        if (mf == null)
+            mf = zoneObj.AddComponent<MeshFilter>();
+        mf.mesh = zoneMesh;
+
+        // Optional: setup visual renderer
+        MeshRenderer mr = zoneObj.GetComponent<MeshRenderer>();
+        if (mr == null)
+            mr = zoneObj.AddComponent<MeshRenderer>();
+
+        if (debugPolygon)
+            Debug.Log("[AreaFill] ✨ Spawned sticky slow zone!");
+    }
+
+    /// <summary>
+    /// Create a mesh from a 2D polygon (for the slow zone collider/visual)
+    /// </summary>
+    private Mesh CreateMeshFromPolygon(List<Vector2> polygonXZ, float yHeight)
+    {
+        if (polygonXZ.Count < 3)
+            return null;
+
+        Mesh mesh = new Mesh();
+        mesh.name = "SlowZoneMesh";
+
+        // Convert 2D polygon to 3D vertices
+        Vector3[] vertices = new Vector3[polygonXZ.Count];
+        for (int i = 0; i < polygonXZ.Count; i++)
+        {
+            vertices[i] = new Vector3(polygonXZ[i].x, yHeight, polygonXZ[i].y);
+        }
+
+        // Triangulate polygon (simple fan triangulation from first vertex)
+        int triCount = (polygonXZ.Count - 2) * 3;
+        int[] triangles = new int[triCount];
+        int triIndex = 0;
+        
+        for (int i = 1; i < polygonXZ.Count - 1; i++)
+        {
+            triangles[triIndex++] = 0;
+            triangles[triIndex++] = i;
+            triangles[triIndex++] = i + 1;
+        }
+
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        return mesh;
     }
 }

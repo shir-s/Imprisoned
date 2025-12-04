@@ -21,6 +21,9 @@ public class MonsterAStarFollower : MonoBehaviour
     [Header("Movement")]
     [SerializeField] private float moveSpeed = 5f;
     [SerializeField] private float arriveThreshold = 0.1f;
+
+    // Speed multiplier for slow effects
+    private float _speedMultiplier = 1.0f;
     [Tooltip("Seconds between path recalculations.")]
     [SerializeField] private float pathUpdateInterval = 0.3f;
 
@@ -151,7 +154,7 @@ public class MonsterAStarFollower : MonoBehaviour
         Vector3 dir = to.normalized;
 
         // Compute step for this physics frame
-        float step = moveSpeed * dt;
+        float step = moveSpeed * _speedMultiplier * dt;
         if (step > dist)
             step = dist;
 
@@ -369,6 +372,15 @@ public class MonsterAStarFollower : MonoBehaviour
 
         path.Reverse();
         return path;
+    }
+
+    // -------------------------------------------------------
+    // Speed Multiplier
+    // -------------------------------------------------------
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
     }
 
 #if UNITY_EDITOR

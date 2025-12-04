@@ -23,6 +23,9 @@ public class TravelBehavior : MonoBehaviour, IEnemyBehavior
     [Tooltip("Speed while traveling (units/sec).")]
     [SerializeField] private float travelSpeed = 2.0f;
 
+    // Speed multiplier for slow effects
+    private float _speedMultiplier = 1.0f;
+
     [Tooltip("Distance at which we consider a target 'reached'.")]
     [SerializeField] private float targetReachThreshold = 0.3f;
 
@@ -227,7 +230,7 @@ public class TravelBehavior : MonoBehaviour, IEnemyBehavior
         // 5) Apply movement
         if (finalMoveDir.sqrMagnitude > 1e-4f)
         {
-            pos += finalMoveDir * (travelSpeed * deltaTime);
+            pos += finalMoveDir * (travelSpeed * _speedMultiplier * deltaTime);
             transform.position = pos;
         }
 
@@ -467,6 +470,15 @@ public class TravelBehavior : MonoBehaviour, IEnemyBehavior
 
         awayDir = result.normalized;
         return true;
+    }
+
+    // --------------------------------------------------------
+    // Speed Multiplier
+    // --------------------------------------------------------
+
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
     }
 
 #if UNITY_EDITOR

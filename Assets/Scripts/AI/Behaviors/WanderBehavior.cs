@@ -31,6 +31,9 @@ public class WanderBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
     [Tooltip("How often to change wander direction (seconds), if nothing else happens.")]
     [SerializeField] private float wanderDirectionChangeInterval = 2.0f;
 
+    // Speed multiplier for slow effects (1.0 = normal, 0.5 = half speed)
+    private float _speedMultiplier = 1.0f;
+
     [Header("Avoidance")]
     [Tooltip("If an obstacle is closer than this radius, pick a new wander direction.")]
     [SerializeField] private float avoidRadius = 1.5f;
@@ -222,7 +225,7 @@ public class WanderBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
         if (moveDir.sqrMagnitude > 1e-4f)
         {
             moveDir.Normalize();
-            Vector3 newPos = pos + moveDir * (wanderSpeed * deltaTime);
+            Vector3 newPos = pos + moveDir * (wanderSpeed * _speedMultiplier * deltaTime);
 
             if (useHomeRadius && homeRadius > 0f && !autoReturnIfOutside)
             {
@@ -400,6 +403,18 @@ public class WanderBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
 
         awayDir = result.normalized;
         return true;
+    }
+
+    // --------------------------------------------------------
+    // Speed Multiplier (for slow zones)
+    // --------------------------------------------------------
+
+    /// <summary>
+    /// Set speed multiplier (for slow zones, buffs, etc.)
+    /// </summary>
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
     }
 
 #if UNITY_EDITOR
