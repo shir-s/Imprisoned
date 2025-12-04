@@ -27,14 +27,113 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [Tooltip("Prefab with SlowZone component to spawn on fills")]
     [SerializeField] private GameObject slowZonePrefab;
 
+    [Header("Fill Mode")]
+    [Tooltip("Key to toggle fill mode on/off")]
+    [SerializeField] private KeyCode toggleFillModeKey = KeyCode.Space;
+
+    [Tooltip("If true, fill mode starts active")]
+    [SerializeField] private bool startInFillMode = false;
+
+    [Tooltip("Show visual feedback when fill mode is active (e.g., change cube emission)")]
+    [SerializeField] private bool showVisualFeedback = true;
+
+    [Tooltip("Renderer to apply visual feedback to (auto-found if empty)")]
+    [SerializeField] private Renderer visualFeedbackRenderer;
+
     [Header("Debug")]
     [SerializeField] private bool debugPolygon = false;
     [SerializeField] private bool debugFillPoints = false;
 
     private Coroutine _currentFillCoroutine;
+    private bool _fillModeActive = false;
+
+    private void Start()
+    {
+        _fillModeActive = startInFillMode;
+
+        // Auto-find renderer for visual feedback
+        if (showVisualFeedback && visualFeedbackRenderer == null)
+        {
+            visualFeedbackRenderer = GetComponent<Renderer>();
+            if (visualFeedbackRenderer == null)
+            {
+                visualFeedbackRenderer = GetComponentInChildren<Renderer>();
+            }
+        }
+
+        UpdateVisualFeedback();
+        
+        if (debugPolygon)
+            Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
+    }
+
+    private void Update()
+    {
+        // Toggle fill mode with Space key
+        if (Input.GetKeyDown(toggleFillModeKey))
+        {
+            ToggleFillMode();
+        }
+    }
+
+    /// <summary>
+    /// Toggle fill mode on/off
+    /// </summary>
+    public void ToggleFillMode()
+    {
+        _fillModeActive = !_fillModeActive;
+        UpdateVisualFeedback();
+        Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
+    }
+
+    /// <summary>
+    /// Update visual feedback based on fill mode state
+    /// </summary>
+    private void UpdateVisualFeedback()
+    {
+        if (!showVisualFeedback || visualFeedbackRenderer == null)
+            return;
+
+        Material mat = visualFeedbackRenderer.material;
+        if (mat == null)
+            return;
+
+        // Add subtle emission glow when fill mode is active
+        if (_fillModeActive)
+        {
+            // Enable emission and set a subtle glow color
+            if (mat.HasProperty("_EmissionColor"))
+            {
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", new Color(0.2f, 0.4f, 1f, 1f)); // Subtle blue glow
+            }
+        }
+        else
+        {
+            // Disable emission
+            if (mat.HasProperty("_EmissionColor"))
+            {
+                mat.DisableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", Color.black);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get current fill mode state
+    /// </summary>
+    public bool IsFillModeActive => _fillModeActive;
 
     public bool TryHandleShape(StrokeLoopSegment seg)
     {
+        // Only fill if fill mode is active
+        if (!_fillModeActive)
+        {
+            if (debugPolygon)
+                Debug.Log("[AreaFill] Fill mode inactive - ignoring shape");
+            return false;
+        }
+
         if (paintSurfaces == null || paintSurfaces.Count == 0 ||
             painter == null || seg.history == null)
             return false;

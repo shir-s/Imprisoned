@@ -444,6 +444,10 @@ MonoBehaviour:
   maxPointsPerFrame: 300
   useAsyncFill: 1
   slowZonePrefab: {fileID: 8661686793671854680, guid: 183ba1f0efa616d4783dd9fe630f41cf, type: 3}
+  toggleFillModeKey: 32
+  startInFillMode: 0
+  showVisualFeedback: 1
+  visualFeedbackRenderer: {fileID: 0}
   debugPolygon: 0
   debugFillPoints: 0
 --- !u!114 &59266022
@@ -6121,7 +6125,7 @@ MonoBehaviour:
   - {fileID: 330585545}
   - {fileID: 37805749}
   activeIndex: 0
-  switchKey: 32
+  switchKey: 9
   tiltTray: {fileID: 0}
   followCameraIndex: 1
   useCameraRelativeInputForFollow: 1
