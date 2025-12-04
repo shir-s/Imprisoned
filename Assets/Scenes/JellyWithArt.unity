@@ -210,6 +210,12 @@ MonoBehaviour:
   target: {fileID: 0}
   followDistance: 6
   followHeight: 6
+  occlusionLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  maxExtraHeight: 4
+  overheadCheckDistance: 3
+  hardLockCenter: 1
   followSmooth: 10
   lookSmooth: 10
   listenToActiveCubeEvent: 1
@@ -451,6 +457,27 @@ MonoBehaviour:
   onPlayerDeath:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &59266023
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 59265988}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f50945afcbc424baccf5e3e4fef1f1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
+  uniformScale: 1
+  minSize: 0.2
+  maxSize: 3
+  surfaceMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  surfaceOffset: 0.001
+  logChanges: 0
+  debugRay: 0
 --- !u!1 &76227346
 GameObject:
   m_ObjectHideFlags: 0
@@ -562,6 +589,28 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 76227346}
   m_Mesh: {fileID: -4335954015276353015, guid: 2d5ec10c6df0b4a669145ff91dd5c93e, type: 3}
+--- !u!1 &95253980 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5308671735901282687, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &95253984
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 95253980}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1aaa546f3314bbcb12f7a730a5a7b63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.PoweUps.CubeVolumePickup
+  collectorLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  amount: 0.2
+  destroyOnCollect: 0
 --- !u!1 &225370697
 GameObject:
   m_ObjectHideFlags: 0
@@ -5815,6 +5864,28 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 112b9c63a5561164fb8ad13d3e4e5f72, type: 3}
+--- !u!1 &542582101 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 314472991911443608, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &542582105
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 542582101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1aaa546f3314bbcb12f7a730a5a7b63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.PoweUps.CubeVolumePickup
+  collectorLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  amount: 0.2
+  destroyOnCollect: 0
 --- !u!1 &725658947
 GameObject:
   m_ObjectHideFlags: 0
@@ -11059,6 +11130,27 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bf4f6e859860a1a4589130e6e929e398, type: 3}
+--- !u!1 &1094913646 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4612648225766156401, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1094913650
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1094913646}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81ccf30c5eb24ac7b005438a8e06f045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.VolumeDamageOnTrigger
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  volumeDelta: -0.2
 --- !u!1001 &1168129644
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11252,6 +11344,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimplePaintSurface
+--- !u!1 &1317201390 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2694850420044881925, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1317201394
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1317201390}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 81ccf30c5eb24ac7b005438a8e06f045, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.VolumeDamageOnTrigger
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  volumeDelta: -0.2
 --- !u!1 &1367035082
 GameObject:
   m_ObjectHideFlags: 0
@@ -26308,7 +26421,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1771454593
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -31404,6 +31517,28 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2325894914630785525, guid: 0506827b8a094884a89675bf7c81813b, type: 3}
   m_PrefabInstance: {fileID: 4788864456464467340}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2066818879 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2086427327803529689, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+  m_PrefabInstance: {fileID: 6384719083779380374}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2066818883
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2066818879}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1aaa546f3314bbcb12f7a730a5a7b63, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.PoweUps.CubeVolumePickup
+  collectorLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  amount: 0.2
+  destroyOnCollect: 0
 --- !u!1 &2122902918
 GameObject:
   m_ObjectHideFlags: 0
@@ -31728,7 +31863,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6375199374030627796, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: rayDistance
-      value: 1
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 6518572221285644113, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       propertyPath: useRigidbodyVelocity
@@ -31745,6 +31880,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       insertIndex: -1
       addedObject: {fileID: 59266022}
+    - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 59266023}
   m_SourcePrefab: {fileID: 100100000, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
 --- !u!1001 &4788864456464467340
 PrefabInstance:
@@ -32120,6 +32258,10 @@ PrefabInstance:
       value: 19
       objectReference: {fileID: 0}
     - target: {fileID: 3099725787058931527, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3099725787058931527, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
       propertyPath: cubePrefab
       value: 
       objectReference: {fileID: 59265988}
@@ -32328,6 +32470,10 @@ PrefabInstance:
       value: 19
       objectReference: {fileID: 0}
     - target: {fileID: 8034831797798903626, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8034831797798903626, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
       propertyPath: cubePrefab
       value: 
       objectReference: {fileID: 59265988}
@@ -32352,6 +32498,10 @@ PrefabInstance:
       value: 19
       objectReference: {fileID: 0}
     - target: {fileID: 8837501851537643105, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8837501851537643105, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
       propertyPath: cubePrefab
       value: 
       objectReference: {fileID: 59265988}
@@ -32366,7 +32516,22 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 314472991911443608, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 542582105}
+    - targetCorrespondingSourceObject: {fileID: 2086427327803529689, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2066818883}
+    - targetCorrespondingSourceObject: {fileID: 5308671735901282687, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 95253984}
+    - targetCorrespondingSourceObject: {fileID: 4612648225766156401, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1094913650}
+    - targetCorrespondingSourceObject: {fileID: 2694850420044881925, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1317201394}
   m_SourcePrefab: {fileID: 100100000, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
 --- !u!4 &8750807273186122018 stripped
 Transform:
