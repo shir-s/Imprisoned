@@ -23,14 +23,121 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [Tooltip("Fill over multiple frames to avoid freezing")]
     [SerializeField] private bool useAsyncFill = true;
 
+    [Header("Stickiness Ability")]
+    [Tooltip("Prefab with SlowZone component to spawn on fills")]
+    [SerializeField] private GameObject slowZonePrefab;
+
+    [Tooltip("How much to slow enemies (0.1 = 10% speed = very slow, 0.5 = 50% speed = half speed)")]
+    [Range(0.01f, 1f)]
+    [SerializeField] private float slowMultiplier = 0.15f;
+
+    [Header("Fill Mode")]
+    [Tooltip("Key to toggle fill mode on/off")]
+    [SerializeField] private KeyCode toggleFillModeKey = KeyCode.Space;
+
+    [Tooltip("If true, fill mode starts active")]
+    [SerializeField] private bool startInFillMode = false;
+
+    [Tooltip("Show visual feedback when fill mode is active (e.g., change cube emission)")]
+    [SerializeField] private bool showVisualFeedback = true;
+
+    [Tooltip("Renderer to apply visual feedback to (auto-found if empty)")]
+    [SerializeField] private Renderer visualFeedbackRenderer;
+
     [Header("Debug")]
     [SerializeField] private bool debugPolygon = false;
     [SerializeField] private bool debugFillPoints = false;
 
     private Coroutine _currentFillCoroutine;
+    private bool _fillModeActive = false;
+
+    private void Start()
+    {
+        _fillModeActive = startInFillMode;
+
+        // Auto-find renderer for visual feedback
+        if (showVisualFeedback && visualFeedbackRenderer == null)
+        {
+            visualFeedbackRenderer = GetComponent<Renderer>();
+            if (visualFeedbackRenderer == null)
+            {
+                visualFeedbackRenderer = GetComponentInChildren<Renderer>();
+            }
+        }
+
+        UpdateVisualFeedback();
+        
+        if (debugPolygon)
+            Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
+    }
+
+    private void Update()
+    {
+        // Toggle fill mode with Space key
+        if (Input.GetKeyDown(toggleFillModeKey))
+        {
+            ToggleFillMode();
+        }
+    }
+
+    /// <summary>
+    /// Toggle fill mode on/off
+    /// </summary>
+    public void ToggleFillMode()
+    {
+        _fillModeActive = !_fillModeActive;
+        UpdateVisualFeedback();
+        Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
+    }
+
+    /// <summary>
+    /// Update visual feedback based on fill mode state
+    /// </summary>
+    private void UpdateVisualFeedback()
+    {
+        if (!showVisualFeedback || visualFeedbackRenderer == null)
+            return;
+
+        Material mat = visualFeedbackRenderer.material;
+        if (mat == null)
+            return;
+
+        // Add subtle emission glow when fill mode is active
+        if (_fillModeActive)
+        {
+            // Enable emission and set a subtle glow color
+            if (mat.HasProperty("_EmissionColor"))
+            {
+                mat.EnableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", new Color(0.2f, 0.4f, 1f, 1f)); // Subtle blue glow
+            }
+        }
+        else
+        {
+            // Disable emission
+            if (mat.HasProperty("_EmissionColor"))
+            {
+                mat.DisableKeyword("_EMISSION");
+                mat.SetColor("_EmissionColor", Color.black);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Get current fill mode state
+    /// </summary>
+    public bool IsFillModeActive => _fillModeActive;
 
     public bool TryHandleShape(StrokeLoopSegment seg)
     {
+        // Only fill if fill mode is active
+        if (!_fillModeActive)
+        {
+            if (debugPolygon)
+                Debug.Log("[AreaFill] Fill mode inactive - ignoring shape");
+            return false;
+        }
+
         if (paintSurfaces == null || paintSurfaces.Count == 0 ||
             painter == null || seg.history == null)
             return false;
@@ -143,6 +250,9 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (debugPolygon)
             Debug.Log($"[AreaFill] Completed {fillCount} points");
 
+        // Spawn slow zone if stickiness ability is active
+        SpawnSlowZone(polygonXZ, avgHeight);
+
         _currentFillCoroutine = null;
     }
 
@@ -173,6 +283,9 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
         if (debugPolygon)
             Debug.Log($"[AreaFill] Filled {fillCount} points");
+
+        // Spawn slow zone if stickiness ability is active
+        SpawnSlowZone(polygonXZ, avgHeight);
 
         return anyFilled;
     }
@@ -232,5 +345,138 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
             Vector3 b = poly[(i + 1) % poly.Count];
             Debug.DrawLine(a + Vector3.up * 0.15f, b + Vector3.up * 0.15f, Color.yellow, 3f);
         }
+    }
+
+    // ========== STICKINESS ABILITY: SLOW ZONE SPAWNING ==========
+
+    /// <summary>
+    /// Spawn a slow zone with BoxCollider covering the entire filled area
+    /// </summary>
+    private void SpawnSlowZone(List<Vector2> polygonXZ, float avgHeight)
+    {
+        // Check if player has ability
+        if (PlayerAbilityManager.Instance == null || 
+            !PlayerAbilityManager.Instance.HasStickinessAbility)
+            return;
+
+        if (slowZonePrefab == null)
+        {
+            Debug.LogWarning("[AreaFill] No slow zone prefab assigned! Assign it in Inspector.");
+            return;
+        }
+
+        if (polygonXZ.Count < 3)
+            return;
+
+        // Calculate bounding box from polygon
+        float minX = float.MaxValue;
+        float maxX = float.MinValue;
+        float minZ = float.MaxValue;
+        float maxZ = float.MinValue;
+
+        foreach (var p in polygonXZ)
+        {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minZ) minZ = p.y;
+            if (p.y > maxZ) maxZ = p.y;
+        }
+
+        // Calculate center and size
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        float sizeX = maxX - minX;
+        float sizeZ = maxZ - minZ;
+
+        // Spawn zone object at the center of the bounding box
+        Vector3 center = new Vector3(centerX, avgHeight, centerZ);
+        GameObject zoneObj = Instantiate(slowZonePrefab, center, Quaternion.identity);
+        zoneObj.name = "SlowZone_" + Time.time;
+
+        // First, add the BoxCollider (so RequireComponent is satisfied)
+        BoxCollider boxCol = zoneObj.GetComponent<BoxCollider>();
+        if (boxCol == null)
+        {
+            boxCol = zoneObj.AddComponent<BoxCollider>();
+        }
+        boxCol.size = new Vector3(sizeX, 0.5f, sizeZ); // Height of 0.5 units
+        boxCol.center = Vector3.zero; // Center is already at the zone object position
+        boxCol.isTrigger = true;
+
+        // Now remove any other colliders (but keep the BoxCollider we just added/configured)
+        Collider[] existingColliders = zoneObj.GetComponents<Collider>();
+        foreach (var col in existingColliders)
+        {
+            if (col != boxCol) // Don't remove the BoxCollider we just set up
+            {
+                DestroyImmediate(col);
+            }
+        }
+
+        // Configure SlowZone component with our slow multiplier
+        SlowZone slowZone = zoneObj.GetComponent<SlowZone>();
+        if (slowZone != null)
+        {
+            slowZone.SetSlowMultiplier(slowMultiplier);
+        }
+        else
+        {
+            Debug.LogWarning("[AreaFill] SlowZone prefab missing SlowZone component!");
+        }
+
+        // Optional: setup visual mesh (for display purposes)
+        Mesh zoneMesh = CreateMeshFromPolygon(polygonXZ, 0f); // Local space, Y=0
+        if (zoneMesh != null)
+        {
+            MeshFilter mf = zoneObj.GetComponent<MeshFilter>();
+            if (mf == null)
+                mf = zoneObj.AddComponent<MeshFilter>();
+            mf.mesh = zoneMesh;
+
+            MeshRenderer mr = zoneObj.GetComponent<MeshRenderer>();
+            if (mr == null)
+                mr = zoneObj.AddComponent<MeshRenderer>();
+        }
+
+        if (debugPolygon)
+            Debug.Log($"[AreaFill] ✨ Spawned sticky slow zone! Box size: {sizeX:F2} x {sizeZ:F2}");
+    }
+
+    /// <summary>
+    /// Create a mesh from a 2D polygon (for the slow zone collider/visual)
+    /// </summary>
+    private Mesh CreateMeshFromPolygon(List<Vector2> polygonXZ, float yHeight)
+    {
+        if (polygonXZ.Count < 3)
+            return null;
+
+        Mesh mesh = new Mesh();
+        mesh.name = "SlowZoneMesh";
+
+        // Convert 2D polygon to 3D vertices
+        Vector3[] vertices = new Vector3[polygonXZ.Count];
+        for (int i = 0; i < polygonXZ.Count; i++)
+        {
+            vertices[i] = new Vector3(polygonXZ[i].x, yHeight, polygonXZ[i].y);
+        }
+
+        // Triangulate polygon (simple fan triangulation from first vertex)
+        int triCount = (polygonXZ.Count - 2) * 3;
+        int[] triangles = new int[triCount];
+        int triIndex = 0;
+        
+        for (int i = 1; i < polygonXZ.Count - 1; i++)
+        {
+            triangles[triIndex++] = 0;
+            triangles[triIndex++] = i;
+            triangles[triIndex++] = i + 1;
+        }
+
+        mesh.vertices = vertices;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        return mesh;
     }
 }

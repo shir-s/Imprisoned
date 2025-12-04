@@ -1,5 +1,9 @@
+using System;
+using System.Collections;
+using JellyGame.GamePlay.Utils;
 using UnityEngine;
 using UnityEngine.Events;
+
 namespace JellyGame.GamePlay.Enemy
 {
 
@@ -12,6 +16,9 @@ namespace JellyGame.GamePlay.Enemy
 
         public UnityEvent onEnemyDeath;
 
+        // event קוד-צדדי – לאוניטי אין מושג ממנו, זה רק למנהלים
+        public event Action<EnemyHealth> EnemyDied;
+
         void Awake()
         {
             CurrentHealth = maxHealth;
@@ -19,6 +26,7 @@ namespace JellyGame.GamePlay.Enemy
 
         public void TakeDamage(int amount)
         {
+            print("EnemyHealth.TakeDamage(" + amount + ")");
             if (CurrentHealth <= 0) return;
 
             CurrentHealth -= amount;
@@ -36,7 +44,29 @@ namespace JellyGame.GamePlay.Enemy
 
         void Die()
         {
-            onEnemyDeath?.Invoke();
+            print("EnemyHealth.Die()");
+            
+            // Trigger events immediately (before delay)
+            onEnemyDeath?.Invoke();       
+            EnemyDied?.Invoke(this);     
+
+            // Capture position BEFORE destroying (critical!)
+            Vector3 deathPosition = transform.position;
+            
+            // Trigger EventManager event with position data immediately
+            //EventManager.TriggerEvent(EventManager.GameEvent.EnemyKilled, deathPosition);
+            JellyGameEvents.EnemyDied?.Invoke(deathPosition);
+            
+            // Start coroutine to destroy after 2 seconds
+            StartCoroutine(DestroyAfterDelay());
+        }
+
+        private IEnumerator DestroyAfterDelay()
+        {
+            // Wait 2 seconds before destroying
+            yield return new WaitForSeconds(2f);
+            
+            // Destroy the enemy after the delay
             Destroy(gameObject);
         }
     }

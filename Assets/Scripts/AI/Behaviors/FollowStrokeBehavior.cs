@@ -50,6 +50,8 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
     [Tooltip("Speed while following the stroke (world units/sec).")]
     [SerializeField] private float followSpeed = 2.0f;
 
+    private float _speedMultiplier = 1f;
+
     [Header("Sound")]
     [Tooltip("If disabled, this behavior will not produce any sound.")]
     [SerializeField] private bool enableSound = true;
@@ -92,6 +94,15 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
     private readonly HashSet<int> _knownBranchIndices = new HashSet<int>();
 
     public int Priority => priority;
+
+    /// <summary>
+    /// Sets a speed multiplier for this behavior (used by SlowZone).
+    /// 1.0 = normal speed, 0.5 = half speed, etc.
+    /// </summary>
+    public void SetSpeedMultiplier(float multiplier)
+    {
+        _speedMultiplier = Mathf.Max(0f, multiplier);
+    }
 
     private void Awake()
     {
@@ -226,7 +237,7 @@ public class FollowStrokeBehavior : MonoBehaviour, IEnemyBehavior, IEnemySound
         if (dist > 1e-5f)
         {
             Vector3 dir = toTarget / dist;
-            pos += dir * (followSpeed * dt);
+            pos += dir * (followSpeed * _speedMultiplier * dt);
             transform.position = pos;
         }
     }

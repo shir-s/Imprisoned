@@ -22,12 +22,14 @@ namespace JellyGame.GamePlay.Traps
         void OnTriggerEnter(Collider other)
         {
             if (crusher == null) return;
+            print($"[CrusherSideTrigger] {side} side: {other.name} ENTERED");
             crusher.RegisterSideContact(side, other);
         }
 
         void OnTriggerExit(Collider other)
         {
             if (crusher == null) return;
+            print($"[CrusherSideTrigger] {side} side: {other.name} EXITED");
             crusher.UnregisterSideContact(side, other);
         }
     }
