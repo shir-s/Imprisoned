@@ -667,7 +667,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 780614926}
   - {fileID: 378987334}
   - {fileID: 598891709}
   - {fileID: 26598994}
@@ -11179,7 +11178,7 @@ MonoBehaviour:
   enableWallSliding: 1
   stuckTimeout: 1.5
   enableSound: 1
-  soundMode: 2
+  soundMode: 1
   soundInterval: 0.3
   maxRandomInterval: 0.3
   soundName: EnemyFlee
@@ -12927,7 +12926,7 @@ MonoBehaviour:
   enableWallSliding: 1
   stuckTimeout: 1.5
   enableSound: 1
-  soundMode: 2
+  soundMode: 1
   soundInterval: 0.3
   maxRandomInterval: 0.3
   soundName: EnemyFlee
@@ -16215,7 +16214,7 @@ MonoBehaviour:
   enableWallSliding: 1
   stuckTimeout: 1.5
   enableSound: 1
-  soundMode: 2
+  soundMode: 4
   soundInterval: 0.3
   maxRandomInterval: 0.3
   soundName: EnemyFlee
@@ -19139,7 +19138,7 @@ MonoBehaviour:
   enableWallSliding: 1
   stuckTimeout: 1.5
   enableSound: 1
-  soundMode: 2
+  soundMode: 4
   soundInterval: 0.3
   maxRandomInterval: 0.3
   soundName: EnemyFlee
@@ -19649,283 +19648,6 @@ MonoBehaviour:
   projectPushOnTrayPlane: 1
   autoFindTray: 1
   tray: {fileID: 0}
---- !u!1 &780614925
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 780614926}
-  - component: {fileID: 780614933}
-  - component: {fileID: 780614932}
-  - component: {fileID: 780614931}
-  - component: {fileID: 780614930}
-  - component: {fileID: 780614929}
-  - component: {fileID: 780614928}
-  - component: {fileID: 780614927}
-  - component: {fileID: 780614934}
-  - component: {fileID: 780614935}
-  m_Layer: 18
-  m_Name: FriendlyNPC
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &780614926
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.33582374, y: 0.49, z: 0.09037328}
-  m_LocalScale: {x: 0.005, y: 0.522, z: 0.0051277014}
-  m_ConstrainProportionsScale: 1
-  m_Children: []
-  m_Father: {fileID: 21957083}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &780614927
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7ab2a49398e10ef4790036965292e332, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::WanderBehavior
-  priority: 0
-  wanderSpeed: 3
-  wanderDirectionChangeInterval: 5
-  avoidRadius: 3
-  avoidLayers:
-    serializedVersion: 2
-    m_Bits: 8704
-  awayBias: 0.7
-  useHomeRadius: 1
-  homeRadius: 5
-  autoReturnIfOutside: 1
-  debugLogs: 0
-  debugGizmos: 0
-  enableSound: 0
-  soundMode: 2
-  soundInterval: 3
-  maxRandomInterval: 6
-  soundName: EnemyWander
-  useCustomVolume: 0
-  soundVolume: 1
---- !u!114 &780614928
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 568e4f56439e3234faeb87615a7483ca, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FaceMovementDirection
-  movementSource: {fileID: 26598994}
-  upSource: {fileID: 1252192805}
-  autoFindUpSource: 1
-  minSpeedToRotate: 0.05
-  directionSmoothness: 8
---- !u!114 &780614929
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: de4b17997ccb11f4aa16a705facd9cef, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailFollowerAI
-  recorder: {fileID: 7739526055780409110, guid: 6900d4e4b131f8047812ee712785b8db, type: 3}
-  autoBindToBestRecorder: 1
-  isFriendlyNpc: 1
-  debugLogs: 0
-  logBehaviorSwitch: 0
---- !u!114 &780614930
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c68ab739fe3cc0e40bc44b29e281b264, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyTrayStick
-  tray: {fileID: 1252192805}
-  trayMask:
-    serializedVersion: 2
-    m_Bits: 64
-  surfaceOffset: 1
-  rayDistance: 5
-  alignRotationToTray: 1
-  ySmoothTime: 0.1
-  validateTrayHit: 1
-  useLocalBounds: 1
-  minLocalX: -0.495
-  maxLocalX: 0.495
-  minLocalZ: -0.495
-  maxLocalZ: 0.495
-  fallbackMode: 0
-  upwardRayDistance: 10
-  debugRays: 0
-  debugBoundsGizmos: 0
-  debugLogs: 0
---- !u!136 &780614931
-CapsuleCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 1.3019518
-  m_Height: 5.274201
-  m_Direction: 1
-  m_Center: {x: 0.42335096, y: 1.6370997, z: -0.11399674}
---- !u!23 &780614932
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RayTracingAccelStructBuildFlagsOverride: 0
-  m_RayTracingAccelStructBuildFlags: 1
-  m_SmallMeshCulling: 1
-  m_ForceMeshLod: -1
-  m_MeshLodSelectionBias: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_GlobalIlluminationMeshLod: 0
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &780614933
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Mesh: {fileID: 672467139749112099, guid: c3485ddd04172478c8acbb31a4141644, type: 3}
---- !u!114 &780614934
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d72a0e5593696bd42acc4b353e3e2abb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FleeBehavior
-  priority: 15
-  threatLayers:
-    serializedVersion: 2
-    m_Bits: 2048
-  detectionRadius: 8
-  safeBufferDistance: 2
-  fleeSpeed: 4.5
-  faceMovement: 1
-  maxTurnDegreesPerSecond: 360
-  smallObstacleLayers:
-    serializedVersion: 2
-    m_Bits: 135168
-  smallObstacleCheckDistance: 2
-  unitRadius: 0.4
-  avoidanceSamples: 8
-  largeObstacleLayers:
-    serializedVersion: 2
-    m_Bits: 25088
-  largeObstacleCheckDistance: 3
-  largeObstacleSearchAngle: 120
-  largeObstacleSearchSamples: 12
-  enableWallSliding: 1
-  stuckTimeout: 1.5
-  enableSound: 1
-  soundMode: 2
-  soundInterval: 0.3
-  maxRandomInterval: 0.3
-  soundName: EnemyFlee
-  useCustomVolume: 0
-  soundVolume: 0.174
-  debugLogs: 0
-  debugGizmos: 0
---- !u!114 &780614935
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 780614925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dd6a08ff8cd4ace4aacdee624f3bb04e, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AICharacterSound
-  behaviorManager: {fileID: 26598997}
-  defaultSoundName: 
-  defaultInterval: 2
-  defaultMode: 1
-  debugLogs: 0
 --- !u!1 &798111600 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 5313640672942108379, guid: 22406f7de0b6045539c910f01f1ab5ca, type: 3}
@@ -29647,7 +29369,7 @@ MonoBehaviour:
   enableWallSliding: 1
   stuckTimeout: 1.5
   enableSound: 1
-  soundMode: 2
+  soundMode: 4
   soundInterval: 0.3
   maxRandomInterval: 0.3
   soundName: EnemyFlee
@@ -63060,7 +62782,7 @@ MonoBehaviour:
   enableWallSliding: 1
   stuckTimeout: 1.5
   enableSound: 1
-  soundMode: 2
+  soundMode: 1
   soundInterval: 0.3
   maxRandomInterval: 0.3
   soundName: EnemyFlee
