@@ -27,6 +27,10 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [Tooltip("Prefab with SlowZone component to spawn on fills")]
     [SerializeField] private GameObject slowZonePrefab;
 
+    [Tooltip("How much to slow enemies (0.1 = 10% speed = very slow, 0.5 = 50% speed = half speed)")]
+    [Range(0.01f, 1f)]
+    [SerializeField] private float slowMultiplier = 0.15f;
+
     [Header("Fill Mode")]
     [Tooltip("Key to toggle fill mode on/off")]
     [SerializeField] private KeyCode toggleFillModeKey = KeyCode.Space;
@@ -346,7 +350,7 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     // ========== STICKINESS ABILITY: SLOW ZONE SPAWNING ==========
 
     /// <summary>
-    /// Spawn a slow zone matching the filled polygon shape
+    /// Spawn a slow zone with BoxCollider covering the entire filled area
     /// </summary>
     private void SpawnSlowZone(List<Vector2> polygonXZ, float avgHeight)
     {
@@ -361,38 +365,81 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
             return;
         }
 
-        // Create mesh from polygon
-        Mesh zoneMesh = CreateMeshFromPolygon(polygonXZ, avgHeight);
-        if (zoneMesh == null)
+        if (polygonXZ.Count < 3)
             return;
 
-        // Spawn zone object
-        GameObject zoneObj = Instantiate(slowZonePrefab, Vector3.zero, Quaternion.identity);
+        // Calculate bounding box from polygon
+        float minX = float.MaxValue;
+        float maxX = float.MinValue;
+        float minZ = float.MaxValue;
+        float maxZ = float.MinValue;
+
+        foreach (var p in polygonXZ)
+        {
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
+            if (p.y < minZ) minZ = p.y;
+            if (p.y > maxZ) maxZ = p.y;
+        }
+
+        // Calculate center and size
+        float centerX = (minX + maxX) * 0.5f;
+        float centerZ = (minZ + maxZ) * 0.5f;
+        float sizeX = maxX - minX;
+        float sizeZ = maxZ - minZ;
+
+        // Spawn zone object at the center of the bounding box
+        Vector3 center = new Vector3(centerX, avgHeight, centerZ);
+        GameObject zoneObj = Instantiate(slowZonePrefab, center, Quaternion.identity);
         zoneObj.name = "SlowZone_" + Time.time;
 
-        // Setup mesh collider
-        // Note: Must be convex to use as trigger (Unity limitation)
-        MeshCollider meshCol = zoneObj.GetComponent<MeshCollider>();
-        if (meshCol == null)
-            meshCol = zoneObj.AddComponent<MeshCollider>();
-        
-        meshCol.sharedMesh = zoneMesh;
-        meshCol.convex = true; // Must be convex for triggers
-        meshCol.isTrigger = true;
+        // First, add the BoxCollider (so RequireComponent is satisfied)
+        BoxCollider boxCol = zoneObj.GetComponent<BoxCollider>();
+        if (boxCol == null)
+        {
+            boxCol = zoneObj.AddComponent<BoxCollider>();
+        }
+        boxCol.size = new Vector3(sizeX, 0.5f, sizeZ); // Height of 0.5 units
+        boxCol.center = Vector3.zero; // Center is already at the zone object position
+        boxCol.isTrigger = true;
 
-        // Optional: setup visual mesh
-        MeshFilter mf = zoneObj.GetComponent<MeshFilter>();
-        if (mf == null)
-            mf = zoneObj.AddComponent<MeshFilter>();
-        mf.mesh = zoneMesh;
+        // Now remove any other colliders (but keep the BoxCollider we just added/configured)
+        Collider[] existingColliders = zoneObj.GetComponents<Collider>();
+        foreach (var col in existingColliders)
+        {
+            if (col != boxCol) // Don't remove the BoxCollider we just set up
+            {
+                DestroyImmediate(col);
+            }
+        }
 
-        // Optional: setup visual renderer
-        MeshRenderer mr = zoneObj.GetComponent<MeshRenderer>();
-        if (mr == null)
-            mr = zoneObj.AddComponent<MeshRenderer>();
+        // Configure SlowZone component with our slow multiplier
+        SlowZone slowZone = zoneObj.GetComponent<SlowZone>();
+        if (slowZone != null)
+        {
+            slowZone.SetSlowMultiplier(slowMultiplier);
+        }
+        else
+        {
+            Debug.LogWarning("[AreaFill] SlowZone prefab missing SlowZone component!");
+        }
+
+        // Optional: setup visual mesh (for display purposes)
+        Mesh zoneMesh = CreateMeshFromPolygon(polygonXZ, 0f); // Local space, Y=0
+        if (zoneMesh != null)
+        {
+            MeshFilter mf = zoneObj.GetComponent<MeshFilter>();
+            if (mf == null)
+                mf = zoneObj.AddComponent<MeshFilter>();
+            mf.mesh = zoneMesh;
+
+            MeshRenderer mr = zoneObj.GetComponent<MeshRenderer>();
+            if (mr == null)
+                mr = zoneObj.AddComponent<MeshRenderer>();
+        }
 
         if (debugPolygon)
-            Debug.Log("[AreaFill] ✨ Spawned sticky slow zone!");
+            Debug.Log($"[AreaFill] ✨ Spawned sticky slow zone! Box size: {sizeX:F2} x {sizeZ:F2}");
     }
 
     /// <summary>
