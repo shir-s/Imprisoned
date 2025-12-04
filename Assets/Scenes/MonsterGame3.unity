@@ -765,7 +765,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &26598997
 MonoBehaviour:
@@ -11013,7 +11013,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &285512377
 MonoBehaviour:
@@ -12762,7 +12762,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &378987337
 MonoBehaviour:
@@ -16050,7 +16050,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &598891712
 MonoBehaviour:
@@ -18974,7 +18974,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &742559091
 MonoBehaviour:
@@ -29205,7 +29205,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &1100323062
 MonoBehaviour:
@@ -39091,10 +39091,6 @@ MonoBehaviour:
   - {fileID: 2120062216}
   - {fileID: 1837448348}
   - {fileID: 1656011236}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
   waypointReachThreshold: 1
   travelSpeed: 10
   wanderDuration: 5
@@ -46836,7 +46832,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &1632343568
 MonoBehaviour:
@@ -62334,7 +62330,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &2092681180
 MonoBehaviour:
@@ -62634,7 +62630,7 @@ MonoBehaviour:
   movementSource: {fileID: 26598994}
   upSource: {fileID: 1252192805}
   autoFindUpSource: 1
-  minSpeedToRotate: 0.05
+  minSpeedToRotate: 0.005
   directionSmoothness: 8
 --- !u!114 &2115664926
 MonoBehaviour:
@@ -63743,8 +63739,8 @@ MonoBehaviour:
   debugGizmos: 0
   enableSound: 0
   soundMode: 6
-  soundInterval: 0.7
-  maxRandomInterval: 1.2
+  soundInterval: 0.5
+  maxRandomInterval: 0.5
   soundName: EnemyAttack
   useCustomVolume: 0
   soundVolume: 1

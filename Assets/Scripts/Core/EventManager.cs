@@ -31,7 +31,9 @@ public static class EventManager
         FriendlyNpcKilled,   // data: GameObject or Transform (the NPC that died)
         
         // Enemies
-        EnemyKilled          // data: GameObject or Transform (the enemy that died)
+        EnemyKilled,          // data: GameObject or Transform (the enemy that died)
+        
+        GameWin
     }
 
     public static void StartListening(GameEvent eventType, EventAction listener)
