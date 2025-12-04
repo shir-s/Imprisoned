@@ -7,5 +7,6 @@ namespace JellyGame.GamePlay.Utils
     {
         public static Action FirstEnemyDied;
         public static Action AllEnemiesDied;
+        public static Action<Vector3> EnemyDied;
     }
 }

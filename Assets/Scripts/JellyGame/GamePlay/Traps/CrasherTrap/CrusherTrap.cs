@@ -153,20 +153,39 @@ public class CrusherTrap : MonoBehaviour
 
     void TryCrush(Collider col)
     {
+        print($"[CrusherTrap] TryCrush called for {col.name}");
+        
         if (isDeactivated)
+        {
+            print("[CrusherTrap] Trap is deactivated, skipping");
             return;
+        }
 
         // חייבים להיות גם בשמאל וגם בימין
-        if (!leftContacts.Contains(col) || !rightContacts.Contains(col))
+        bool inLeft = leftContacts.Contains(col);
+        bool inRight = rightContacts.Contains(col);
+        print($"[CrusherTrap] {col.name} - InLeft: {inLeft}, InRight: {inRight}");
+        
+        if (!inLeft || !inRight)
+        {
+            print($"[CrusherTrap] Enemy not in both sides yet. Left contacts: {leftContacts.Count}, Right contacts: {rightContacts.Count}");
             return;
+        }
 
+        print($"[CrusherTrap] Enemy in both sides! IsDangerPhase: {IsDangerPhase}");
         if (!IsDangerPhase)
+        {
+            print("[CrusherTrap] Not in danger phase yet, waiting...");
             return;
+        }
 
         bool crushedSomething = false;
 
         // מחפש קומפוננטת חיים על האובייקט או ההורה שלו
-        var playerHealth = col.GetComponentInParent<PlayerHealth>();
+        // Check on the collider's GameObject first, then parent
+        var playerHealth = col.GetComponent<PlayerHealth>();
+        if (playerHealth == null)
+            playerHealth = col.GetComponentInParent<PlayerHealth>();
         if (playerHealth != null && playerHealth.CurrentHealth > 0)
         {
             if (killPlayerInstantly)
@@ -178,15 +197,31 @@ public class CrusherTrap : MonoBehaviour
         }
         else
         {
-            var enemyHealth = col.GetComponentInParent<EnemyHealth>();
+            // Check on the collider's GameObject first, then parent
+            var enemyHealth = col.GetComponent<EnemyHealth>();
+            if (enemyHealth == null)
+                enemyHealth = col.GetComponentInParent<EnemyHealth>();
+            
             if (enemyHealth != null && enemyHealth.CurrentHealth > 0)
             {
+                print($"[CrusherTrap] Crushing ENEMY: {col.name} -> {enemyHealth.gameObject.name}, Health: {enemyHealth.CurrentHealth}");
                 if (killEnemyInstantly)
+                {
+                    print("[CrusherTrap] Killing enemy instantly");
                     enemyHealth.Kill();
+                }
                 else
+                {
+                    print($"[CrusherTrap] Damaging enemy: {enemyDamage}");
                     enemyHealth.TakeDamage(enemyDamage);
+                }
 
                 crushedSomething = true;
+            }
+            else
+            {
+                print($"[CrusherTrap] TryCrush: Collider {col.name} has no EnemyHealth component!");
+                print($"[CrusherTrap] Collider GameObject: {col.gameObject.name}, Parent: {(col.transform.parent != null ? col.transform.parent.name : "none")}");
             }
         }
 

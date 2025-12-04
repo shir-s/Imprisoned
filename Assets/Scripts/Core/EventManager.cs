@@ -28,7 +28,10 @@ public static class EventManager
         KeyCollected,        // data: Transform or GameObject (the key that was collected)
 
         // NPC / allies
-        FriendlyNpcKilled    // data: GameObject or Transform (the NPC that died)
+        FriendlyNpcKilled,   // data: GameObject or Transform (the NPC that died)
+        
+        // Enemies
+        EnemyKilled          // data: GameObject or Transform (the enemy that died)
     }
 
     public static void StartListening(GameEvent eventType, EventAction listener)
