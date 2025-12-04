@@ -3,6 +3,9 @@ using UnityEngine;
 
 public class FreeMoveCameraXZ : MonoBehaviour
 {
+    [Header("Enable / Disable Controls")]
+    [SerializeField] private bool controlsEnabled = true;
+    
     [Header("Movement")]
     [SerializeField] float moveSpeed = 6f;
     [SerializeField] float sprintMultiplier = 2f;
@@ -29,6 +32,9 @@ public class FreeMoveCameraXZ : MonoBehaviour
 
     void Update()
     {
+        if (!controlsEnabled)
+            return;
+        
         // --- Toggle mouse look ---
         if (Input.GetKeyDown(toggleMouseLookKey))
         {
