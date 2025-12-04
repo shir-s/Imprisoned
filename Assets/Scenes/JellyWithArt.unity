@@ -5941,7 +5941,7 @@ MonoBehaviour:
   enemyLayers:
     serializedVersion: 2
     m_Bits: 2048
-  crusher: {fileID: 0}
+  crusher: {fileID: 1501478767}
 --- !u!65 &708335770
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -32981,6 +32981,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2747558821337486589, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 9027a639ee9dd4548bd264c2baed77ad, type: 2}
     - target: {fileID: 2827751761190543380, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
       propertyPath: m_Name
       value: DesignedMap
