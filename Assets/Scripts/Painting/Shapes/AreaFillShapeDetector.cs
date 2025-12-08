@@ -32,11 +32,12 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [SerializeField] private float slowMultiplier = 0.15f;
 
     [Header("Fill Mode")]
-    [Tooltip("Key to toggle fill mode on/off")]
-    [SerializeField] private KeyCode toggleFillModeKey = KeyCode.Space;
+    // Remove or comment out these lines:
+    // [Tooltip("Key to toggle fill mode on/off")]
+    // [SerializeField] private KeyCode toggleFillModeKey = KeyCode.Space;
 
     [Tooltip("If true, fill mode starts active")]
-    [SerializeField] private bool startInFillMode = false;
+    [SerializeField] private bool startInFillMode = true; // Change to true
 
     [Tooltip("Show visual feedback when fill mode is active (e.g., change cube emission)")]
     [SerializeField] private bool showVisualFeedback = true;
@@ -53,7 +54,7 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
     private void Start()
     {
-        _fillModeActive = startInFillMode;
+        _fillModeActive = true; // Always set to true, ignore startInFillMode
 
         // Auto-find renderer for visual feedback
         if (showVisualFeedback && visualFeedbackRenderer == null)
@@ -71,14 +72,15 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
             Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
     }
 
-    private void Update()
-    {
-        // Toggle fill mode with Space key
-        if (Input.GetKeyDown(toggleFillModeKey))
-        {
-            ToggleFillMode();
-        }
-    }
+    // Remove the entire Update() method (lines 74-81)
+    // private void Update()
+    // {
+    //     // Toggle fill mode with Space key
+    //     if (Input.GetKeyDown(toggleFillModeKey))
+    //     {
+    //         ToggleFillMode();
+    //     }
+    // }
 
     /// <summary>
     /// Toggle fill mode on/off
@@ -130,13 +132,13 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
 
     public bool TryHandleShape(StrokeLoopSegment seg)
     {
-        // Only fill if fill mode is active
-        if (!_fillModeActive)
-        {
-            if (debugPolygon)
-                Debug.Log("[AreaFill] Fill mode inactive - ignoring shape");
-            return false;
-        }
+        // Remove the fill mode check - always allow filling
+        // if (!_fillModeActive)
+        // {
+        //     if (debugPolygon)
+        //         Debug.Log("[AreaFill] Fill mode inactive - ignoring shape");
+        //     return false;
+        // }
 
         if (paintSurfaces == null || paintSurfaces.Count == 0 ||
             painter == null || seg.history == null)

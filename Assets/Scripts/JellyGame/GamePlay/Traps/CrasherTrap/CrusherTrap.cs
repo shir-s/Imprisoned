@@ -153,31 +153,15 @@ public class CrusherTrap : MonoBehaviour
 
     void TryCrush(Collider col)
     {
-        print($"[CrusherTrap] TryCrush called for {col.name}");
-        
         if (isDeactivated)
-        {
-            print("[CrusherTrap] Trap is deactivated, skipping");
             return;
-        }
 
         // חייבים להיות גם בשמאל וגם בימין
-        bool inLeft = leftContacts.Contains(col);
-        bool inRight = rightContacts.Contains(col);
-        print($"[CrusherTrap] {col.name} - InLeft: {inLeft}, InRight: {inRight}");
-        
-        if (!inLeft || !inRight)
-        {
-            print($"[CrusherTrap] Enemy not in both sides yet. Left contacts: {leftContacts.Count}, Right contacts: {rightContacts.Count}");
+        if (!leftContacts.Contains(col) || !rightContacts.Contains(col))
             return;
-        }
 
-        print($"[CrusherTrap] Enemy in both sides! IsDangerPhase: {IsDangerPhase}");
         if (!IsDangerPhase)
-        {
-            print("[CrusherTrap] Not in danger phase yet, waiting...");
             return;
-        }
 
         bool crushedSomething = false;
 
