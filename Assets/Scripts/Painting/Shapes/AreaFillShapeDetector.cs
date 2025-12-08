@@ -40,7 +40,7 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
     [SerializeField] private bool startInFillMode = true; // Change to true
 
     [Tooltip("Show visual feedback when fill mode is active (e.g., change cube emission)")]
-    [SerializeField] private bool showVisualFeedback = true;
+    [SerializeField] private bool showVisualFeedback = false; // Change to false
 
     [Tooltip("Renderer to apply visual feedback to (auto-found if empty)")]
     [SerializeField] private Renderer visualFeedbackRenderer;
@@ -104,8 +104,12 @@ public class AreaFillShapeDetector : MonoBehaviour, IStrokeShapeDetector
         if (mat == null)
             return;
 
-        // Add subtle emission glow when fill mode is active
-        if (_fillModeActive)
+        // Only show blue glow when BOTH fill mode is active AND player has stickiness ability
+        bool shouldShowGlow = _fillModeActive && 
+                              PlayerAbilityManager.Instance != null && 
+                              PlayerAbilityManager.Instance.HasStickinessAbility;
+
+        if (shouldShowGlow)
         {
             // Enable emission and set a subtle glow color
             if (mat.HasProperty("_EmissionColor"))
