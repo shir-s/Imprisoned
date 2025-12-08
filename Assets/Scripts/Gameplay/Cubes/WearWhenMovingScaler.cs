@@ -222,6 +222,12 @@ public class WearWhenMovingScaler : MonoBehaviour
         }
         transform.localScale = ls;
 
+        // NEW: Snap to ground surface after shrinking (especially important for Y-axis shrinking)
+        if (shrinkAxis == Axis.Y && IsOnSurface())
+        {
+            SnapToGroundSurface();
+        }
+
         if (logWear)
         {
             Debug.Log($"[WearWhenMovingScaler] wear={wearMeters:F6}m, newScaleAxis={newAxisScale:F4}, worldΔ={worldDeltaLen:F6}m");
@@ -231,6 +237,43 @@ public class WearWhenMovingScaler : MonoBehaviour
         if (reachedMin)
         {
             OnFullyWorn();
+        }
+    }
+
+    /// <summary>
+    /// Snaps the cube's bottom to the ground surface below it.
+    /// Only works when shrinking on Y-axis (vertical).
+    /// </summary>
+    private void SnapToGroundSurface()
+    {
+        if (_col == null || Physics.gravity.sqrMagnitude < 0.0001f)
+            return;
+
+        Vector3 down = Physics.gravity.normalized;
+        Bounds b = _col.bounds;
+        
+        // Cast from center downward to find the surface
+        Vector3 origin = b.center;
+        Vector3 ad = new Vector3(Mathf.Abs(down.x), Mathf.Abs(down.y), Mathf.Abs(down.z));
+        float halfHeight = Vector3.Dot(ad, b.extents);
+        float rayLength = halfHeight + 2f; // Cast further to ensure we hit the ground
+
+        if (Physics.Raycast(origin, down, out RaycastHit hit, rayLength, surfaceMask, QueryTriggerInteraction.Ignore))
+        {
+            // Calculate where the bottom of the cube should be
+            float bottomOffset = halfHeight;
+            Vector3 desiredPosition = hit.point + down * (-bottomOffset) + hit.normal * 0.01f; // Small offset to prevent z-fighting
+            
+            // Only adjust Y position (or the component along gravity direction)
+            Vector3 currentPos = transform.position;
+            Vector3 gravityComponent = Vector3.Dot(currentPos - desiredPosition, down) * down;
+            transform.position = currentPos - gravityComponent;
+
+            if (debugGroundCheck)
+            {
+                Debug.DrawRay(origin, down * rayLength, Color.cyan, 0.1f);
+                Debug.DrawLine(hit.point, desiredPosition, Color.yellow, 0.1f);
+            }
         }
     }
 
