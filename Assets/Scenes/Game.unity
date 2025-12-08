@@ -1333,6 +1333,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   volumeDelta: -0.2
+  damageCooldown: 1
 --- !u!114 &1146055128 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8757845105146738157, guid: e2775f030b889244c88f500aada85d8c, type: 3}
@@ -1501,6 +1502,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   volumeDelta: -0.2
+  damageCooldown: 1
 --- !u!1001 &1361795953
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1921,6 +1923,10 @@ PrefabInstance:
       propertyPath: directionChangeInterval
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 5330360709308784361, guid: e2775f030b889244c88f500aada85d8c, type: 3}
+      propertyPath: volumeDelta
+      value: -0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 7845416176762310608, guid: e2775f030b889244c88f500aada85d8c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 21.29591
@@ -2003,7 +2009,7 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 900882933803077552, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
+      propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 7b6ea2b671a6d7548a86c50091c57f2b, type: 2}
     - target: {fileID: 1860474426767327192, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
@@ -2385,7 +2391,7 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2747558821337486589, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
-      propertyPath: 'm_Materials.Array.data[0]'
+      propertyPath: m_Materials.Array.data[0]
       value: 
       objectReference: {fileID: 2100000, guid: 9027a639ee9dd4548bd264c2baed77ad, type: 2}
     - target: {fileID: 2827751761190543380, guid: 43bb03acfe3e94868a9d5f007416fca9, type: 3}
