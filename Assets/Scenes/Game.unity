@@ -334,22 +334,6 @@ MonoBehaviour:
   visualFeedbackRenderer: {fileID: 0}
   debugPolygon: 0
   debugFillPoints: 0
---- !u!114 &59266022
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 59265988}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: db6d2a5eeb6a4caba0fe372d5c8970ad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.PlayerHealth
-  maxHealth: 3
-  onPlayerDeath:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &59266023
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1270,6 +1254,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   volumeDelta: -0.2
+  damageCooldown: 1
 --- !u!114 &1146055128 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 8757845105146738157, guid: e2775f030b889244c88f500aada85d8c, type: 3}
@@ -1438,6 +1423,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   volumeDelta: -0.2
+  damageCooldown: 1
 --- !u!1001 &1361795953
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1805,6 +1791,10 @@ PrefabInstance:
       propertyPath: directionChangeInterval
       value: 10
       objectReference: {fileID: 0}
+    - target: {fileID: 5330360709308784361, guid: e2775f030b889244c88f500aada85d8c, type: 3}
+      propertyPath: volumeDelta
+      value: -0.1
+      objectReference: {fileID: 0}
     - target: {fileID: 7845416176762310608, guid: e2775f030b889244c88f500aada85d8c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 21.29591
@@ -1978,9 +1968,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       insertIndex: -1
       addedObject: {fileID: 59266006}
-    - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 59266022}
     - targetCorrespondingSourceObject: {fileID: 2593723288401445978, guid: 2b3ed766c61f34c12a0507c885800664, type: 3}
       insertIndex: -1
       addedObject: {fileID: 59266037}
