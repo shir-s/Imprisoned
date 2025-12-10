@@ -5,7 +5,7 @@ using UnityEngine;
 namespace JellyGame.GamePlay.Map
 {
     [DisallowMultipleComponent]
-    [RequireComponent(typeof(Rigidbody), typeof(Collider))]
+    [RequireComponent(typeof(Rigidbody))]
     public class TiltTray : MonoBehaviour
     {
         [Header("Selection")]

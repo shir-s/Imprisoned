@@ -4,7 +4,9 @@ namespace JellyGame.GamePlay.Player
 {
     /// <summary>
     /// Smooth, slime-like keyboard movement on the XZ plane.
-    /// Does NOT force a fixed Y height.
+    /// UPDATED: Now works correctly with SurfaceStickerController
+    /// - Only controls XZ movement
+    /// - Preserves Y position (handled by SurfaceStickerController)
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -20,9 +22,13 @@ namespace JellyGame.GamePlay.Player
         [SerializeField] private Vector2 boundsCenter = Vector2.zero;
         [SerializeField] private Vector2 boundsHalfSize = new Vector2(50f, 50f);
 
+        [Header("Debug")]
+        [SerializeField] private bool debugLogs = false;
+
         private Vector3 _velocity = Vector3.zero;
     
         private float _sizeFactor = 1f;
+        
         /// <summary>
         /// Called by CubeStackManager whenever the cube grows.
         /// sizeFactor = approx local scale (x or y).
@@ -31,6 +37,7 @@ namespace JellyGame.GamePlay.Player
         {
             _sizeFactor = Mathf.Max(0.1f, sizeFactor);
         }
+        
         private void Update()
         {
             float dt = Time.deltaTime;
@@ -52,8 +59,9 @@ namespace JellyGame.GamePlay.Player
                 _velocity = Vector3.MoveTowards(_velocity, Vector3.zero, deceleration * dt);
             }
 
-            // 3) Intended movement
-            Vector3 pos   = transform.position;
+            // 3) Intended movement - ONLY IN XZ PLANE
+            Vector3 currentPos = transform.position;
+            Vector3 pos = currentPos; // Start with current position (including Y)
             Vector3 delta = _velocity * dt;
 
             if (delta.sqrMagnitude > 0.0001f)
@@ -72,12 +80,16 @@ namespace JellyGame.GamePlay.Player
 
                     _velocity = slideVel;
                     delta = _velocity * dt;
-                    pos += delta;
+                    
+                    // Only update XZ
+                    pos.x += delta.x;
+                    pos.z += delta.z;
                 }
                 else
                 {
-                    // No hit: free movement
-                    pos += delta;
+                    // No hit: free movement (only XZ)
+                    pos.x += delta.x;
+                    pos.z += delta.z;
                 }
             }
 
@@ -93,8 +105,30 @@ namespace JellyGame.GamePlay.Player
                 pos.z = Mathf.Clamp(pos.z, minZ, maxZ);
             }
 
-            transform.position = pos;
+            // CRITICAL FIX: Only update XZ, preserve current Y
+            // SurfaceStickerController will handle Y in LateUpdate
+            transform.position = new Vector3(pos.x, currentPos.y, pos.z);
+            
+            if (debugLogs && delta.sqrMagnitude > 0.0001f)
+            {
+                Debug.Log($"[CubePlayerKeyboard] Moved to XZ: ({pos.x:F2}, {pos.z:F2}), Y preserved: {currentPos.y:F2}");
+            }
         }
 
+        /// <summary>
+        /// Get current movement velocity (for other systems)
+        /// </summary>
+        public Vector3 GetVelocity()
+        {
+            return _velocity;
+        }
+
+        /// <summary>
+        /// Check if player is currently moving
+        /// </summary>
+        public bool IsMoving()
+        {
+            return _velocity.sqrMagnitude > 0.01f;
+        }
     }
 }
