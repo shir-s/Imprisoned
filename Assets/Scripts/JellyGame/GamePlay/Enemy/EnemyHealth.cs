@@ -64,7 +64,7 @@ namespace JellyGame.GamePlay.Enemy
         private IEnumerator DestroyAfterDelay()
         {
             // Wait 2 seconds before destroying
-            yield return new WaitForSeconds(2f);
+            yield return new WaitForSeconds(1f);
             
             // Destroy the enemy after the delay
             Destroy(gameObject);
