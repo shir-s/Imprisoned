@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: BrushBlit_Mat
-  m_Shader: {fileID: 4800000, guid: 4009c330e0d4e476d8dd014d250e4ce1, type: 3}
+  m_Name: PaintSurface_Mat 1
+  m_Shader: {fileID: 4800000, guid: 557c1ad3b5eff49d7afd5d5df760a6c0, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -60,6 +60,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _PaintTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -87,8 +91,6 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BrushHardness: 0.5
-    - _BrushOpacity: 0.007318849
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
@@ -117,16 +119,13 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BrushCenter: {r: 0.4938829, g: 0.7412604, b: 0, a: 0}
-    - _BrushColor: {r: 0.17254902, g: 0.68235296, b: 0.34117648, a: 1}
-    - _BrushHalfSize: {r: 0.03528589, g: 0.027445793, b: 0, a: 0}
+    - _BaseColor: {r: 0.4666667, g: 0.4666667, b: 0.4666667, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &2775349503525705158
+--- !u!114 &6887571631081507664
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
