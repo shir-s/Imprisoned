@@ -15,40 +15,24 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [SerializeField] private List<SimplePaintSurface> paintSurfaces = new();
         [SerializeField] private RenderTextureTrailPainter painter;
 
-        [Header("Fill sampling (WORLD space)")]
-        [Tooltip("Grid step size in world units. Larger = faster")]
-        [SerializeField] private float worldStepSize = 0.08f;
+        [Header("Fill sampling (LOCAL space)")]
+        [Tooltip("Grid step size in local units. 0.08 is usually good.")]
+        [SerializeField] private float localStepSize = 0.08f;
 
-        [Tooltip("Maximum height above/below the average stroke height")]
-        [SerializeField] private float fillHeightTolerance = 0.5f;
+        [Tooltip("How far to check above/below the surface for the paint raycast.")]
+        [SerializeField] private float raycastTolerance = 1.0f;
 
         [Header("Performance")]
-        [Tooltip("Max fill points per frame. 200-400 recommended")]
-        [SerializeField] private int maxPointsPerFrame = 300;
-
-        [Tooltip("Fill over multiple frames to avoid freezing")]
-        [SerializeField] private bool useAsyncFill = true;
+        [Tooltip("Max successful paints per frame. Higher = faster fill but potential lag.")]
+        [SerializeField] private int maxPaintsPerFrame = 500;
 
         [Header("Stickiness Ability")]
-        [Tooltip("Prefab with SlowZone component to spawn on fills")]
         [SerializeField] private GameObject slowZonePrefab;
-
-        [Tooltip("How much to slow enemies (0.1 = 10% speed = very slow, 0.5 = 50% speed = half speed)")]
         [Range(0.01f, 1f)]
         [SerializeField] private float slowMultiplier = 0.15f;
 
-        [Header("Fill Mode")]
-        // Remove or comment out these lines:
-        // [Tooltip("Key to toggle fill mode on/off")]
-        // [SerializeField] private KeyCode toggleFillModeKey = KeyCode.Space;
-
-        [Tooltip("If true, fill mode starts active")]
-        [SerializeField] private bool startInFillMode = true; // Change to true
-
-        [Tooltip("Show visual feedback when fill mode is active (e.g., change cube emission)")]
-        [SerializeField] private bool showVisualFeedback = false; // Change to false
-
-        [Tooltip("Renderer to apply visual feedback to (auto-found if empty)")]
+        [Header("Visual Feedback")]
+        [SerializeField] private bool showVisualFeedback = false;
         [SerializeField] private Renderer visualFeedbackRenderer;
 
         [Header("Debug")]
@@ -56,275 +40,150 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [SerializeField] private bool debugFillPoints = false;
 
         private Coroutine _currentFillCoroutine;
-        private bool _fillModeActive = false;
+        private bool _fillModeActive = true;
 
         private void Start()
         {
-            _fillModeActive = true; // Always set to true, ignore startInFillMode
-
-            // Auto-find renderer for visual feedback
             if (showVisualFeedback && visualFeedbackRenderer == null)
             {
-                visualFeedbackRenderer = GetComponent<Renderer>();
-                if (visualFeedbackRenderer == null)
-                {
-                    visualFeedbackRenderer = GetComponentInChildren<Renderer>();
-                }
+                visualFeedbackRenderer = GetComponentInChildren<Renderer>();
             }
-
             UpdateVisualFeedback();
-        
-            if (debugPolygon)
-                Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
         }
-
-        // Remove the entire Update() method (lines 74-81)
-        // private void Update()
-        // {
-        //     // Toggle fill mode with Space key
-        //     if (Input.GetKeyDown(toggleFillModeKey))
-        //     {
-        //         ToggleFillMode();
-        //     }
-        // }
-
-        /// <summary>
-        /// Toggle fill mode on/off
-        /// </summary>
-        public void ToggleFillMode()
-        {
-            _fillModeActive = !_fillModeActive;
-            UpdateVisualFeedback();
-            Debug.Log($"[AreaFill] Fill mode: {(_fillModeActive ? "ACTIVE ✓" : "INACTIVE ✗")}");
-        }
-
-        /// <summary>
-        /// Update visual feedback based on fill mode state
-        /// </summary>
-        private void UpdateVisualFeedback()
-        {
-            if (!showVisualFeedback || visualFeedbackRenderer == null)
-                return;
-
-            Material mat = visualFeedbackRenderer.material;
-            if (mat == null)
-                return;
-
-            // Only show blue glow when BOTH fill mode is active AND player has stickiness ability
-            bool shouldShowGlow = _fillModeActive && 
-                                  PlayerAbilityManager.Instance != null && 
-                                  PlayerAbilityManager.Instance.HasStickinessAbility;
-
-            if (shouldShowGlow)
-            {
-                // Enable emission and set a subtle glow color
-                if (mat.HasProperty("_EmissionColor"))
-                {
-                    mat.EnableKeyword("_EMISSION");
-                    mat.SetColor("_EmissionColor", new Color(0.2f, 0.4f, 1f, 1f)); // Subtle blue glow
-                }
-            }
-            else
-            {
-                // Disable emission
-                if (mat.HasProperty("_EmissionColor"))
-                {
-                    mat.DisableKeyword("_EMISSION");
-                    mat.SetColor("_EmissionColor", Color.black);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Get current fill mode state
-        /// </summary>
-        public bool IsFillModeActive => _fillModeActive;
 
         public bool TryHandleShape(StrokeLoopSegment seg)
         {
-            // Remove the fill mode check - always allow filling
-            // if (!_fillModeActive)
-            // {
-            //     if (debugPolygon)
-            //         Debug.Log("[AreaFill] Fill mode inactive - ignoring shape");
-            //     return false;
-            // }
-
-            if (paintSurfaces == null || paintSurfaces.Count == 0 ||
-                painter == null || seg.history == null)
+            if (paintSurfaces == null || paintSurfaces.Count == 0 || painter == null || seg.history == null)
                 return false;
 
-            StrokeHistory history = seg.history;
-            int startIndex        = seg.startIndex;
-            int endIndexInclusive = seg.endIndexInclusive;
+            // We assume the fill happens on the first surface in the list (usually the main floor)
+            // This allows us to lock coordinates to this object's rotation.
+            SimplePaintSurface referenceSurface = paintSurfaces[0];
+            if (referenceSurface == null) return false;
 
-            if (endIndexInclusive <= startIndex + 2)
-                return false;
-
-            // Stop any previous fill
+            // Stop any existing fill to prevent overlap
             if (_currentFillCoroutine != null)
             {
                 StopCoroutine(_currentFillCoroutine);
-                _currentFillCoroutine = null;
             }
 
-            // 1) Build polygon in WORLD SPACE
-            List<Vector3> worldPolygon = new List<Vector3>();
-            float avgHeight = 0f;
-
-            for (int i = startIndex; i <= endIndexInclusive; i++)
-            {
-                Vector3 worldPos = history[i].WorldPos;
-                worldPolygon.Add(worldPos);
-                avgHeight += worldPos.y;
-            }
-
-            if (worldPolygon.Count < 3)
-                return false;
-
-            avgHeight /= worldPolygon.Count;
-
-            if (debugPolygon)
-                DebugDrawWorldPolygon(worldPolygon);
-
-            // 2) Compute bounding box
+            // 1. Convert Polygon to LOCAL Space
+            // This fixes the "Tilt Drift" issue.
+            List<Vector2> localPolyXZ = new List<Vector2>();
+            
+            // We also calculate local bounds here
             float minX = float.MaxValue;
             float maxX = float.MinValue;
             float minZ = float.MaxValue;
             float maxZ = float.MinValue;
 
-            foreach (var p in worldPolygon)
+            for (int i = seg.startIndex; i <= seg.endIndexInclusive; i++)
             {
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-                if (p.z < minZ) minZ = p.z;
-                if (p.z > maxZ) maxZ = p.z;
+                Vector3 worldPos = seg.history[i].WorldPos;
+                
+                // Convert World Point -> Surface Local Point
+                Vector3 localPos = referenceSurface.transform.InverseTransformPoint(worldPos);
+
+                localPolyXZ.Add(new Vector2(localPos.x, localPos.z));
+
+                if (localPos.x < minX) minX = localPos.x;
+                if (localPos.x > maxX) maxX = localPos.x;
+                if (localPos.z < minZ) minZ = localPos.z;
+                if (localPos.z > maxZ) maxZ = localPos.z;
             }
 
-            // 3) Project to XZ
-            List<Vector2> polygonXZ = new List<Vector2>();
-            foreach (var p in worldPolygon)
-            {
-                polygonXZ.Add(new Vector2(p.x, p.z));
-            }
+            if (localPolyXZ.Count < 3) return false;
 
-            // 4) Fill async or instant
-            if (useAsyncFill)
-            {
-                _currentFillCoroutine = StartCoroutine(
-                    FillAsync(minX, maxX, minZ, maxZ, avgHeight, polygonXZ));
-                return true;
-            }
-            else
-            {
-                return FillImmediate(minX, maxX, minZ, maxZ, avgHeight, polygonXZ);
-            }
+            if (debugPolygon) Debug.Log($"[AreaFill] Starting Local Space Fill. Bounds: {minX:F2} to {maxX:F2}");
+
+            // 2. Start the Local Space Fill
+            _currentFillCoroutine = StartCoroutine(
+                FillAsyncLocal(referenceSurface, minX, maxX, minZ, maxZ, localPolyXZ)
+            );
+
+            return true;
         }
 
-        private IEnumerator FillAsync(float minX, float maxX, float minZ, float maxZ, 
-            float avgHeight, List<Vector2> polygonXZ)
+        private IEnumerator FillAsyncLocal(SimplePaintSurface surface, float minX, float maxX, float minZ, float maxZ, List<Vector2> localPolyXZ)
         {
-            int fillCount = 0;
-            int pointsThisFrame = 0;
+            int paintsThisFrame = 0;
+            int totalFilled = 0;
 
-            for (float x = minX; x <= maxX; x += worldStepSize)
+            // Iterate through the bounding box in LOCAL coordinates
+            for (float x = minX; x <= maxX; x += localStepSize)
             {
-                for (float z = minZ; z <= maxZ; z += worldStepSize)
+                for (float z = minZ; z <= maxZ; z += localStepSize)
                 {
-                    Vector2 pointXZ = new Vector2(x, z);
+                    Vector2 localPoint = new Vector2(x, z);
 
-                    if (!IsPointInPolygon2D(pointXZ, polygonXZ))
+                    // Math check (Cheap) - Is point inside the shape?
+                    if (!IsPointInPolygon2D(localPoint, localPolyXZ))
                         continue;
 
-                    Vector3 worldPoint = new Vector3(x, avgHeight, z);
+                    // It is inside! Now calculate current World Position
+                    // Since we transform it NOW, it accounts for the map's current tilt rotation.
+                    Vector3 currentWorldPos = surface.transform.TransformPoint(new Vector3(x, 0, z));
 
-                    if (TryPaintAtWorldPoint(worldPoint, out bool painted) && painted)
+                    // Perform the Paint (Expensive)
+                    if (TryPaintAtWorldPoint(currentWorldPos, out bool painted))
                     {
-                        fillCount++;
-                    
-                        if (debugFillPoints && fillCount % 10 == 0)
-                        {
-                            Debug.DrawRay(worldPoint, Vector3.up * 0.2f, Color.green, 2f);
-                        }
+                        if (painted) totalFilled++;
                     }
 
-                    pointsThisFrame++;
+                    // Count "Expensive" operations for performance budget
+                    paintsThisFrame++;
 
-                    // Yield every maxPointsPerFrame
-                    if (pointsThisFrame >= maxPointsPerFrame)
+                    if (paintsThisFrame >= maxPaintsPerFrame)
                     {
-                        pointsThisFrame = 0;
-                        yield return null;
+                        paintsThisFrame = 0;
+                        yield return null; // Wait for next frame
                     }
                 }
             }
 
-            if (debugPolygon)
-                Debug.Log($"[AreaFill] Completed {fillCount} points");
+            if (debugPolygon) Debug.Log($"[AreaFill] Finished. Total points: {totalFilled}");
 
-            // Spawn slow zone if stickiness ability is active
-            SpawnSlowZone(polygonXZ, avgHeight);
+            // Spawn the SlowZone, attached to the surface so it moves with it
+            SpawnSlowZoneLocal(surface, localPolyXZ, minX, maxX, minZ, maxZ);
 
             _currentFillCoroutine = null;
-        }
-
-        private bool FillImmediate(float minX, float maxX, float minZ, float maxZ, 
-            float avgHeight, List<Vector2> polygonXZ)
-        {
-            bool anyFilled = false;
-            int fillCount = 0;
-
-            for (float x = minX; x <= maxX; x += worldStepSize)
-            {
-                for (float z = minZ; z <= maxZ; z += worldStepSize)
-                {
-                    Vector2 pointXZ = new Vector2(x, z);
-
-                    if (!IsPointInPolygon2D(pointXZ, polygonXZ))
-                        continue;
-
-                    Vector3 worldPoint = new Vector3(x, avgHeight, z);
-
-                    if (TryPaintAtWorldPoint(worldPoint, out bool painted) && painted)
-                    {
-                        anyFilled = true;
-                        fillCount++;
-                    }
-                }
-            }
-
-            if (debugPolygon)
-                Debug.Log($"[AreaFill] Filled {fillCount} points");
-
-            // Spawn slow zone if stickiness ability is active
-            SpawnSlowZone(polygonXZ, avgHeight);
-
-            return anyFilled;
         }
 
         private bool TryPaintAtWorldPoint(Vector3 worldPoint, out bool painted)
         {
             painted = false;
-
-            Vector3 rayStart = worldPoint + Vector3.up * fillHeightTolerance;
+            
+            // Raycast slightly up and down relative to the point to find the UV
+            // We use world up/down because the painter usually expects world raycasts, 
+            // OR use the surface normal if possible. Let's stick to simple vertical check 
+            // but ensure we start high enough relative to the surface.
+            
+            // We assume the point is roughly on the surface, so we cast from "above" to "below" relative to the surface
+            // BUT, since we generated this point via TransformPoint(0), it IS exactly on the surface plane.
+            // We just need to nudge the ray origin out along the normal.
+            
+            // NOTE: Using Vector3.up works if the map isn't 90 degrees vertical. 
+            // For full robustness on rotating maps, calculate the ray direction:
+            Vector3 rayOrigin = worldPoint + (Vector3.up * raycastTolerance);
             Vector3 rayDir = Vector3.down;
-            float rayDist = fillHeightTolerance * 2f;
 
-            if (Physics.Raycast(rayStart, rayDir, out RaycastHit hit, rayDist))
+            if (Physics.Raycast(rayOrigin, rayDir, out RaycastHit hit, raycastTolerance * 2f))
             {
                 SimplePaintSurface surface = hit.collider.GetComponentInParent<SimplePaintSurface>();
 
+                // Ensure we hit a valid paint surface
                 if (surface != null && paintSurfaces.Contains(surface))
                 {
                     if (surface.TryWorldToPaintUV(hit.point, out Vector2 uv))
                     {
                         painter.PaintAtUV(surface, uv);
                         painted = true;
+                        
+                        if (debugFillPoints) Debug.DrawRay(hit.point, Vector3.up * 0.1f, Color.green, 0.5f);
                         return true;
                     }
                 }
             }
-
             return false;
         }
 
@@ -332,164 +191,65 @@ namespace JellyGame.GamePlay.Painting.Shapes
         {
             bool inside = false;
             int count = poly.Count;
-
             for (int i = 0, j = count - 1; i < count; j = i++)
             {
-                Vector2 pi = poly[i];
-                Vector2 pj = poly[j];
-
-                bool intersect =
-                    ((pi.y > p.y) != (pj.y > p.y)) &&
-                    (p.x < (pj.x - pi.x) * (p.y - pi.y) / ((pj.y - pi.y) + 1e-6f) + pi.x);
-
-                if (intersect)
+                if (((poly[i].y > p.y) != (poly[j].y > p.y)) &&
+                    (p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / ((poly[j].y - poly[i].y) + 1e-6f) + poly[i].x))
+                {
                     inside = !inside;
+                }
             }
-
             return inside;
         }
 
-        private void DebugDrawWorldPolygon(List<Vector3> poly)
+        private void SpawnSlowZoneLocal(SimplePaintSurface surface, List<Vector2> localPoly, float minX, float maxX, float minZ, float maxZ)
         {
-            for (int i = 0; i < poly.Count; i++)
-            {
-                Vector3 a = poly[i];
-                Vector3 b = poly[(i + 1) % poly.Count];
-                Debug.DrawLine(a + Vector3.up * 0.15f, b + Vector3.up * 0.15f, Color.yellow, 3f);
-            }
-        }
+            if (PlayerAbilityManager.Instance == null || !PlayerAbilityManager.Instance.HasStickinessAbility) return;
+            if (slowZonePrefab == null) return;
 
-        // ========== STICKINESS ABILITY: SLOW ZONE SPAWNING ==========
-
-        /// <summary>
-        /// Spawn a slow zone with BoxCollider covering the entire filled area
-        /// </summary>
-        private void SpawnSlowZone(List<Vector2> polygonXZ, float avgHeight)
-        {
-            // Check if player has ability
-            if (PlayerAbilityManager.Instance == null || 
-                !PlayerAbilityManager.Instance.HasStickinessAbility)
-                return;
-
-            if (slowZonePrefab == null)
-            {
-                Debug.LogWarning("[AreaFill] No slow zone prefab assigned! Assign it in Inspector.");
-                return;
-            }
-
-            if (polygonXZ.Count < 3)
-                return;
-
-            // Calculate bounding box from polygon
-            float minX = float.MaxValue;
-            float maxX = float.MinValue;
-            float minZ = float.MaxValue;
-            float maxZ = float.MinValue;
-
-            foreach (var p in polygonXZ)
-            {
-                if (p.x < minX) minX = p.x;
-                if (p.x > maxX) maxX = p.x;
-                if (p.y < minZ) minZ = p.y;
-                if (p.y > maxZ) maxZ = p.y;
-            }
-
-            // Calculate center and size
             float centerX = (minX + maxX) * 0.5f;
             float centerZ = (minZ + maxZ) * 0.5f;
             float sizeX = maxX - minX;
             float sizeZ = maxZ - minZ;
 
-            // Spawn zone object at the center of the bounding box
-            Vector3 center = new Vector3(centerX, avgHeight, centerZ);
-            GameObject zoneObj = Instantiate(slowZonePrefab, center, Quaternion.identity);
-            zoneObj.name = "SlowZone_" + Time.time;
+            // Instantiate in World Space first
+            Vector3 worldCenter = surface.transform.TransformPoint(new Vector3(centerX, 0, centerZ));
+            GameObject zoneObj = Instantiate(slowZonePrefab, worldCenter, Quaternion.identity);
+            
+            // CRITICAL: Parent to the surface so it tilts with the map
+            zoneObj.transform.SetParent(surface.transform, true);
+            
+            // Reset rotation to match the surface
+            zoneObj.transform.localRotation = Quaternion.identity;
 
-            // First, add the BoxCollider (so RequireComponent is satisfied)
-            BoxCollider boxCol = zoneObj.GetComponent<BoxCollider>();
-            if (boxCol == null)
-            {
-                boxCol = zoneObj.AddComponent<BoxCollider>();
-            }
-            boxCol.size = new Vector3(sizeX, 0.5f, sizeZ); // Height of 0.5 units
-            boxCol.center = Vector3.zero; // Center is already at the zone object position
-            boxCol.isTrigger = true;
+            // Setup Collider
+            BoxCollider box = zoneObj.GetComponent<BoxCollider>();
+            if (box == null) box = zoneObj.AddComponent<BoxCollider>();
+            
+            box.size = new Vector3(sizeX, 1.0f, sizeZ); // Thick collider so agents don't slip over
+            box.center = Vector3.zero;
+            box.isTrigger = true;
 
-            // Now remove any other colliders (but keep the BoxCollider we just added/configured)
-            Collider[] existingColliders = zoneObj.GetComponents<Collider>();
-            foreach (var col in existingColliders)
-            {
-                if (col != boxCol) // Don't remove the BoxCollider we just set up
-                {
-                    DestroyImmediate(col);
-                }
-            }
+            // Clean other colliders
+            foreach (var c in zoneObj.GetComponents<Collider>())
+                if (c != box) Destroy(c);
 
-            // Configure SlowZone component with our slow multiplier
-            SlowZone slowZone = zoneObj.GetComponent<SlowZone>();
-            if (slowZone != null)
-            {
-                slowZone.SetSlowMultiplier(slowMultiplier);
-            }
-            else
-            {
-                Debug.LogWarning("[AreaFill] SlowZone prefab missing SlowZone component!");
-            }
-
-            // Optional: setup visual mesh (for display purposes)
-            Mesh zoneMesh = CreateMeshFromPolygon(polygonXZ, 0f); // Local space, Y=0
-            if (zoneMesh != null)
-            {
-                MeshFilter mf = zoneObj.GetComponent<MeshFilter>();
-                if (mf == null)
-                    mf = zoneObj.AddComponent<MeshFilter>();
-                mf.mesh = zoneMesh;
-
-                MeshRenderer mr = zoneObj.GetComponent<MeshRenderer>();
-                if (mr == null)
-                    mr = zoneObj.AddComponent<MeshRenderer>();
-            }
-
-            if (debugPolygon)
-                Debug.Log($"[AreaFill] ✨ Spawned sticky slow zone! Box size: {sizeX:F2} x {sizeZ:F2}");
+            // Configure Logic
+            SlowZone logic = zoneObj.GetComponent<SlowZone>();
+            if (logic != null) logic.SetSlowMultiplier(slowMultiplier);
         }
-
-        /// <summary>
-        /// Create a mesh from a 2D polygon (for the slow zone collider/visual)
-        /// </summary>
-        private Mesh CreateMeshFromPolygon(List<Vector2> polygonXZ, float yHeight)
-        {
-            if (polygonXZ.Count < 3)
-                return null;
-
-            Mesh mesh = new Mesh();
-            mesh.name = "SlowZoneMesh";
-
-            // Convert 2D polygon to 3D vertices
-            Vector3[] vertices = new Vector3[polygonXZ.Count];
-            for (int i = 0; i < polygonXZ.Count; i++)
-            {
-                vertices[i] = new Vector3(polygonXZ[i].x, yHeight, polygonXZ[i].y);
-            }
-
-            // Triangulate polygon (simple fan triangulation from first vertex)
-            int triCount = (polygonXZ.Count - 2) * 3;
-            int[] triangles = new int[triCount];
-            int triIndex = 0;
         
-            for (int i = 1; i < polygonXZ.Count - 1; i++)
-            {
-                triangles[triIndex++] = 0;
-                triangles[triIndex++] = i;
-                triangles[triIndex++] = i + 1;
-            }
+        // Helper visual updates
+        public void ToggleFillMode() { _fillModeActive = !_fillModeActive; UpdateVisualFeedback(); }
+        public bool IsFillModeActive => _fillModeActive;
 
-            mesh.vertices = vertices;
-            mesh.triangles = triangles;
-            mesh.RecalculateNormals();
-            mesh.RecalculateBounds();
-
-            return mesh;
+        private void UpdateVisualFeedback()
+        {
+            if (!showVisualFeedback || visualFeedbackRenderer == null) return;
+            bool active = _fillModeActive && PlayerAbilityManager.Instance != null && PlayerAbilityManager.Instance.HasStickinessAbility;
+            Material mat = visualFeedbackRenderer.material;
+            if (active) { mat.EnableKeyword("_EMISSION"); mat.SetColor("_EmissionColor", new Color(0.2f, 0.4f, 1f, 1f)); }
+            else { mat.DisableKeyword("_EMISSION"); mat.SetColor("_EmissionColor", Color.black); }
         }
     }
 }

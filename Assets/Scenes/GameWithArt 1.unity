@@ -4721,14 +4721,6 @@ PrefabInstance:
       propertyPath: 'waypoints.Array.data[3]'
       value: 
       objectReference: {fileID: 1110100091}
-    - target: {fileID: 2789962570991052648, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: debugLogs
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3385106895314622794, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: debugLogs
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3904311723929832352, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
       propertyPath: m_Name
       value: EnemyAdaptedToTilt (1)
@@ -4772,14 +4764,6 @@ PrefabInstance:
     - target: {fileID: 5561599948929208427, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6479285364847245704, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: drawDangerRays
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6479285364847245704, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: drawSensorRays
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -9849,14 +9833,6 @@ PrefabInstance:
       propertyPath: 'waypoints.Array.data[3]'
       value: 
       objectReference: {fileID: 1110100091}
-    - target: {fileID: 2789962570991052648, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: debugLogs
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3385106895314622794, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: debugLogs
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3904311723929832352, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
       propertyPath: m_Name
       value: EnemyAdaptedToTilt
@@ -9900,14 +9876,6 @@ PrefabInstance:
     - target: {fileID: 5561599948929208427, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6479285364847245704, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: drawDangerRays
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6479285364847245704, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: drawSensorRays
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -12428,70 +12396,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1549512280}
     m_Modifications:
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: debugPolygon
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: slowMultiplier
-      value: 0.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: debugFillPoints
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: fillSurfaceMask.m_Bits
-      value: 64
-      objectReference: {fileID: 0}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: paintSurfaces.Array.size
-      value: 8
-      objectReference: {fileID: 0}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[0]'
-      value: 
-      objectReference: {fileID: 569959382}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[1]'
-      value: 
-      objectReference: {fileID: 1574879007}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[2]'
-      value: 
-      objectReference: {fileID: 66778087}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[3]'
-      value: 
-      objectReference: {fileID: 1816199568}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[4]'
-      value: 
-      objectReference: {fileID: 1475700231}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[5]'
-      value: 
-      objectReference: {fileID: 722382489}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[6]'
-      value: 
-      objectReference: {fileID: 386861948}
-    - target: {fileID: 502839181744668007, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[7]'
-      value: 
-      objectReference: {fileID: 512008560}
-    - target: {fileID: 1520154358222086410, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: debugCrossings
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5215636536531515735, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: debugLoop
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5215636536531515735, guid: bce5156e499df83418b693fccec9b57d, type: 3}
-      propertyPath: debugLoopVerbose
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 5442822340880311947, guid: bce5156e499df83418b693fccec9b57d, type: 3}
       propertyPath: minSize
       value: 0.2
@@ -12600,14 +12504,6 @@ PrefabInstance:
       propertyPath: recorder
       value: 
       objectReference: {fileID: 1242658790719384856}
-    - target: {fileID: 2789962570991052648, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: debugLogs
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3385106895314622794, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: debugLogs
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 3904311723929832352, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
       propertyPath: m_Name
       value: EnemyAdaptedToTilt
@@ -12651,14 +12547,6 @@ PrefabInstance:
     - target: {fileID: 5561599948929208427, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6479285364847245704, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: drawDangerRays
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 6479285364847245704, guid: bc1904548eb3b75428a1938e77a6a268, type: 3}
-      propertyPath: drawSensorRays
-      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

@@ -30,11 +30,25 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private bool _isStopped = true;
         private LayerMask _activeObstacleMask; 
         private Vector3 _debugBestDir;
+        
+        // NEW: Speed Multiplier
+        private float _speedMultiplier = 1.0f;
 
         private void Awake()
         {
             _activeObstacleMask = obstacleLayers;
         }
+
+        // --- NEW PUBLIC METHOD ---
+        /// <summary>
+        /// Sets a multiplier for the movement speed.
+        /// 1.0 = Normal Speed. 0.5 = Half Speed. 0.0 = Stopped.
+        /// </summary>
+        public void SetSpeedMultiplier(float multiplier)
+        {
+            _speedMultiplier = Mathf.Max(0f, multiplier);
+        }
+        // -------------------------
 
         public void SetObstacleMask(LayerMask newMask) { _activeObstacleMask = newMask; }
         public void ResetObstacleMask() { _activeObstacleMask = obstacleLayers; }
@@ -74,14 +88,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
             if (distToTarget > 0.5f)
             {
-                // Emergency Repulsion (Stops us from walking THROUGH walls)
                 if (TryGetEmergencyRepulsion(out Vector3 repulsionDir))
                 {
                     finalDir = repulsionDir;
                 }
                 else
                 {
-                    // Context Steering (Stops us from getting STUCK on walls)
                     finalDir = ComputeContextSteering(idealDir);
                 }
             }
@@ -129,7 +141,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             Vector3 baseOrigin = transform.position + transform.up * sensorVerticalOffset;
             float castRadius = bodyRadius + clearance;
 
-            // Pre-calculate Momentum Vector (Current Forward)
             Vector3 currentForward = transform.forward;
 
             for (int i = 0; i < count; i++)
@@ -138,21 +149,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 Vector3 dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 directions[i] = dir;
 
-                // --- CHANGE 1: WIDER INTEREST ---
-                // Old: Mathf.Max(0, dot). This killed any path > 90 degrees away.
-                // New: Map [-1, 1] to [0, 1]. This allows turning 90 degrees (interest 0.5) to avoid a wall.
                 float targetDot = Vector3.Dot(dir, idealDir);
                 float targetInterest = (targetDot + 1f) * 0.5f; 
 
-                // --- CHANGE 2: MOMENTUM ---
-                // Bias slightly towards where we are currently facing to prevent jitter/circles.
                 float forwardDot = Vector3.Dot(dir, currentForward);
                 float momentumInterest = (forwardDot + 1f) * 0.5f;
 
-                // Blend: 80% Target, 20% Momentum
                 interestMap[i] = (targetInterest * 0.8f) + (momentumInterest * 0.2f);
 
-                // Danger Scan
                 Vector3 origin = baseOrigin - dir * (castRadius * 0.5f); 
                 bool hitSomething = Physics.SphereCast(
                     origin,
@@ -174,27 +178,22 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
 
-            // --- CHANGE 3: AGGRESSIVE DANGER FALLOFF ---
             for (int i = 0; i < count; i++)
             {
                 float danger = dangerMap[i];
                 
-                // If danger is high, kill interest completely
                 if (danger >= 0.7f) 
                 {
                     interestMap[i] = 0f;
                 }
                 else if (danger > 0f) 
                 {
-                    // Apply a steep curve. Even small danger reduces interest significantly.
-                    // This ensures "Safe Sideways" > "Dangerous Forward"
                     float safetyFactor = 1f - danger;
-                    safetyFactor = safetyFactor * safetyFactor; // Square it to punish danger harder
+                    safetyFactor = safetyFactor * safetyFactor;
                     interestMap[i] *= safetyFactor;
                 }
             }
 
-            // Pick Winner
             Vector3 bestDir = Vector3.zero;
             float bestScore = 0f;
 
@@ -207,7 +206,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
 
-            // If completely blocked, stop.
             if (bestDir == Vector3.zero) return Vector3.zero; 
 
             return bestDir.normalized;
@@ -218,9 +216,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (dir == Vector3.zero) return; 
 
             Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
-            // Spherically interpolate rotation for smoother turning
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * dt);
-            transform.position += transform.forward * moveSpeed * dt;
+            
+            // --- MODIFIED: Apply Speed Multiplier ---
+            float currentSpeed = moveSpeed * _speedMultiplier;
+            transform.position += transform.forward * currentSpeed * dt;
         }
 
         private void OnDrawGizmos()
