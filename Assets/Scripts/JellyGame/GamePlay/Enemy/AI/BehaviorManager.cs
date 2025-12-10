@@ -272,11 +272,11 @@ namespace JellyGame.GamePlay.Enemy.AI
                 {
                     Debug.Log("[BehaviorManager] No StrokeTrailRecorder found in scene.", this);
                 }
-                else
+                /*else
                 {
                     Debug.Log("[BehaviorManager] Found " + all.Length +
                               " StrokeTrailRecorder(s), but none have points yet.", this);
-                }
+                }*/
             }
         }
     }
