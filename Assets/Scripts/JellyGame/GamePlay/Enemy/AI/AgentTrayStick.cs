@@ -15,7 +15,7 @@ namespace JellyGame.GamePlay.Enemy.AI
     /// - Optional debug visualization
     /// </summary>
     [DisallowMultipleComponent]
-    public class EnemyTrayStick : MonoBehaviour
+    public class AgentTrayStick : MonoBehaviour
     {
         [Header("Tray")]
         [Tooltip("Tray transform (TiltTray). If empty, will try to auto-find one in the scene.")]
