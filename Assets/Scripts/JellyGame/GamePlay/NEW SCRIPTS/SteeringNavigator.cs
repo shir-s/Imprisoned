@@ -4,27 +4,16 @@ using UnityEngine;
 
 namespace JellyGame.GamePlay.Enemy.AI.Movement
 {
-    /// <summary>
-    /// The "Driver" of the AI.
-    /// It accepts a target destination and calculates the best physical path to take,
-    /// handling obstacle avoidance, narrow gaps, and smoothing automatically.
-    /// </summary>
     public class SteeringNavigator : MonoBehaviour
     {
         [Header("Agent Size")]
-        [Tooltip("Radius of the agent (used for collision checks).")]
         [SerializeField] private float bodyRadius = 0.5f;
-        [Tooltip("Extra space to keep away from walls.")]
         [SerializeField] private float clearance = 0.2f;
 
         [Header("Sensors")]
-        [Tooltip("Layers considered as obstacles for steering.")]
-        [SerializeField] private LayerMask obstacleLayers;
-        [Tooltip("How far ahead to look for obstacles.")]
+        [SerializeField] private LayerMask obstacleLayers; 
         [SerializeField] private float lookAheadDistance = 2.0f;
-        [Tooltip("Height offset above the agent center for obstacle sensors.")]
         [SerializeField] private float sensorVerticalOffset = 0.1f;
-        [Tooltip("Higher = smoother movement, more expensive. 12-16 is good.")]
         [SerializeField] private int sensorResolution = 16;
 
         [Header("Movement")]
@@ -34,39 +23,37 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         [Header("Debug")]
         [SerializeField] private bool drawSensorRays = false;
         [SerializeField] private bool drawDangerRays = false;
+        [SerializeField] private bool drawRepulsion = true;
+        [SerializeField] private bool drawBestDir = true;
 
-        // The current destination requested by a Behavior script
         private Vector3? _currentTarget;
         private bool _isStopped = true;
-
-        // Visualization
+        private LayerMask _activeObstacleMask; 
         private Vector3 _debugBestDir;
 
-        /// <summary>
-        /// Call this from your Behavior script to tell the agent where to go.
-        /// </summary>
+        private void Awake()
+        {
+            _activeObstacleMask = obstacleLayers;
+        }
+
+        public void SetObstacleMask(LayerMask newMask) { _activeObstacleMask = newMask; }
+        public void ResetObstacleMask() { _activeObstacleMask = obstacleLayers; }
+
         public void SetDestination(Vector3 targetPoint)
         {
             _currentTarget = targetPoint;
             _isStopped = false;
         }
 
-        /// <summary>
-        /// Call this to stop the agent immediately.
-        /// </summary>
         public void Stop()
         {
             _currentTarget = null;
             _isStopped = true;
         }
 
-        /// <summary>
-        /// Returns true if we are very close to the destination.
-        /// </summary>
         public bool HasReachedDestination(float threshold = 0.2f)
         {
             if (_currentTarget == null) return true;
-
             Vector3 target = _currentTarget.Value;
             Vector3 diff = transform.position - target;
             diff.y = 0;
@@ -75,30 +62,61 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         private void Update()
         {
-            if (_isStopped || _currentTarget == null)
-                return;
+            if (_isStopped || _currentTarget == null) return;
 
-            // 1. Calculate the Ideal Direction (straight to target)
             Vector3 targetPos = _currentTarget.Value;
-            // Keep target at same Y level to avoid tilting up/down
             targetPos.y = transform.position.y;
 
             Vector3 idealDir = (targetPos - transform.position).normalized;
             float distToTarget = Vector3.Distance(transform.position, targetPos);
 
-            // 2. Compute the Best Steering Direction (Avoidance Logic)
             Vector3 finalDir = idealDir;
 
             if (distToTarget > 0.5f)
             {
-                finalDir = ComputeContextSteering(idealDir);
+                // Emergency Repulsion (Stops us from walking THROUGH walls)
+                if (TryGetEmergencyRepulsion(out Vector3 repulsionDir))
+                {
+                    finalDir = repulsionDir;
+                }
+                else
+                {
+                    // Context Steering (Stops us from getting STUCK on walls)
+                    finalDir = ComputeContextSteering(idealDir);
+                }
             }
 
-            // 3. Apply Movement
             MoveAndRotate(finalDir, Time.deltaTime);
-
-            // Debug
             _debugBestDir = finalDir;
+        }
+
+        private bool TryGetEmergencyRepulsion(out Vector3 repulsionDir)
+        {
+            repulsionDir = Vector3.zero;
+            Vector3 sensorPos = transform.position + transform.up * sensorVerticalOffset;
+            
+            Collider[] hits = Physics.OverlapSphere(sensorPos, bodyRadius * 0.9f, _activeObstacleMask, QueryTriggerInteraction.Ignore);
+
+            if (hits.Length > 0)
+            {
+                Vector3 avgPush = Vector3.zero;
+                foreach (var col in hits)
+                {
+                    Vector3 closestPoint = col.ClosestPoint(sensorPos);
+                    Vector3 push = sensorPos - closestPoint;
+                    push.y = 0; 
+                    if (push.sqrMagnitude < 0.0001f) push = transform.forward;
+                    avgPush += push.normalized;
+                }
+
+                if (avgPush != Vector3.zero)
+                {
+                    repulsionDir = avgPush.normalized;
+                    if(drawRepulsion) Debug.DrawRay(transform.position, repulsionDir * 2f, Color.magenta);
+                    return true;
+                }
+            }
+            return false;
         }
 
         private Vector3 ComputeContextSteering(Vector3 idealDir)
@@ -108,119 +126,113 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             float[] interestMap = new float[count];
             Vector3[] directions = new Vector3[count];
 
-            // Base origin slightly above the surface
             Vector3 baseOrigin = transform.position + transform.up * sensorVerticalOffset;
             float castRadius = bodyRadius + clearance;
 
-            // A. Build maps
+            // Pre-calculate Momentum Vector (Current Forward)
+            Vector3 currentForward = transform.forward;
+
             for (int i = 0; i < count; i++)
             {
                 float angle = i * 2f * Mathf.PI / count;
-                // World-space directions in XZ plane
                 Vector3 dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
                 directions[i] = dir;
 
-                // 1. Interest: alignment with idealDir (0..1)
-                float dot = Vector3.Dot(dir, idealDir);
-                interestMap[i] = Mathf.Max(0f, dot);
+                // --- CHANGE 1: WIDER INTEREST ---
+                // Old: Mathf.Max(0, dot). This killed any path > 90 degrees away.
+                // New: Map [-1, 1] to [0, 1]. This allows turning 90 degrees (interest 0.5) to avoid a wall.
+                float targetDot = Vector3.Dot(dir, idealDir);
+                float targetInterest = (targetDot + 1f) * 0.5f; 
 
-                // 2. Danger: spherecast in this direction
-                // IMPORTANT: start the cast a bit *behind* the agent in this direction.
-                // If we start exactly at the center, once we are very close or slightly
-                // inside the collider, SphereCast stops hitting and we "lose" the wall.
-                Vector3 origin = baseOrigin - dir * castRadius;
+                // --- CHANGE 2: MOMENTUM ---
+                // Bias slightly towards where we are currently facing to prevent jitter/circles.
+                float forwardDot = Vector3.Dot(dir, currentForward);
+                float momentumInterest = (forwardDot + 1f) * 0.5f;
 
+                // Blend: 80% Target, 20% Momentum
+                interestMap[i] = (targetInterest * 0.8f) + (momentumInterest * 0.2f);
+
+                // Danger Scan
+                Vector3 origin = baseOrigin - dir * (castRadius * 0.5f); 
                 bool hitSomething = Physics.SphereCast(
                     origin,
                     castRadius,
                     dir,
                     out RaycastHit hit,
-                    lookAheadDistance + castRadius,   // extra so we still see walls when close
-                    obstacleLayers,
+                    lookAheadDistance + castRadius,
+                    _activeObstacleMask,
                     QueryTriggerInteraction.Ignore
                 );
 
                 if (hitSomething)
                 {
-                    // Convert distance to [0,1] danger:
-                    // 0 = far (no danger), 1 = very close.
-                    float effectiveDistance = Mathf.Max(0.001f, hit.distance - castRadius);
+                    float effectiveDistance = Mathf.Max(0.001f, hit.distance - (castRadius * 0.5f));
                     float normalized = 1f - Mathf.Clamp01(effectiveDistance / lookAheadDistance);
                     dangerMap[i] = normalized;
 
-                    if (drawDangerRays)
-                    {
-                        Debug.DrawRay(origin, dir * hit.distance, Color.red);
-                    }
-                }
-                else if (drawSensorRays)
-                {
-                    Debug.DrawRay(origin, dir * (lookAheadDistance + castRadius), Color.cyan);
+                    if (drawDangerRays) Debug.DrawRay(origin, dir * hit.distance, Color.red);
                 }
             }
 
-            // B. Combine maps – reduce or kill interest based on danger
+            // --- CHANGE 3: AGGRESSIVE DANGER FALLOFF ---
             for (int i = 0; i < count; i++)
             {
                 float danger = dangerMap[i];
-
-                if (danger >= 0.8f)
+                
+                // If danger is high, kill interest completely
+                if (danger >= 0.7f) 
                 {
-                    // Direction basically blocked
                     interestMap[i] = 0f;
                 }
-                else if (danger > 0f)
+                else if (danger > 0f) 
                 {
-                    // Gradually reduce interest based on danger
-                    interestMap[i] *= (1f - danger);
+                    // Apply a steep curve. Even small danger reduces interest significantly.
+                    // This ensures "Safe Sideways" > "Dangerous Forward"
+                    float safetyFactor = 1f - danger;
+                    safetyFactor = safetyFactor * safetyFactor; // Square it to punish danger harder
+                    interestMap[i] *= safetyFactor;
                 }
             }
 
-            // C. Pick best direction
+            // Pick Winner
             Vector3 bestDir = Vector3.zero;
             float bestScore = 0f;
 
             for (int i = 0; i < count; i++)
             {
-                float score = interestMap[i];
-                if (score > bestScore)
+                if (interestMap[i] > bestScore)
                 {
-                    bestScore = score;
+                    bestScore = interestMap[i];
                     bestDir = directions[i];
                 }
             }
 
-            // If we are totally blocked, just keep current forward to avoid jitter
-            if (bestDir == Vector3.zero)
-                return transform.forward;
+            // If completely blocked, stop.
+            if (bestDir == Vector3.zero) return Vector3.zero; 
 
             return bestDir.normalized;
         }
 
         private void MoveAndRotate(Vector3 dir, float dt)
         {
-            if (dir == Vector3.zero) return;
+            if (dir == Vector3.zero) return; 
 
-            // Rotation
             Quaternion targetRot = Quaternion.LookRotation(dir, Vector3.up);
+            // Spherically interpolate rotation for smoother turning
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * dt);
-
-            // Translation
             transform.position += transform.forward * moveSpeed * dt;
         }
 
         private void OnDrawGizmos()
         {
             if (!Application.isPlaying) return;
-
-            Gizmos.color = Color.green;
-            Gizmos.DrawLine(transform.position, transform.position + _debugBestDir * 2f);
-            Gizmos.color = Color.yellow;
-
-            if (_currentTarget != null)
+            if (drawBestDir)
             {
-                Gizmos.DrawWireSphere(_currentTarget.Value, 0.3f);
+                Gizmos.color = Color.green;
+                Gizmos.DrawLine(transform.position, transform.position + _debugBestDir * 2f);
             }
+            Gizmos.color = Color.yellow;
+            if (_currentTarget != null) Gizmos.DrawWireSphere(_currentTarget.Value, 0.3f);
         }
     }
 }

@@ -191,7 +191,7 @@ namespace JellyGame.GamePlay.Abilities.Stickiness
                         this);
             }
 
-            // For AttackBehavior
+            /*// For AttackBehavior
             var attack = enemyObj.GetComponent<AttackBehavior>();
             if (attack != null)
             {
@@ -200,7 +200,7 @@ namespace JellyGame.GamePlay.Abilities.Stickiness
                 if (debugLogs)
                     Debug.Log($"[SlowZone] Applied speed multiplier {multiplier} to AttackBehavior on {enemyObj.name}",
                         this);
-            }
+            }*/
 
             // For TravelBehavior
             var travel = enemyObj.GetComponent<TravelBehavior>();

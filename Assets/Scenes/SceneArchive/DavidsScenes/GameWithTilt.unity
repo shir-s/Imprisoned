@@ -725,7 +725,7 @@ Transform:
   m_GameObject: {fileID: 117151858}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 33.82, y: 24, z: -12.75}
+  m_LocalPosition: {x: 13.2, y: 24, z: 11.8}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1721,7 +1721,7 @@ Transform:
   m_GameObject: {fileID: 278142569}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 20.61, y: 24, z: -0.63}
+  m_LocalPosition: {x: 34.93, y: 24, z: -12.49}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -4670,7 +4670,7 @@ Transform:
   m_GameObject: {fileID: 966350490}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 21.14, y: 24, z: 8.63}
+  m_LocalPosition: {x: 30.57, y: 24, z: 4.06}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -8291,7 +8291,7 @@ Transform:
   m_GameObject: {fileID: 1637994234}
   serializedVersion: 2
   m_LocalRotation: {x: 0.33670613, y: -0, z: -0, w: 0.9416098}
-  m_LocalPosition: {x: 6.9, y: 58.69, z: 6.1}
+  m_LocalPosition: {x: 22.9, y: 58.69, z: 24.3}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9377,7 +9377,7 @@ Transform:
   m_GameObject: {fileID: 1859042999}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 34.97, y: 24, z: 12.36}
+  m_LocalPosition: {x: 35.5, y: 24, z: -11.38}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -9852,7 +9852,7 @@ Transform:
   m_GameObject: {fileID: 1947421111}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 33.1, y: 24, z: -0.65}
+  m_LocalPosition: {x: 34.08, y: 24, z: -0.38}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -11781,6 +11781,7 @@ GameObject:
   - component: {fileID: 8791937041626578242}
   - component: {fileID: 8791937041626578243}
   - component: {fileID: 8791937041626578244}
+  - component: {fileID: 8791937041626578245}
   m_Layer: 11
   m_Name: Enemy1
   m_TagString: Untagged
@@ -11954,12 +11955,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7d0d33d500d7275438f10f9fb42474b0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Behaviors.WaypointRouteBehavior
-  priority: 20
+  priority: 10
   routeType: 1
   waypoints:
+  - {fileID: 1669030356}
+  - {fileID: 966350491}
+  - {fileID: 278142570}
+  - {fileID: 1947421112}
   - {fileID: 117151859}
   - {fileID: 1859043000}
-  waitTimeAtWaypoint: 2
+  waitTimeAtWaypoint: 1
 --- !u!114 &8791937041626578244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11976,14 +11981,47 @@ MonoBehaviour:
   clearance: 0.2
   obstacleLayers:
     serializedVersion: 2
-    m_Bits: 1048576
+    m_Bits: 1572864
   lookAheadDistance: 3
   sensorVerticalOffset: 0.1
   sensorResolution: 16
-  moveSpeed: 3
+  moveSpeed: 6
   turnSpeed: 720
-  drawSensorRays: 1
-  drawDangerRays: 1
+  drawSensorRays: 0
+  drawDangerRays: 0
+--- !u!114 &8791937041626578245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7645898522416582608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e9f3ace75630724ca6692de09070177, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Behaviors.AttackBehavior
+  priority: 20
+  targetPriorities:
+  - layer:
+      layerIndex: 7
+    attackPriority: 10
+    customDetectionRadius: 7
+    customAttackRadius: 1
+  detectionRadius: 5
+  attackRadius: 1
+  attackObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 1048576
+  enableSound: 1
+  soundMode: 6
+  soundInterval: 0.7
+  maxRandomInterval: 1.2
+  soundName: EnemyAttack
+  useCustomVolume: 0
+  soundVolume: 1
+  debugLogs: 1
+  debugGizmos: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
