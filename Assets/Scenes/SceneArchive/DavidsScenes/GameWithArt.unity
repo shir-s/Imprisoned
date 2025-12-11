@@ -4333,6 +4333,56 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 859914351}
   m_Mesh: {fileID: -7882068930472985869, guid: c5f76067bd3774c5f9cc12a6be5e995b, type: 3}
+--- !u!1 &862919538
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 862919540}
+  - component: {fileID: 862919539}
+  m_Layer: 0
+  m_Name: SceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &862919539
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 862919538}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  gameSceneBuildIndex: 0
+  gameOverSceneBuildIndex: 1
+  gameSceneName: GameWithArt
+  gameOverSceneName: GameOver
+  gameOverKey: 114
+  debugLogs: 1
+--- !u!4 &862919540
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 862919538}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 22.02466, y: 0, z: 77.24139}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &864716581
 GameObject:
   m_ObjectHideFlags: 0
@@ -8666,7 +8716,7 @@ MonoBehaviour:
   recenterDegPerSec: 40
   followDegPerSec: 360
   autoRecenter: 1
-  invertX: 0
+  invertX: 1
   invertZ: 0
   physicsDriven: 1
   useCameraRelativeInput: 1
@@ -9027,9 +9077,10 @@ MonoBehaviour:
     m_Bits: 8192
   maxExtraHeight: 4
   overheadCheckDistance: 3
-  hardLockCenter: 1
-  followSmooth: 1
-  lookSmooth: 80
+  orbitSpeed: 90
+  preventReverseSpin: 1
+  positionSmoothTime: 0.1
+  lookSmoothTime: 0.1
   listenToActiveCubeEvent: 1
   snapOnTargetChange: 1
 --- !u!114 &1563192549
@@ -12449,9 +12500,6 @@ MonoBehaviour:
   autoFindUpSource: 1
   minSpeedToRotate: 0.2
   directionSmoothness: 8
-  referenceCamera: {fileID: 1563192552}
-  autoFindMainCamera: 1
-  reverseAngleThreshold: 100
 --- !u!1001 &2989679395141749341
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -12716,3 +12764,4 @@ SceneRoots:
   - {fileID: 1549512280}
   - {fileID: 1496693896}
   - {fileID: 1563192552}
+  - {fileID: 862919540}
