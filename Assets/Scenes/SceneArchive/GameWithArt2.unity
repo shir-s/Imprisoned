@@ -8661,7 +8661,7 @@ MonoBehaviour:
   recenterDegPerSec: 40
   followDegPerSec: 360
   autoRecenter: 1
-  invertX: 0
+  invertX: 1
   invertZ: 0
   physicsDriven: 1
   useCameraRelativeInput: 1
@@ -12296,6 +12296,18 @@ PrefabInstance:
     - target: {fileID: 4804207260690353181, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: m_Name
       value: PlayerJellyWithRotation
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: fillMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: raycastTolerance
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: surfaceLayerMask.m_Bits
+      value: 64
       objectReference: {fileID: 0}
     - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: 'paintSurfaces.Array.data[0]'

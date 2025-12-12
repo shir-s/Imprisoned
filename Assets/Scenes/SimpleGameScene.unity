@@ -132,6 +132,26 @@ PrefabInstance:
       value: PlayerJellyWithRotation
       objectReference: {fileID: 0}
     - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: fillMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: debugPolygon
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: debugFillPoints
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: raycastTolerance
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: surfaceLayerMask.m_Bits
+      value: 64
+      objectReference: {fileID: 0}
+    - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: paintSurfaces.Array.size
       value: 3
       objectReference: {fileID: 0}
