@@ -1493,17 +1493,21 @@ PrefabInstance:
       propertyPath: upSource
       value: 
       objectReference: {fileID: 773010011}
+    - target: {fileID: 1564492754866540262, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4650033590634152496, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4804207260690353181, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: m_Name
-      value: PlayerJellyWithRotation
+      value: PlayerJelly
       objectReference: {fileID: 0}
     - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: fillMode
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5181378703537944241, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: debugPolygon
@@ -1537,6 +1541,10 @@ PrefabInstance:
       propertyPath: 'paintSurfaces.Array.data[2]'
       value: 
       objectReference: {fileID: 2121441395}
+    - target: {fileID: 5602885402074892065, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: activeAbilityAsset
+      value: 
+      objectReference: {fileID: 11400000, guid: b53464417c3ea864a95e6eb72bfb4812, type: 2}
     - target: {fileID: 5743883894166441525, guid: 8e57e921792ca06428c024c024774614, type: 3}
       propertyPath: tray
       value: 
@@ -1901,7 +1909,8 @@ PrefabInstance:
       propertyPath: tray
       value: 
       objectReference: {fileID: 773010011}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1015340292188809277, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
     m_RemovedGameObjects:
     - {fileID: 7631180873036345029, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
     - {fileID: 2853482783352590529, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
@@ -1909,7 +1918,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4152403914610156060, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 831900438}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7126904343408009785, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1945800129}
   m_SourcePrefab: {fileID: 100100000, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
 --- !u!1 &1363853206
 GameObject:
@@ -2000,6 +2012,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1363853206}
   m_Mesh: {fileID: -1303325483300367356, guid: c5f76067bd3774c5f9cc12a6be5e995b, type: 3}
+--- !u!1 &1410199640 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7126904343408009785, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
+  m_PrefabInstance: {fileID: 1822991511}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1471952114
 GameObject:
   m_ObjectHideFlags: 0
@@ -2376,7 +2393,8 @@ PrefabInstance:
       propertyPath: tray
       value: 
       objectReference: {fileID: 773010011}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1015340292188809277, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
     m_RemovedGameObjects:
     - {fileID: 7631180873036345029, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
     - {fileID: 2853482783352590529, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
@@ -2384,7 +2402,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4152403914610156060, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 54634215}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7126904343408009785, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1906485645}
   m_SourcePrefab: {fileID: 100100000, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
 --- !u!4 &1797125193 stripped
 Transform:
@@ -2495,7 +2516,8 @@ PrefabInstance:
       propertyPath: tray
       value: 
       objectReference: {fileID: 773010011}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1015340292188809277, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
     m_RemovedGameObjects:
     - {fileID: 7631180873036345029, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
     - {fileID: 2853482783352590529, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
@@ -2503,13 +2525,30 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4152403914610156060, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 780231561}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7126904343408009785, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1822991524}
   m_SourcePrefab: {fileID: 100100000, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
 --- !u!4 &1822991512 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4152403914610156060, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
   m_PrefabInstance: {fileID: 1822991511}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1822991524
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1410199640}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56349487007eb5b4d951597220e768b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Combat.SimpleHealth
+  maxHp: 10
+  destroyOnDeath: 1
 --- !u!1 &1868903650
 GameObject:
   m_ObjectHideFlags: 0
@@ -2599,6 +2638,44 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1868903650}
   m_Mesh: {fileID: -1303325483300367356, guid: c5f76067bd3774c5f9cc12a6be5e995b, type: 3}
+--- !u!1 &1906485633 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7126904343408009785, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
+  m_PrefabInstance: {fileID: 1797125192}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1906485645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1906485633}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56349487007eb5b4d951597220e768b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Combat.SimpleHealth
+  maxHp: 10
+  destroyOnDeath: 1
+--- !u!1 &1945800117 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7126904343408009785, guid: 5b22932ad7cf57c46bce223229ef1dfb, type: 3}
+  m_PrefabInstance: {fileID: 1341368174}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1945800129
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1945800117}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56349487007eb5b4d951597220e768b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Combat.SimpleHealth
+  maxHp: 10
+  destroyOnDeath: 1
 --- !u!1 &1960398251
 GameObject:
   m_ObjectHideFlags: 0

@@ -92,7 +92,7 @@ namespace JellyGame.GamePlay.Abilities.Stickiness
             // Grant stickiness ability
             if (PlayerAbilityManager.Instance != null)
             {
-                PlayerAbilityManager.Instance.UnlockStickiness();
+                /*PlayerAbilityManager.Instance.UnlockStickiness();*/
             
                 if (debugLogs)
                     Debug.Log($"[StickinessPickupCube] Player collected stickiness pickup! Ability unlocked.", this);
