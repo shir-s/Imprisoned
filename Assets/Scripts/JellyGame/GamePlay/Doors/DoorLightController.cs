@@ -12,7 +12,6 @@ namespace JellyGame.GamePlay.Doors
         [SerializeField] private Material unlitMaterial;
         
         private List<GameObject> _lights = new List<GameObject>();
-        //private int _doorLightLayer = LayerMask.NameToLayer("DoorLight");
         private int _doorLightLayer = -1;
         private int _deathCounter = 0;
 
@@ -23,7 +22,7 @@ namespace JellyGame.GamePlay.Doors
             
             _lights.Clear();
             
-            /*foreach (Transform child in GetComponentsInChildren<Transform>())
+            foreach (Transform child in GetComponentsInChildren<Transform>())
             {
                 if (child == transform) continue;
 
@@ -31,19 +30,7 @@ namespace JellyGame.GamePlay.Doors
                 {
                     _lights.Add(child.gameObject);
                 }
-            }*/
-            
-            foreach (Transform t in GetComponentsInChildren<Transform>(true))
-            {
-                if (t == transform) continue;
-
-                if (t.gameObject.layer == _doorLightLayer)
-                    _lights.Add(t.gameObject);
             }
-
-            Debug.Log($"[{name}] collected {_lights.Count} DoorLight objects:");
-            for (int i = 0; i < _lights.Count; i++)
-                Debug.Log($"{i}: {_lights[i].name} layer={LayerMask.LayerToName(_lights[i].layer)}");
             
             if (unlitMaterial != null)
             {
