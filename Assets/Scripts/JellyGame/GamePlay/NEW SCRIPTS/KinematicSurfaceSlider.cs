@@ -22,6 +22,11 @@ public class KinematicSurfaceSlider : MonoBehaviour
     private Vector3 _velocity;
     private bool _isGrounded;
 
+    public void SetHoverHeight(float value)
+    {
+        hoverHeight = Mathf.Max(0.01f, value);
+    }
+    
     private void Update()
     {
         // 1. Check for the floor
