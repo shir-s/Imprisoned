@@ -1,7 +1,7 @@
 // FILEPATH: Assets/Scripts/Abilities/PlayerAbilityManager.cs
 using JellyGame.GamePlay.Abilities.Zones;
-using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Map.Surfaces;
+using JellyGame.GamePlay.Player;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Abilities
@@ -16,6 +16,10 @@ namespace JellyGame.GamePlay.Abilities
 
         [Header("Active Ability")]
         [SerializeField] private ScriptableObject activeAbilityAsset; // should implement IPlayerAbility
+
+        [Header("Filled Area Cost (optional)")]
+        [Tooltip("If assigned, the player will take self-damage based on the filled area size.")]
+        [SerializeField] private AreaFillSelfDamage areaFillSelfDamage;
 
         [Header("Fallback Paint Colors")]
         [SerializeField] private Color normalPaintColor = Color.black;
@@ -59,6 +63,9 @@ namespace JellyGame.GamePlay.Abilities
                     cubeRenderer = GetComponentInChildren<Renderer>();
             }
 
+            if (areaFillSelfDamage == null)
+                areaFillSelfDamage = GetComponent<AreaFillSelfDamage>();
+
             UpdateMaterial();
         }
 
@@ -87,7 +94,14 @@ namespace JellyGame.GamePlay.Abilities
         public void OnAreaFilled(SimplePaintSurface surface, System.Collections.Generic.IReadOnlyList<Vector2> localPolyXZ, Bounds localBounds)
         {
             var ability = ActiveAbility;
-            if (ability == null || !ability.CanSpawnZone)
+            bool abilityActive = (ability != null && ability.CanSpawnZone);
+
+            // 1) Apply cost (optional)
+            if (areaFillSelfDamage != null)
+                areaFillSelfDamage.HandleAreaFilled(surface, localPolyXZ, abilityActive);
+
+            // 2) Spawn zone (if ability supports it)
+            if (!abilityActive)
                 return;
 
             if (debugLogs)
@@ -96,7 +110,6 @@ namespace JellyGame.GamePlay.Abilities
             ability.SpawnZone(new AbilityZoneContext(surface, localPolyXZ, localBounds));
         }
 
-        // Optional: quick test switch
         [ContextMenu("Clear Ability")]
         public void ClearAbility()
         {

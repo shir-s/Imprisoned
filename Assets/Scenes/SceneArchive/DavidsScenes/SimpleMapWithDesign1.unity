@@ -4325,6 +4325,7 @@ GameObject:
   - component: {fileID: 8270430109017033342}
   - component: {fileID: 4650033589403449266}
   - component: {fileID: 3037549929120434292}
+  - component: {fileID: 9126951036705925185}
   - component: {fileID: 383928575715893778}
   - component: {fileID: 8428932910450165900}
   - component: {fileID: 9126951036705925184}
@@ -4382,6 +4383,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAbilityManager
   activeAbilityAsset: {fileID: 11400000, guid: b53464417c3ea864a95e6eb72bfb4812, type: 2}
+  areaFillSelfDamage: {fileID: 9126951036705925185}
   normalPaintColor: {r: 0.17254902, g: 0.68235296, b: 0.34117648, a: 1}
   cubeRenderer: {fileID: 4650033589403449266}
   normalMaterial: {fileID: 2100000, guid: 7b6ea2b671a6d7548a86c50091c57f2b, type: 2}
@@ -4525,6 +4527,23 @@ MonoBehaviour:
   rayStartOffset: 0.05
   debugLogs: 0
   debugRays: 0
+--- !u!114 &9126951036705925185
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4804207259765307807}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1e84e16fa0beda4b99c2f5f0037e65a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.AreaFillSelfDamage
+  damagePerSquareMeter: 0.001
+  minDamagePerFill: 0
+  maxDamagePerFill: 0
+  onlyWhenAbilityActive: 1
+  debugLogs: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
