@@ -1,5 +1,4 @@
 // FILEPATH: Assets/Scripts/Core/EventManager.cs
-
 using System.Collections.Generic;
 
 namespace JellyGame.GamePlay.Managers
@@ -16,24 +15,27 @@ namespace JellyGame.GamePlay.Managers
             ActiveCubeChanged,   // passes GameObject
             CubeDestroyed,       // passes GameObject
             CubeRespawned,       // passes GameObject
-        
+
             CubeRespawnSound,
-        
+
             // Tray / surface (optional, for later)
             TraySelected,        // data: Transform (selected tray)
             SurfaceTilted,       // data: Vector3 (current rotation / tilt info)
-        
+
             // Stroke / drawing
             StrokeCrossingDetected, // data: StrokeCrossingEventData
-        
+
             KeyCollected,        // data: Transform or GameObject (the key that was collected)
 
             // NPC / allies
             FriendlyNpcKilled,   // data: GameObject or Transform (the NPC that died)
-        
+
             // Enemies
             EnemyKilled,          // data: GameObject or Transform (the enemy that died)
-        
+
+            // Universal
+            EntityDied,           // data: EntityDiedEventData
+
             GameWin
         }
 

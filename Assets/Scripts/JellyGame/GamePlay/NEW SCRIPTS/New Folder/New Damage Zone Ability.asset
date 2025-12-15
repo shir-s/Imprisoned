@@ -13,11 +13,15 @@ MonoBehaviour:
   m_Name: New Damage Zone Ability
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Abilities.Zones.DamageZoneAbility
   paintColor: {r: 1, g: 0.2, b: 0.2, a: 1}
-  zoneLifetimeSeconds: 30
+  zoneLifetimeSeconds: 10
   zoneThickness: 1.2
   effectTickInterval: 0.2
   damageTargetLayers:
     serializedVersion: 2
     m_Bits: 2048
-  damagePerSecond: 100
-  debugLogs: 1
+  damagePerSecond: 2
+  debugLogs: 0
+  debugDrawZoneGizmos: 0
+  debugSpawnGhost: 1
+  debugGhostLifetimeSeconds: 30
+  debugDrawYOffset: 5

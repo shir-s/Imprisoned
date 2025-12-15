@@ -1,4 +1,5 @@
 // FILEPATH: Assets/Scripts/Combat/SimpleHealth.cs
+using JellyGame.GamePlay.Managers;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Combat
@@ -9,25 +10,53 @@ namespace JellyGame.GamePlay.Combat
         [SerializeField] private float maxHp = 10f;
         [SerializeField] private bool destroyOnDeath = true;
 
+        [Header("Debug")]
+        [SerializeField] private bool debugLogs = false;
+
         private float _hp;
+        private bool _dead;
 
         private void Awake()
         {
             _hp = maxHp;
+            _dead = false;
         }
 
         public void ApplyDamage(float amount)
         {
-            if (amount <= 0f) return;
+            if (_dead)
+                return;
+
+            if (amount <= 0f)
+                return;
 
             _hp -= amount;
-            Debug.Log(amount + " HP: " + _hp);
-            if (_hp <= 0f)
-            {
-                _hp = 0f;
-                if (destroyOnDeath)
-                    Destroy(gameObject);
-            }
+
+            if (debugLogs)
+                Debug.Log($"{amount:F1} HP: {_hp}", this);
+
+            if (_hp > 0f)
+                return;
+
+            _hp = 0f;
+            Die();
+        }
+
+        private void Die()
+        {
+            if (_dead)
+                return;
+
+            _dead = true;
+
+            // Trigger universal event BEFORE destruction.
+            EventManager.TriggerEvent(
+                EventManager.GameEvent.EntityDied,
+                new EntityDiedEventData(gameObject, gameObject.layer)
+            );
+
+            if (destroyOnDeath)
+                Destroy(gameObject);
         }
     }
 }
