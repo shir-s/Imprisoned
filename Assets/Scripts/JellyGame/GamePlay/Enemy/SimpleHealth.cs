@@ -42,6 +42,11 @@ namespace JellyGame.GamePlay.Combat
             Die();
         }
 
+        public void Heal(float amount)
+        {
+            _hp += amount;
+        }
+
         private void Die()
         {
             if (_dead)

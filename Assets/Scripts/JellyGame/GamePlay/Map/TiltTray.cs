@@ -11,12 +11,9 @@ namespace JellyGame.GamePlay.Map
         [Header("Selection")]
         [SerializeField] private bool tintWhenSelected = true;
         [SerializeField] private Color selectedTint = new Color(1f, 0.9f, 0.25f, 1f);
-
-        [Tooltip("If true, tray must be selected to respond to input. If false, arrow keys always control this tray.")]
         [SerializeField] private bool requireSelectionForInput = false;
 
         private static TiltTray _current;
-
         private Renderer _r;
         private MaterialPropertyBlock _mpb;
         private Color _origColor;
@@ -28,44 +25,37 @@ namespace JellyGame.GamePlay.Map
         [SerializeField] private KeyCode leftKey = KeyCode.LeftArrow;
         [SerializeField] private KeyCode rightKey = KeyCode.RightArrow;
 
-        [Header("Tilt")]
+        [Header("Tilt Settings")]
         [SerializeField] private float maxTiltDeg = 20f;
         [SerializeField] private float tiltAccelDegPerSec = 90f;
-        [SerializeField] private float recenterDegPerSec = 60f;
+        [SerializeField] private float recenterDegPerSec = 60f; // Kept for future use if needed
         [SerializeField] private float followDegPerSec = 360f;
 
         [Header("Behavior")]
-        [SerializeField] private bool autoRecenter = true;
-        [SerializeField] private bool invertX = false;
-        [SerializeField] private bool invertZ = false;
         [SerializeField] private bool physicsDriven = true;
 
-        [Header("Camera-relative input (for follow camera)")]
-        [Tooltip("If true, arrow keys are interpreted relative to the given camera's right/forward.")]
-        [SerializeField] private bool useCameraRelativeInput = false;
-
-        [Tooltip("Camera whose right/forward are used when camera-relative input is enabled.")]
+        [Header("Camera Input")]
+        [Tooltip("The camera used to determine which way is 'Right' or 'Forward'. If empty, it uses the Active Main Camera.")]
         [SerializeField] private Transform inputCamera;
 
-        [Tooltip("When using camera-relative input, compensate for invertX/invertZ so arrows always match camera view.")]
-        [SerializeField] private bool compensateInvertForCamera = true;
+        [Header("Model Fixes (Rarely Needed)")]
+        [Tooltip("Only check this if the tray moves left when it should move right even on the Follow Camera.")]
+        [SerializeField] private bool flipModelPhysicsX = false;
+        
+        [Tooltip("Only check this if the tray moves down when it should move up even on the Follow Camera.")]
+        [SerializeField] private bool flipModelPhysicsZ = false;
 
         private Rigidbody _rb;
         private Quaternion _baseRot;
         private Vector2 _targetTiltXZ;
         private Vector2 _currentTiltXZ;
 
-        public bool InvertX => invertX;
-        public bool InvertZ => invertZ;
-
         private void Awake()
         {
             _rb = GetComponent<Rigidbody>();
             _rb.isKinematic = true;
             _rb.interpolation = RigidbodyInterpolation.Interpolate;
-
             _baseRot = transform.rotation;
-
             _r = GetComponentInChildren<Renderer>();
             if (_r) _mpb = new MaterialPropertyBlock();
         }
@@ -90,136 +80,117 @@ namespace JellyGame.GamePlay.Map
 
         private void FixedUpdate()
         {
-            bool activeForInput = !requireSelectionForInput || _current == this;
-            if (!activeForInput || !physicsDriven) return;
-
-            DriveRotation(Time.fixedDeltaTime);
+            if ((!requireSelectionForInput || _current == this) && physicsDriven)
+                DriveRotation(Time.fixedDeltaTime);
         }
 
-        private void HandleInput(float dt)
+private void HandleInput(float dt)
         {
-            // 1. Get Input
+            // 1. Get Arrow Key Input
             float rawV = (Input.GetKey(upKey) ? 1 : 0) - (Input.GetKey(downKey) ? 1 : 0);
             float rawH = (Input.GetKey(rightKey) ? 1 : 0) - (Input.GetKey(leftKey) ? 1 : 0);
 
-            // 2. Calculate the Desired Movement Vector in World Space
+            // 2. Determine which Camera to respect
+            Transform camT = inputCamera;
+            
+            // --- FIX IS HERE: Use 'UnityEngine.Camera.main' to avoid conflicts ---
+            if (camT == null && UnityEngine.Camera.main != null) 
+                camT = UnityEngine.Camera.main.transform;
+
             Vector3 desiredMoveDir = Vector3.zero;
 
-            bool cameraRelative =
-                useCameraRelativeInput &&
-                inputCamera != null &&
-                inputCamera.gameObject.activeInHierarchy;
-
-            if (cameraRelative)
+            if (camT != null)
             {
-                // Camera-Relative: Align input with camera view
+                // 3. "Screen Space" Calculation
                 Vector3 trayUp = transform.up;
-                Vector3 camRight = Vector3.ProjectOnPlane(inputCamera.right, trayUp).normalized;
-                Vector3 camForward = Vector3.ProjectOnPlane(inputCamera.forward, trayUp).normalized;
+                
+                // Project camera vectors onto the tray
+                Vector3 camRight = Vector3.ProjectOnPlane(camT.right, trayUp).normalized;
+                Vector3 camForward = Vector3.ProjectOnPlane(camT.forward, trayUp).normalized;
 
+                // Create the movement vector relative to the camera view
                 desiredMoveDir = (camForward * rawV) + (camRight * rawH);
             }
             else
             {
-                // World-Relative (Default Camera)
-                // Assuming World Forward is +Z and World Right is +X
+                // Fallback (World Space)
                 desiredMoveDir = (Vector3.forward * rawV) + (Vector3.right * rawH);
             }
 
-            // Normalize so diagonal isn't faster
-            if (desiredMoveDir.sqrMagnitude > 1f)
-                desiredMoveDir.Normalize();
+            if (desiredMoveDir.sqrMagnitude > 1f) desiredMoveDir.Normalize();
 
-            // 3. Convert World Movement -> Local Tilt Goals
-            // We need to know: How much of this movement is along the Tray's Local Forward/Right?
-            float moveLocalZ = Vector3.Dot(desiredMoveDir, transform.forward); // Forward movement
-            float moveLocalX = Vector3.Dot(desiredMoveDir, transform.right);   // Sideways movement
+            // 4. Convert World Movement -> Local Tray Tilt
+            float moveLocalZ = Vector3.Dot(desiredMoveDir, transform.forward);
+            float moveLocalX = Vector3.Dot(desiredMoveDir, transform.right);
 
-            // 4. Calculate Goal Angles
-            // Physics Rule:
-            // To move Forward (+Z), we need to tilt Pitch NEGATIVE (Nose down).
-            // To move Right (+X), we need to tilt Roll NEGATIVE (Right side down).
-            
+            // 5. Calculate Goal Angles
             float goalPitch = -moveLocalZ * maxTiltDeg;
             float goalRoll  = -moveLocalX * maxTiltDeg;
 
-            // 5. Apply Inversions (if needed)
-            // Note: If using camera relative, we usually skip this to keep controls intuitive,
-            // but we respect the flags if "compensate" is false.
-            if (!cameraRelative || !compensateInvertForCamera)
-            {
-                if (invertX) goalPitch *= -1f; // Invert Forward/Back tilt
-                if (invertZ) goalRoll *= -1f;  // Invert Left/Right tilt
-            }
+            // 6. Apply Model Physics Fixes (Only for broken prefabs)
+            if (flipModelPhysicsX) goalPitch *= -1f;
+            if (flipModelPhysicsZ) goalRoll *= -1f;
 
-            // 6. Move the Actual Target towards the Goal
-            // This is the "Adaptation" - it smoothly shifts the tilt axis as the camera rotates.
-            // .x is Pitch, .y is Roll (based on your DriveRotation logic)
-            
-            Vector2 goalTilt = new Vector2(goalPitch, goalRoll);
-            
-            _targetTiltXZ = Vector2.MoveTowards(_targetTiltXZ, goalTilt, tiltAccelDegPerSec * dt);
+            _targetTiltXZ = Vector2.MoveTowards(_targetTiltXZ, new Vector2(goalPitch, goalRoll), tiltAccelDegPerSec * dt);
         }
 
         private void DriveRotation(float dt)
         {
-            _currentTiltXZ.x = MoveToward(_currentTiltXZ.x, _targetTiltXZ.x, followDegPerSec * dt);
-            _currentTiltXZ.y = MoveToward(_currentTiltXZ.y, _targetTiltXZ.y, followDegPerSec * dt);
+            _currentTiltXZ.x = Mathf.MoveTowards(_currentTiltXZ.x, _targetTiltXZ.x, followDegPerSec * dt);
+            _currentTiltXZ.y = Mathf.MoveTowards(_currentTiltXZ.y, _targetTiltXZ.y, followDegPerSec * dt);
 
             Quaternion qx = Quaternion.AngleAxis(_currentTiltXZ.x, transform.right);
             Quaternion qz = Quaternion.AngleAxis(_currentTiltXZ.y, transform.forward);
-            Quaternion target = _baseRot * qx * qz;
-
-            if (_rb && _rb.isKinematic) _rb.MoveRotation(target);
-            else transform.rotation = target;
+            
+            if (_rb && _rb.isKinematic) _rb.MoveRotation(_baseRot * qx * qz);
+            else transform.rotation = _baseRot * qx * qz;
         }
 
-        private static float MoveToward(float current, float target, float maxDelta)
-            => Mathf.MoveTowards(current, target, maxDelta);
-
+        // Maintains compatibility with your Follow Camera script
         public void SetInputCamera(Transform cam, bool enableCameraRelativeInput)
         {
+            // We ignore 'enableCameraRelativeInput' because it is ALWAYS relative now.
             inputCamera = cam;
-            useCameraRelativeInput = enableCameraRelativeInput;
         }
 
         public Transform InputCamera { get => inputCamera; set => inputCamera = value; }
-        public bool UseCameraRelativeInput { get => useCameraRelativeInput; set => useCameraRelativeInput = value; }
-        public bool CompensateInvertForCamera { get => compensateInvertForCamera; set => compensateInvertForCamera = value; }
 
         private void SelectThis()
         {
             if (_current == this) return;
             if (_current != null) _current.Deselect();
             _current = this;
-
-            if (tintWhenSelected && _r != null)
-            {
-                _r.GetPropertyBlock(_mpb);
-                if (_r.sharedMaterial && _r.sharedMaterial.HasProperty("_Color"))
-                {
-                    _origColor = _r.sharedMaterial.color;
-                    _hasOrig = true;
-                }
-                _mpb.SetColor("_Color", selectedTint);
-                _r.SetPropertyBlock(_mpb);
-            }
+            UpdateTint(true);
         }
 
         private void Deselect()
         {
             if (_current != this) return;
-
-            if (tintWhenSelected && _r != null)
-            {
-                _r.GetPropertyBlock(_mpb);
-                if (_hasOrig) _mpb.SetColor("_Color", _origColor);
-                else _mpb.Clear();
-                _r.SetPropertyBlock(_mpb);
-            }
+            UpdateTint(false);
             _current = null;
         }
 
+        private void UpdateTint(bool selected)
+        {
+            if (!tintWhenSelected || _r == null) return;
+            _r.GetPropertyBlock(_mpb);
+            if (selected)
+            {
+                if (_r.sharedMaterial.HasProperty("_Color")) 
+                {
+                    _origColor = _r.sharedMaterial.color;
+                    _hasOrig = true;
+                }
+                _mpb.SetColor("_Color", selectedTint);
+            }
+            else
+            {
+                if (_hasOrig) _mpb.SetColor("_Color", _origColor);
+                else _mpb.Clear();
+            }
+            _r.SetPropertyBlock(_mpb);
+        }
+        
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
@@ -227,8 +198,6 @@ namespace JellyGame.GamePlay.Map
             Vector3 p = transform.position;
             Gizmos.DrawLine(p, p + transform.right * 0.5f);
             Gizmos.DrawLine(p, p + transform.forward * 0.5f);
-            Gizmos.color = new Color(1f, 0.8f, 0.2f, 0.2f);
-            Gizmos.DrawWireSphere(p, 0.2f);
         }
 #endif
     }
