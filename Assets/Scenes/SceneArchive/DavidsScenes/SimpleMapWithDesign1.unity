@@ -640,8 +640,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 24.513725, z: 17.25784}
+  m_Center: {x: 0, y: 0.025101185, z: -8.12892}
 --- !u!23 &600599418
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1870,8 +1870,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 30.108849, z: 18.210693}
+  m_Center: {x: 0, y: -0.17542076, z: 8.605347}
 --- !u!23 &987637442
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2021,8 +2021,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 1, y: 29.714817, z: 16.431301}
+  m_Center: {x: 0, y: 5.6359553, z: -7.7156506}
 --- !u!23 &1116399912
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3457,8 +3457,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 14.377193, y: 27.545078, z: 1}
+  m_Center: {x: -6.6885967, y: 0.33434248, z: 0}
 --- !u!23 &1881987574
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -3916,8 +3916,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 50.22585, y: 9.6140785, z: 50.22585}
-  m_Center: {x: 0, y: -4.409218, z: 0}
+  m_Size: {x: 50.22585, y: 24.636623, z: 50.22585}
+  m_Center: {x: 0, y: -11.92049, z: 0}
 --- !u!1 &2145180403
 GameObject:
   m_ObjectHideFlags: 0
@@ -3971,8 +3971,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 15.429695, y: 30.057037, z: 1}
+  m_Center: {x: 7.2148476, y: 0.67032385, z: 0}
 --- !u!23 &2145180406
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -4241,7 +4241,7 @@ MonoBehaviour:
   fallLimit: -50
   gravityForce: 250
   maxSpeed: 120
-  groundDrag: 6
+  groundDrag: 3
   airDrag: 0.5
 --- !u!114 &4378686000491106279
 MonoBehaviour:
@@ -4365,7 +4365,7 @@ MonoBehaviour:
   - {fileID: 2121441395}
   painter: {fileID: 8428932910450165900}
   localStepSize: 0.08
-  raycastTolerance: 4
+  raycastTolerance: 10
   maxPaintsPerFrame: 500
   debugPolygon: 1
   debugFillPoints: 1
@@ -4468,7 +4468,7 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 5
+  rayDistance: 10
   useWorldDown: 1
   brushBlitMaterial: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
   brushSourceTexProperty: _MainTex
@@ -4494,7 +4494,7 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 5
+  rayDistance: 10
   useWorldDown: 1
   minSampleDistance: 1
   maxHistoryLength: 300
@@ -4521,7 +4521,7 @@ MonoBehaviour:
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
-  rayDistance: 3
+  rayDistance: 10
   rayStartOffset: 0.05
   debugLogs: 0
   debugRays: 0
