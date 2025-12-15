@@ -188,10 +188,10 @@ namespace JellyGame.GamePlay.Map
                 mainCam = FindObjectOfType<UnityEngine.Camera>();
             }
 
-            if (mainCam != null)
+            /*if (mainCam != null)
             {
                 island.TiltTray.SetInputCamera(mainCam.transform, island.TiltTray.UseCameraRelativeInput);
-            }
+            }*/
         }
 
         /// <summary>
