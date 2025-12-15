@@ -1,8 +1,8 @@
 // FILEPATH: Assets/Scripts/AI/Behaviors/AttackBehavior.cs
-
 using System;
 using UnityEngine;
 using JellyGame.GamePlay.Enemy.AI.Movement;
+using JellyGame.GamePlay.Combat;
 
 namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 {
@@ -37,7 +37,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [Header("Detection")]
         [SerializeField] private float detectionRadius = 15f;
         [SerializeField] private float attackRadius = 2f;
-        
+
+        [Header("Damage")]
+        [Tooltip("Damage dealt per hit when inside attack radius.")]
+        [SerializeField] private float damagePerHit = 1f;
+
+        [Tooltip("Seconds between hits. Prevents damage from happening too fast.")]
+        [SerializeField] private float hitCooldownSeconds = 0.5f;
+
         // --- NEW SECTION ---
         [Header("Navigation Override")]
         [Tooltip("What layers count as obstacles WHILE ATTACKING? Uncheck 'Traps' here to walk through them.")]
@@ -59,12 +66,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [SerializeField] private bool debugGizmos = true;
 
         private SteeringNavigator _navigator;
-        
+
         private Transform _currentTarget;
         private Collider _currentTargetCollider;
         private int _currentTargetPriority;
         private float _currentTargetAttackRadius;
         private int _tickCount = 0;
+
+        private float _nextHitTime;
 
         public int Priority => priority;
 
@@ -79,7 +88,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             {
                 if (IsTargetValidAndInDetectionRadius(_currentTarget, _currentTargetCollider))
                 {
-                    if (TryFindBetterTarget(out Transform betterTarget, out Collider betterCollider, 
+                    if (TryFindBetterTarget(out Transform betterTarget, out Collider betterCollider,
                             out int betterPriority, out float betterAttackRadius))
                     {
                         SetTarget(betterTarget, betterCollider, betterPriority, betterAttackRadius);
@@ -95,10 +104,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         public void OnEnter()
         {
             _tickCount = 0;
+            _nextHitTime = Time.time; // can hit immediately once in range
+
             if (debugLogs) Debug.Log($"[AttackBehavior] OnEnter. Target: {(_currentTarget != null ? _currentTarget.name : "None")}", this);
 
             // --- NAVIGATION OVERRIDE START ---
-            // Tell navigator to ignore traps (or whatever is excluded from attackObstacleLayers)
             if (_navigator != null)
             {
                 _navigator.SetObstacleMask(attackObstacleLayers);
@@ -126,7 +136,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             Vector3 pos = transform.position;
             Vector3 targetPos = _currentTarget.position;
-            
+
             Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
             Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
             float distXZ = Vector3.Distance(selfXZ, targetXZ);
@@ -135,20 +145,47 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (distXZ <= effectiveAttackRadius)
             {
-                if (debugLogs) Debug.Log($"[AttackBehavior] Attacking {_currentTarget.name}!", this);
-                GameObject targetGO = _currentTarget.gameObject;
                 _navigator.Stop();
-                ClearTarget();
-                Destroy(targetGO);
+
+                TryDealDamage();
+
+                // Keep target while attacking (do NOT clear/destroy).
                 return;
             }
 
             _navigator.SetDestination(targetPos);
-            
+
             if (debugLogs && _tickCount % 60 == 0)
             {
                 Debug.Log($"[AttackBehavior] Chasing target. Dist: {distXZ:F1}", this);
             }
+        }
+
+        private void TryDealDamage()
+        {
+            if (Time.time < _nextHitTime)
+                return;
+
+            if (_currentTarget == null)
+                return;
+
+            // Get a damage receiver from the target (player uses CubeScaler implementing IDamageable)
+            IDamageable dmg = _currentTarget.GetComponentInParent<IDamageable>();
+            if (dmg == null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[AttackBehavior] Target {_currentTarget.name} has no IDamageable, cannot deal damage.", this);
+
+                // If target isn't damageable, just stop attacking it.
+                ClearTarget();
+                return;
+            }
+
+            if (debugLogs)
+                Debug.Log($"[AttackBehavior] Hit {_currentTarget.name} for {damagePerHit} damage.", this);
+
+            dmg.ApplyDamage(damagePerHit);
+            _nextHitTime = Time.time + Mathf.Max(0.01f, hitCooldownSeconds);
         }
 
         public void OnExit()
@@ -158,7 +195,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             ClearTarget();
 
             // --- NAVIGATION OVERRIDE END ---
-            // Important: Reset the mask so other behaviors (like Waypoint) avoid traps again
             if (_navigator != null)
             {
                 _navigator.ResetObstacleMask();
@@ -166,9 +202,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             // -------------------------------
         }
 
-        // ... [Rest of the methods: TryAcquireTarget, IsTargetValid, etc. remain unchanged] ...
-        
-        // (Included below for completeness in case you copy-paste the whole file)
+        // --- Target acquisition / validity (unchanged from your pasted file) ---
+
         private bool TryAcquireTarget()
         {
             if (targetPriorities == null || targetPriorities.Length == 0) return false;
@@ -210,7 +245,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         private bool TryFindBetterTarget(out Transform betterTarget, out Collider betterCollider, out int betterPriority, out float betterAttackRadius)
         {
             betterTarget = null; betterCollider = null; betterPriority = _currentTargetPriority; betterAttackRadius = _currentTargetAttackRadius;
-            return false; 
+            return false;
         }
 
         private bool IsTargetValidAndInDetectionRadius(Transform t, Collider c)
@@ -218,20 +253,37 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             if (t == null || c == null) return false;
             float radius = detectionRadius;
             bool found = false;
-            foreach(var tp in targetPriorities) {
-                if(tp.layer.LayerIndex == c.gameObject.layer) {
+            foreach (var tp in targetPriorities)
+            {
+                if (tp.layer.LayerIndex == c.gameObject.layer)
+                {
                     radius = tp.customDetectionRadius > 0 ? tp.customDetectionRadius : detectionRadius;
                     found = true; break;
                 }
             }
-            if(!found) return false;
+            if (!found) return false;
             float dist = Vector3.Distance(transform.position, t.position);
             return dist <= (radius + 3.0f);
         }
 
-        private void SetTarget(Transform t, Collider c, int p, float r) { _currentTarget = t; _currentTargetCollider = c; _currentTargetPriority = p; _currentTargetAttackRadius = r; }
-        private void ClearTarget() { _currentTarget = null; _currentTargetCollider = null; _currentTargetPriority = int.MinValue; }
+        private void SetTarget(Transform t, Collider c, int p, float r)
+        {
+            _currentTarget = t;
+            _currentTargetCollider = c;
+            _currentTargetPriority = p;
+            _currentTargetAttackRadius = r;
+        }
 
+        private void ClearTarget()
+        {
+            _currentTarget = null;
+            _currentTargetCollider = null;
+            _currentTargetPriority = int.MinValue;
+            _currentTargetAttackRadius = 0f;
+            _nextHitTime = 0f;
+        }
+
+        // --- Sound interface (unchanged) ---
         public SoundPlaybackMode GetSoundMode() => enableSound ? soundMode : SoundPlaybackMode.None;
         public float GetSoundInterval() => soundInterval;
         public float GetMaxSoundInterval() => maxRandomInterval;
