@@ -12,14 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cd7101fbad8771d46b652e9e059e319f, type: 3}
   m_Name: New Damage Zone Ability
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Abilities.Zones.DamageZoneAbility
-  paintColor: {r: 1, g: 0.2, b: 0.2, a: 1}
+  paintColor: {r: 0, g: 0.9407029, b: 1, a: 1}
   zoneLifetimeSeconds: 10
   zoneThickness: 1.2
   effectTickInterval: 0.2
   damageTargetLayers:
     serializedVersion: 2
     m_Bits: 2048
-  damagePerSecond: 2
+  damagePerSecond: 7
   debugLogs: 0
   debugDrawZoneGizmos: 0
   debugSpawnGhost: 1
