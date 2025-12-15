@@ -1763,6 +1763,10 @@ PrefabInstance:
       propertyPath: rayDistance
       value: 5
       objectReference: {fileID: 0}
+    - target: {fileID: 8428932909252984078, guid: 8e57e921792ca06428c024c024774614, type: 3}
+      propertyPath: brushBlitMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: eaf8322b4253540d2b063f5133aced43, type: 2}
     m_RemovedComponents:
     - {fileID: 8607584580611675239, guid: 8e57e921792ca06428c024c024774614, type: 3}
     m_RemovedGameObjects: []
@@ -3616,7 +3620,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 189539900908fe141931391a6a0cdf11, type: 2}
+  - {fileID: 2100000, guid: 21226b2cb22e6497cb6ee2aa038dad72, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4000,7 +4004,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 189539900908fe141931391a6a0cdf11, type: 2}
+  - {fileID: 2100000, guid: 21226b2cb22e6497cb6ee2aa038dad72, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -4785,7 +4789,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 189539900908fe141931391a6a0cdf11, type: 2}
+  - {fileID: 2100000, guid: 21226b2cb22e6497cb6ee2aa038dad72, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
