@@ -1,5 +1,4 @@
 // FILEPATH: Assets/Scripts/Painting/SimplePaintSurface.cs
-
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Map.Surfaces
@@ -34,21 +33,21 @@ namespace JellyGame.GamePlay.Map.Surfaces
         [Tooltip("Mirror the V axis (0↔1). Useful when paint moves opposite vertically.")]
         [SerializeField] private bool invertV = false;
 
-        private Renderer      _renderer;
+        private Renderer _renderer;
         private RenderTexture _paintRT;
-        private MeshFilter    _mf;
+        private MeshFilter _mf;
 
         // local 2D bounds (in X/Z or Z/X depending on swapXZ)
         private Vector2 _localMin;
         private Vector2 _localMax;
-        private bool    _hasBounds;
+        private bool _hasBounds;
 
         public RenderTexture PaintRT => _paintRT;
 
         void Awake()
         {
             _renderer = GetComponent<Renderer>();
-            _mf       = GetComponent<MeshFilter>();
+            _mf = GetComponent<MeshFilter>();
 
             InitRenderTexture();
             CacheLocalPlaneBounds();
@@ -73,7 +72,7 @@ namespace JellyGame.GamePlay.Map.Surfaces
             }
 
             _paintRT = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.ARGB32);
-            _paintRT.wrapMode   = TextureWrapMode.Clamp;
+            _paintRT.wrapMode = TextureWrapMode.Clamp;
             _paintRT.filterMode = FilterMode.Bilinear;
             _paintRT.Create();
 
@@ -101,7 +100,6 @@ namespace JellyGame.GamePlay.Map.Surfaces
             if (_mf != null && _mf.sharedMesh != null)
             {
                 var b = _mf.sharedMesh.bounds; // local-space bounds
-                // Decide which axes are used as 2D plane
                 if (!swapXZ)
                 {
                     // X -> U, Z -> V
@@ -110,7 +108,7 @@ namespace JellyGame.GamePlay.Map.Surfaces
                 }
                 else
                 {
-                    // Z -> U, X -> V (swapped)
+                    // Z -> U, X -> V
                     _localMin = new Vector2(b.min.z, b.min.x);
                     _localMax = new Vector2(b.max.z, b.max.x);
                 }
@@ -135,18 +133,32 @@ namespace JellyGame.GamePlay.Map.Surfaces
                 return false;
             }
 
-            Vector3 local = transform.InverseTransformPoint(worldPos); // into local space
+            Vector3 local = transform.InverseTransformPoint(worldPos);
+            return TryLocalToPaintUV(local, out uv);
+        }
+
+        /// <summary>
+        /// Convert a LOCAL-space point (same space as mesh bounds) into 0..1 paint UV.
+        /// This avoids transform work and is ideal for polygon fills where you already have local XZ points.
+        /// </summary>
+        public bool TryLocalToPaintUV(Vector3 localPos, out Vector2 uv)
+        {
+            if (!_hasBounds)
+            {
+                uv = Vector2.zero;
+                return false;
+            }
 
             float a, b;
             if (!swapXZ)
             {
-                a = local.x; // U-axis source
-                b = local.z; // V-axis source
+                a = localPos.x; // U source
+                b = localPos.z; // V source
             }
             else
             {
-                a = local.z;
-                b = local.x;
+                a = localPos.z;
+                b = localPos.x;
             }
 
             float u = Mathf.InverseLerp(_localMin.x, _localMax.x, a);
@@ -158,8 +170,7 @@ namespace JellyGame.GamePlay.Map.Surfaces
             uv = new Vector2(Mathf.Clamp01(u), Mathf.Clamp01(v));
             return true;
         }
-    
-    
+
         /// <summary>
         /// Convert paint UV (0..1) back into a world-space point on the surface.
         /// This is the inverse of TryWorldToPaintUV, using the same bounds & flags.
@@ -169,28 +180,23 @@ namespace JellyGame.GamePlay.Map.Surfaces
             worldPos = Vector3.zero;
             if (!_hasBounds)
                 return false;
-            // Clamp and apply inversion flags
+
             float u = Mathf.Clamp01(uv.x);
             float v = Mathf.Clamp01(uv.y);
             if (invertU) u = 1f - u;
             if (invertV) v = 1f - v;
-            // Map 0..1 back into local 2D bounds
+
             float a = Mathf.Lerp(_localMin.x, _localMax.x, u);
             float b = Mathf.Lerp(_localMin.y, _localMax.y, v);
+
             Vector3 local;
             if (!swapXZ)
-            {
-                // X -> U, Z -> V
                 local = new Vector3(a, 0f, b);
-            }
             else
-            {
-                // Z -> U, X -> V (swapped)
                 local = new Vector3(b, 0f, a);
-            }
+
             worldPos = transform.TransformPoint(local);
             return true;
         }
-
     }
 }

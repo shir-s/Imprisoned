@@ -15,22 +15,27 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [SerializeField] private List<SimplePaintSurface> paintSurfaces = new();
         [SerializeField] private RenderTextureTrailPainter painter;
 
-        [Header("Fill sampling (LOCAL space)")]
-        [Tooltip("Grid step size in local units. 0.08 is usually good.")]
-        [SerializeField] private float localStepSize = 0.08f;
+        [Header("Fill Mode")]
+        [SerializeField] private bool useGpuPolygonFill = true;
 
-        [Tooltip("How far to check above/below the surface for the paint raycast.")]
-        [SerializeField] private float raycastTolerance = 1.0f;
+        [Header("Fallback (when GPU triangulation fails)")]
+        [Tooltip("If GPU fill fails (bad polygon), use a CPU scanline fill in UV space (no raycasts).")]
+        [SerializeField] private bool fallbackToCpuUvFill = true;
 
-        [Header("Performance")]
-        [Tooltip("Max successful paints per frame. Higher = faster fill but potential lag.")]
-        [SerializeField] private int maxPaintsPerFrame = 500;
+        [Tooltip("Max paint calls per frame for the fallback fill.")]
+        [SerializeField] private int fallbackMaxPaintsPerFrame = 4000;
+
+        [Tooltip("Hard cap on UV samples. Larger shapes increase UV step to fit this cap.")]
+        [SerializeField] private int fallbackMaxTotalSamples = 250_000;
+
+        [Tooltip("Base UV step (0..1). Smaller = better quality, slower fallback.")]
+        [SerializeField] private float fallbackBaseUvStep = 0.0015f;
 
         [Header("Debug")]
         [SerializeField] private bool debugPolygon = false;
-        [SerializeField] private bool debugFillPoints = false;
+        [SerializeField] private bool debugFillFailures = true;
 
-        private Coroutine _currentFillCoroutine;
+        private Coroutine _fallbackRoutine;
 
         public bool TryHandleShape(StrokeLoopSegment seg)
         {
@@ -38,12 +43,10 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 return false;
 
             SimplePaintSurface referenceSurface = paintSurfaces[0];
-            if (referenceSurface == null) return false;
+            if (referenceSurface == null)
+                return false;
 
-            if (_currentFillCoroutine != null)
-                StopCoroutine(_currentFillCoroutine);
-
-            // Convert polygon to SURFACE LOCAL XZ (stable, tilt-safe)
+            // Build polygon in surface LOCAL XZ
             List<Vector2> localPolyXZ = new List<Vector2>();
 
             float minX = float.MaxValue, maxX = float.MinValue;
@@ -66,50 +69,9 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 return false;
 
             if (debugPolygon)
-                Debug.Log($"[AreaFill] Starting Local Space Fill. Bounds X:{minX:F2}->{maxX:F2} Z:{minZ:F2}->{maxZ:F2}", this);
+                Debug.Log($"[AreaFill] Loop closed. Local bounds X:{minX:F2}->{maxX:F2} Z:{minZ:F2}->{maxZ:F2}", this);
 
-            _currentFillCoroutine = StartCoroutine(
-                FillAsyncLocal(referenceSurface, minX, maxX, minZ, maxZ, localPolyXZ)
-            );
-
-            return true;
-        }
-
-        private IEnumerator FillAsyncLocal(SimplePaintSurface surface, float minX, float maxX, float minZ, float maxZ, List<Vector2> localPolyXZ)
-        {
-            int paintsThisFrame = 0;
-            int totalFilled = 0;
-
-            for (float x = minX; x <= maxX; x += localStepSize)
-            {
-                for (float z = minZ; z <= maxZ; z += localStepSize)
-                {
-                    Vector2 localPoint = new Vector2(x, z);
-
-                    if (!IsPointInPolygon2D(localPoint, localPolyXZ))
-                        continue;
-
-                    // Convert *now* to world so it matches current tilt
-                    Vector3 currentWorldPos = surface.transform.TransformPoint(new Vector3(x, 0f, z));
-
-                    if (TryPaintAtWorldPoint(currentWorldPos, out bool painted))
-                    {
-                        if (painted) totalFilled++;
-                    }
-
-                    paintsThisFrame++;
-                    if (paintsThisFrame >= maxPaintsPerFrame)
-                    {
-                        paintsThisFrame = 0;
-                        yield return null;
-                    }
-                }
-            }
-
-            if (debugPolygon)
-                Debug.Log($"[AreaFill] Finished. Total points: {totalFilled}", this);
-
-            // Notify ability system to spawn a zone matching the polygon
+            // Start damage immediately (no delay)
             if (PlayerAbilityManager.Instance != null)
             {
                 Bounds localBounds = new Bounds(
@@ -117,55 +79,131 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     new Vector3(Mathf.Max(0.001f, maxX - minX), 0.01f, Mathf.Max(0.001f, maxZ - minZ))
                 );
 
-                PlayerAbilityManager.Instance.OnAreaFilled(surface, localPolyXZ, localBounds);
+                PlayerAbilityManager.Instance.OnAreaFilled(referenceSurface, localPolyXZ, localBounds);
             }
 
-            _currentFillCoroutine = null;
+            // Convert local XZ -> UV polygon using the surface mapping (no world transform)
+            List<Vector2> uvPoly = new List<Vector2>(localPolyXZ.Count);
+            for (int i = 0; i < localPolyXZ.Count; i++)
+            {
+                Vector2 xz = localPolyXZ[i];
+                if (referenceSurface.TryLocalToPaintUV(new Vector3(xz.x, 0f, xz.y), out Vector2 uv))
+                    uvPoly.Add(uv);
+            }
+
+            if (uvPoly.Count < 3)
+            {
+                if (debugFillFailures)
+                    Debug.LogWarning("[AreaFill] UV polygon too small (mapping failed / collapsed).", this);
+                return true;
+            }
+
+            // Try GPU fill
+            if (useGpuPolygonFill)
+            {
+                bool ok = painter.FillPolygonUV(referenceSurface, uvPoly);
+                if (ok)
+                    return true;
+
+                if (debugFillFailures)
+                    Debug.LogWarning($"[AreaFill] GPU fill failed -> fallback={fallbackToCpuUvFill}. uvPoints={uvPoly.Count}", this);
+            }
+
+            // Fallback CPU fill (UV scanline, no raycasts)
+            if (fallbackToCpuUvFill)
+            {
+                if (_fallbackRoutine != null)
+                    StopCoroutine(_fallbackRoutine);
+
+                _fallbackRoutine = StartCoroutine(FillUvScanlineAsync(referenceSurface, uvPoly));
+            }
+
+            return true;
         }
 
-        private bool TryPaintAtWorldPoint(Vector3 worldPoint, out bool painted)
+        private IEnumerator FillUvScanlineAsync(SimplePaintSurface surface, List<Vector2> uvPoly)
         {
-            painted = false;
-
-            Vector3 rayOrigin = worldPoint + (Vector3.up * raycastTolerance);
-            Vector3 rayDir = Vector3.down;
-
-            if (Physics.Raycast(rayOrigin, rayDir, out RaycastHit hit, raycastTolerance * 2f))
+            // Compute UV bounds
+            float minU = 1f, maxU = 0f, minV = 1f, maxV = 0f;
+            for (int i = 0; i < uvPoly.Count; i++)
             {
-                SimplePaintSurface surface = hit.collider.GetComponentInParent<SimplePaintSurface>();
-                if (surface != null && paintSurfaces.Contains(surface))
+                Vector2 p = uvPoly[i];
+                if (p.x < minU) minU = p.x;
+                if (p.x > maxU) maxU = p.x;
+                if (p.y < minV) minV = p.y;
+                if (p.y > maxV) maxV = p.y;
+            }
+
+            float width = Mathf.Max(1e-6f, maxU - minU);
+            float height = Mathf.Max(1e-6f, maxV - minV);
+
+            float step = Mathf.Max(1e-6f, fallbackBaseUvStep);
+            float estSamples = (width / step) * (height / step);
+
+            if (estSamples > fallbackMaxTotalSamples)
+            {
+                float ratio = estSamples / Mathf.Max(1f, fallbackMaxTotalSamples);
+                step *= Mathf.Sqrt(ratio);
+                step = Mathf.Clamp(step, fallbackBaseUvStep, fallbackBaseUvStep * 8f);
+            }
+
+            int paintsThisFrame = 0;
+            List<float> intersections = new List<float>(64);
+
+            for (float v = minV; v <= maxV; v += step)
+            {
+                intersections.Clear();
+                ComputeScanlineIntersections(v, uvPoly, intersections);
+                if (intersections.Count < 2)
+                    continue;
+
+                intersections.Sort();
+
+                for (int i = 0; i + 1 < intersections.Count; i += 2)
                 {
-                    if (surface.TryWorldToPaintUV(hit.point, out Vector2 uv))
+                    float u0 = intersections[i];
+                    float u1 = intersections[i + 1];
+                    if (u1 < u0) { float t = u0; u0 = u1; u1 = t; }
+
+                    for (float u = u0; u <= u1; u += step)
                     {
-                        painter.PaintAtUV(surface, uv);
-                        painted = true;
+                        painter.PaintAtUV(surface, new Vector2(u, v));
 
-                        if (debugFillPoints)
-                            Debug.DrawRay(hit.point, Vector3.up * 0.1f, Color.green, 0.5f);
-
-                        return true;
+                        paintsThisFrame++;
+                        if (paintsThisFrame >= fallbackMaxPaintsPerFrame)
+                        {
+                            paintsThisFrame = 0;
+                            yield return null;
+                        }
                     }
                 }
             }
 
-            return false;
+            _fallbackRoutine = null;
         }
 
-        private bool IsPointInPolygon2D(Vector2 p, List<Vector2> poly)
+        private void ComputeScanlineIntersections(float v, List<Vector2> poly, List<float> outUs)
         {
-            bool inside = false;
-            int count = poly.Count;
-
-            for (int i = 0, j = count - 1; i < count; j = i++)
+            int n = poly.Count;
+            for (int i = 0; i < n; i++)
             {
-                if (((poly[i].y > p.y) != (poly[j].y > p.y)) &&
-                    (p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / ((poly[j].y - poly[i].y) + 1e-6f) + poly[i].x))
-                {
-                    inside = !inside;
-                }
-            }
+                Vector2 a = poly[i];
+                Vector2 b = poly[(i + 1) % n];
 
-            return inside;
+                if (Mathf.Approximately(a.y, b.y))
+                    continue;
+
+                float vMin = Mathf.Min(a.y, b.y);
+                float vMax = Mathf.Max(a.y, b.y);
+
+                // include lower, exclude upper
+                if (v < vMin || v >= vMax)
+                    continue;
+
+                float t = (v - a.y) / (b.y - a.y);
+                float u = Mathf.Lerp(a.x, b.x, t);
+                outUs.Add(u);
+            }
         }
     }
 }

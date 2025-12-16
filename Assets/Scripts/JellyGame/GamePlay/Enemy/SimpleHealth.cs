@@ -33,7 +33,7 @@ namespace JellyGame.GamePlay.Combat
             _hp -= amount;
 
             if (debugLogs)
-                Debug.Log($"{amount:F1} HP: {_hp}", this);
+                Debug.Log($"{this.name} {amount:F1} HP: {_hp}", this);
 
             if (_hp > 0f)
                 return;
