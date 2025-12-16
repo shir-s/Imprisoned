@@ -1,48 +1,40 @@
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
-using JellyGame.GamePlay.Enemy.AI;
-using JellyGame.GamePlay.Enemy.AI.Behaviors;
-
+using JellyGame.GamePlay.Enemy.AI.Movement; // Reference to SteeringNavigator
 
 namespace JellyGame.GamePlay.Abilities.Stickiness
 {
     /// <summary>
     /// Invisible trigger zone that slows enemies.
-    /// Created when player fills a shape with stickiness ability active.
-    /// Works with BoxCollider, MeshCollider, or any Collider.
+    /// Adapted to work with the SteeringNavigator architecture.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public class SlowZone : MonoBehaviour
     {
         [Header("Slow Effect")]
-        [Tooltip(
-            "Speed multiplier for enemies in this zone (0.15 = 15% speed = very slow, 0.5 = 50% speed = half speed)")]
+        [Tooltip("Speed multiplier (0.15 = 15% speed = very slow, 0.5 = 50% speed).")]
         [Range(0.01f, 1f)]
-        [SerializeField]
-        private float slowMultiplier = 0.15f;
+        [SerializeField] private float slowMultiplier = 0.15f;
 
-        [Header("Lifetime")] [Tooltip("How long this zone lasts (seconds). 0 = infinite")] [SerializeField]
-        private float lifetime = 15f;
+        [Header("Lifetime")] 
+        [Tooltip("How long this zone lasts (seconds). 0 = infinite")] 
+        [SerializeField] private float lifetime = 15f;
 
         [Header("Visual (Optional)")]
-        [Tooltip("Material to show the sticky area (can be semi-transparent green)")]
-        [SerializeField]
-        private Material zoneMaterial;
-
+        [SerializeField] private Material zoneMaterial;
         [SerializeField] private Color zoneColor = new Color(0, 1, 0, 0.3f);
 
-        [Header("Debug")] [Tooltip("Show debug logs when enemies enter/exit")] [SerializeField]
-        private bool debugLogs = false;
+        [Header("Debug")] 
+        [SerializeField] private bool debugLogs = false;
 
-        private HashSet<MonoBehaviour> _affectedEnemies = new HashSet<MonoBehaviour>();
+        // We store the components directly to avoid calling GetComponent repeatedly on exit
+        private HashSet<Component> _affectedMovers = new HashSet<Component>();
         private float _spawnTime;
 
         private void Start()
         {
             _spawnTime = Time.time;
 
-            // Setup visual if material provided
             if (zoneMaterial != null)
             {
                 MeshRenderer renderer = GetComponent<MeshRenderer>();
@@ -56,16 +48,12 @@ namespace JellyGame.GamePlay.Abilities.Stickiness
 
         private void Update()
         {
-            // Expire after lifetime
             if (lifetime > 0 && Time.time - _spawnTime >= lifetime)
             {
                 Destroy(gameObject);
             }
         }
 
-        /// <summary>
-        /// Set the slow multiplier for this zone (called when spawning)
-        /// </summary>
         public void SetSlowMultiplier(float multiplier)
         {
             slowMultiplier = Mathf.Clamp01(multiplier);
@@ -73,201 +61,96 @@ namespace JellyGame.GamePlay.Abilities.Stickiness
 
         private void OnTriggerEnter(Collider other)
         {
-            ApplySlowEffect(other, true);
+            HandleCollision(other, true);
         }
 
         private void OnTriggerExit(Collider other)
         {
-            ApplySlowEffect(other, false);
+            HandleCollision(other, false);
         }
 
-        private void ApplySlowEffect(Collider col, bool entering)
+        private void HandleCollision(Collider col, bool entering)
         {
             if (col == null) return;
 
-            // Try different enemy types your game might have
-            // Check both on the collider's GameObject and its parent hierarchy
+            // 1. Look for the SteeringNavigator (The new standard Motor)
+            var navigator = col.GetComponent<SteeringNavigator>();
+            if (navigator == null) navigator = col.GetComponentInParent<SteeringNavigator>();
 
-            // 1) Check for BehaviorManager (your AI enemies)
-            var behaviorManager = col.GetComponent<BehaviorManager>();
-            if (behaviorManager == null)
-                behaviorManager = col.GetComponentInParent<BehaviorManager>();
-
-            if (behaviorManager != null)
+            if (navigator != null)
             {
-                if (debugLogs)
-                    Debug.Log(
-                        $"[SlowZone] {(entering ? "ENTER" : "EXIT")}: {col.name} has BehaviorManager on {behaviorManager.gameObject.name}",
-                        this);
-                ApplyToEnemy(behaviorManager, entering);
+                ApplyToMover(navigator, entering);
                 return;
             }
 
-            // 2) Check for EnemyController (your patrol enemies)
-            var enemyController = col.GetComponent<EnemyController>();
-            if (enemyController == null)
-                enemyController = col.GetComponentInParent<EnemyController>();
+            // 2. Legacy Support: Check for EnemyController (Simple script)
+            var simpleController = col.GetComponent<EnemyController>();
+            if (simpleController == null) simpleController = col.GetComponentInParent<EnemyController>();
 
-            if (enemyController != null)
+            if (simpleController != null)
             {
-                if (debugLogs)
-                    Debug.Log(
-                        $"[SlowZone] {(entering ? "ENTER" : "EXIT")}: {col.name} has EnemyController on {enemyController.gameObject.name}",
-                        this);
-                ApplyToEnemy(enemyController, entering);
+                ApplyToMover(simpleController, entering);
                 return;
             }
 
-            // 3) Check for MonsterAStarFollower
-            var monster = col.GetComponent<MonsterAStarFollower>();
-            if (monster == null)
-                monster = col.GetComponentInParent<MonsterAStarFollower>();
-
-            if (monster != null)
+            // If we are debugging, log that we hit something relevant but found no motor
+            if (debugLogs && entering && col.gameObject.layer != LayerMask.NameToLayer("Ground")) 
             {
-                if (debugLogs)
-                    Debug.Log(
-                        $"[SlowZone] {(entering ? "ENTER" : "EXIT")}: {col.name} has MonsterAStarFollower on {monster.gameObject.name}",
-                        this);
-                ApplyToEnemy(monster, entering);
-                return;
+                 // Filter out ground/static objects to reduce spam
+                 Debug.LogWarning($"[SlowZone] Object '{col.name}' entered but has no SteeringNavigator or EnemyController.", this);
             }
-
-            if (debugLogs)
-                Debug.LogWarning(
-                    $"[SlowZone] {(entering ? "ENTER" : "EXIT")}: {col.name} has no recognized enemy component! GameObject: {col.gameObject.name}, Parent: {(col.transform.parent != null ? col.transform.parent.name : "none")}",
-                    this);
         }
 
-        private void ApplyToEnemy(MonoBehaviour enemy, bool entering)
+        private void ApplyToMover(Component mover, bool entering)
         {
-            if (enemy == null) return;
+            if (mover == null) return;
 
             if (entering)
             {
-                if (_affectedEnemies.Add(enemy))
+                if (_affectedMovers.Add(mover))
                 {
-                    // Slow this enemy
-                    SetEnemySpeedMultiplier(enemy, slowMultiplier);
+                    SetSpeed(mover, slowMultiplier);
+                    if (debugLogs) Debug.Log($"[SlowZone] Slowing {mover.gameObject.name}", this);
                 }
             }
             else
             {
-                if (_affectedEnemies.Remove(enemy))
+                if (_affectedMovers.Remove(mover))
                 {
-                    // Restore normal speed
-                    SetEnemySpeedMultiplier(enemy, 1f);
+                    SetSpeed(mover, 1f); // Restore speed
+                    if (debugLogs) Debug.Log($"[SlowZone] Releasing {mover.gameObject.name}", this);
                 }
             }
         }
 
-        private void SetEnemySpeedMultiplier(MonoBehaviour enemy, float multiplier)
+        private void SetSpeed(Component mover, float multiplier)
         {
-            if (enemy == null) return;
-
-            // Get the GameObject that has the enemy component
-            GameObject enemyObj = enemy.gameObject;
-            bool foundAnyBehavior = false;
-
-            // For WanderBehavior (on the same GameObject)
-            var wander = enemyObj.GetComponent<WanderBehavior>();
-            if (wander != null)
+            // 1. Check for SteeringNavigator
+            if (mover is SteeringNavigator nav)
             {
-                wander.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log($"[SlowZone] Applied speed multiplier {multiplier} to WanderBehavior on {enemyObj.name}",
-                        this);
+                nav.SetSpeedMultiplier(multiplier);
+                return;
             }
 
-            // For HuntBehavior
-            var hunt = enemyObj.GetComponent<HuntBehavior>();
-            if (hunt != null)
+            // 2. Check for Legacy EnemyController
+            if (mover is EnemyController ctrl)
             {
-                hunt.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log($"[SlowZone] Applied speed multiplier {multiplier} to HuntBehavior on {enemyObj.name}",
-                        this);
-            }
-
-            // For AttackBehavior
-            var attack = enemyObj.GetComponent<AttackBehavior>();
-            if (attack != null)
-            {
-                attack.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log($"[SlowZone] Applied speed multiplier {multiplier} to AttackBehavior on {enemyObj.name}",
-                        this);
-            }
-
-            // For TravelBehavior
-            var travel = enemyObj.GetComponent<TravelBehavior>();
-            if (travel != null)
-            {
-                travel.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log($"[SlowZone] Applied speed multiplier {multiplier} to TravelBehavior on {enemyObj.name}",
-                        this);
-            }
-
-            // For FollowStrokeBehavior
-            var followStroke = enemyObj.GetComponent<FollowStrokeBehavior>();
-            if (followStroke != null)
-            {
-                followStroke.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log(
-                        $"[SlowZone] Applied speed multiplier {multiplier} to FollowStrokeBehavior on {enemyObj.name}",
-                        this);
-            }
-
-            // For EnemyController
-            var controller = enemyObj.GetComponent<EnemyController>();
-            if (controller != null)
-            {
-                controller.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log($"[SlowZone] Applied speed multiplier {multiplier} to EnemyController on {enemyObj.name}",
-                        this);
-            }
-
-            // For MonsterAStarFollower
-            var monster = enemyObj.GetComponent<MonsterAStarFollower>();
-            if (monster != null)
-            {
-                monster.SetSpeedMultiplier(multiplier);
-                foundAnyBehavior = true;
-                if (debugLogs)
-                    Debug.Log(
-                        $"[SlowZone] Applied speed multiplier {multiplier} to MonsterAStarFollower on {enemyObj.name}",
-                        this);
-            }
-
-            if (!foundAnyBehavior && debugLogs)
-            {
-                Debug.LogWarning(
-                    $"[SlowZone] No speed-multiplier-compatible behavior found on {enemyObj.name}! Available components: {string.Join(", ", enemyObj.GetComponents<MonoBehaviour>().Select(c => c.GetType().Name))}",
-                    this);
+                ctrl.SetSpeedMultiplier(multiplier);
+                return;
             }
         }
 
         private void OnDestroy()
         {
-            // Restore all affected enemies to normal speed
-            foreach (var enemy in _affectedEnemies)
+            // Restore speed to everyone still inside when the zone disappears
+            foreach (var mover in _affectedMovers)
             {
-                if (enemy != null)
+                if (mover != null)
                 {
-                    SetEnemySpeedMultiplier(enemy, 1f);
+                    SetSpeed(mover, 1f);
                 }
             }
-
-            _affectedEnemies.Clear();
+            _affectedMovers.Clear();
         }
     }
 }

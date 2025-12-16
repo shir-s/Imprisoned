@@ -1,49 +1,50 @@
-using JellyGame.GamePlay.Managers;
+// FILEPATH: Assets/Scripts/Abilities/PlayerAbilityManager.cs
+using JellyGame.GamePlay.Abilities.Zones;
+using JellyGame.GamePlay.Map.Surfaces;
+using JellyGame.GamePlay.Player;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Abilities
 {
     /// <summary>
-    /// Tracks player abilities (like Stickiness power)
-    /// Singleton pattern for easy global access
+    /// Tracks current active player ability.
+    /// Abilities can optionally react to filled shapes by spawning zones.
     /// </summary>
     public class PlayerAbilityManager : MonoBehaviour
     {
         public static PlayerAbilityManager Instance { get; private set; }
 
-        [Header("Abilities")]
-        [SerializeField] private bool hasStickinessAbility = false;
+        [Header("Active Ability")]
+        [SerializeField] private ScriptableObject activeAbilityAsset; // should implement IPlayerAbility
 
-        [Header("Visual Feedback")]
-        [Tooltip("Cube renderer to change material (optional)")]
-        [SerializeField] private Renderer cubeRenderer;
+        [Header("Filled Area Cost (optional)")]
+        [Tooltip("If assigned, the player will take self-damage based on the filled area size.")]
+        [SerializeField] private AreaFillSelfDamage areaFillSelfDamage;
 
-        [Tooltip("Normal material for the cube")]
-        [SerializeField] private Material normalMaterial;
-
-        [Tooltip("Material when stickiness ability is active (e.g., glowing/sticky look)")]
-        [SerializeField] private Material stickyMaterial;
-
-        [Header("Paint Colors")]
-        [Tooltip("Normal paint color (for trail and fills)")]
+        [Header("Fallback Paint Colors")]
         [SerializeField] private Color normalPaintColor = Color.black;
 
-        [Tooltip("Paint color when stickiness is active (e.g., green/glowing)")]
-        [SerializeField] private Color stickyPaintColor = new Color(0f, 1f, 0.5f, 1f); // Green-ish
-
-        /// <summary>
-        /// Current paint color based on ability state
-        /// </summary>
-        public Color CurrentPaintColor => hasStickinessAbility ? stickyPaintColor : normalPaintColor;
+        [Header("Visual Feedback (optional)")]
+        [SerializeField] private Renderer cubeRenderer;
+        [SerializeField] private Material normalMaterial;
+        [SerializeField] private Material abilityMaterial;
 
         [Header("Debug")]
-        [SerializeField] private bool startWithAllAbilities = false;
+        [SerializeField] private bool debugLogs = false;
 
-        [Header("Runtime Toggle")]
-        [Tooltip("Key to press to toggle stickiness during gameplay (for testing)")]
-        [SerializeField] private KeyCode toggleKey = KeyCode.T;
+        public IPlayerAbility ActiveAbility => activeAbilityAsset as IPlayerAbility;
 
-        public bool HasStickinessAbility => hasStickinessAbility;
+        public Color CurrentPaintColor
+        {
+            get
+            {
+                var a = ActiveAbility;
+                if (a != null)
+                    return a.PaintColor;
+
+                return normalPaintColor;
+            }
+        }
 
         private void Awake()
         {
@@ -52,93 +53,68 @@ namespace JellyGame.GamePlay.Abilities
                 Destroy(gameObject);
                 return;
             }
+
             Instance = this;
 
-            // Auto-find cube renderer if not assigned
             if (cubeRenderer == null)
             {
                 cubeRenderer = GetComponent<Renderer>();
                 if (cubeRenderer == null)
-                {
                     cubeRenderer = GetComponentInChildren<Renderer>();
-                }
             }
 
-            // Respect inspector checkbox value OR startWithAllAbilities
-            if (startWithAllAbilities)
-            {
-                hasStickinessAbility = true;
-            }
-        
-            // Update material based on current state
+            if (areaFillSelfDamage == null)
+                areaFillSelfDamage = GetComponent<AreaFillSelfDamage>();
+
             UpdateMaterial();
-        }
-
-        private void Update()
-        {
-            // Toggle with key press during gameplay
-            if (Input.GetKeyDown(toggleKey))
-            {
-                ToggleStickiness();
-            }
         }
 
         private void OnValidate()
         {
-            // Update material when inspector value changes (even in editor)
             if (Application.isPlaying)
-            {
                 UpdateMaterial();
-            }
         }
 
-        /// <summary>
-        /// Call this when player picks up the sticky box
-        /// </summary>
-        public void UnlockStickiness()
-        {
-            if (hasStickinessAbility)
-            {
-                Debug.Log("[Ability] Stickiness already unlocked!");
-                return;
-            }
-
-            hasStickinessAbility = true;
-            UpdateMaterial();
-            Debug.Log("[Ability] ✨ Stickiness power unlocked! Filled areas now slow enemies!");
-        
-            // You can add visual/audio feedback here
-            EventManager.TriggerEvent(EventManager.GameEvent.KeyCollected, this); // Or create a new event
-        }
-
-        /// <summary>
-        /// Toggle stickiness ability on/off (for testing or gameplay)
-        /// </summary>
-        [ContextMenu("Toggle Stickiness (Test)")]
-        public void ToggleStickiness()
-        {
-            hasStickinessAbility = !hasStickinessAbility;
-            UpdateMaterial();
-            Debug.Log($"[Ability] Stickiness: {(hasStickinessAbility ? "ON ✓" : "OFF ✗")}");
-        }
-
-        /// <summary>
-        /// Updates the cube material based on ability state
-        /// </summary>
         private void UpdateMaterial()
         {
             if (cubeRenderer == null)
                 return;
 
-            Material targetMaterial = hasStickinessAbility && stickyMaterial != null
-                ? stickyMaterial
+            Material target = (ActiveAbility != null && abilityMaterial != null)
+                ? abilityMaterial
                 : normalMaterial;
 
-            if (targetMaterial != null)
-            {
-                cubeRenderer.material = targetMaterial;
-            }
+            if (target != null)
+                cubeRenderer.material = target;
+        }
+
+        /// <summary>
+        /// Called by AreaFillShapeDetector when a closed area was detected + filled.
+        /// </summary>
+        public void OnAreaFilled(SimplePaintSurface surface, System.Collections.Generic.IReadOnlyList<Vector2> localPolyXZ, Bounds localBounds)
+        {
+            var ability = ActiveAbility;
+            bool abilityActive = (ability != null && ability.CanSpawnZone);
+
+            // 1) Apply cost (optional)
+            if (areaFillSelfDamage != null)
+                areaFillSelfDamage.HandleAreaFilled(surface, localPolyXZ, abilityActive);
+
+            // 2) Spawn zone (if ability supports it)
+            if (!abilityActive)
+                return;
+
+            if (debugLogs)
+                Debug.Log($"[PlayerAbilityManager] OnAreaFilled -> {activeAbilityAsset.name}", this);
+
+            ability.SpawnZone(new AbilityZoneContext(surface, localPolyXZ, localBounds));
+        }
+
+        [ContextMenu("Clear Ability")]
+        public void ClearAbility()
+        {
+            activeAbilityAsset = null;
+            UpdateMaterial();
         }
     }
 }
-

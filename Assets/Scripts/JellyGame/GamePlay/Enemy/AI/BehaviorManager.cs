@@ -266,7 +266,7 @@ namespace JellyGame.GamePlay.Enemy.AI
                               " (HistoryCount=" + bestCount + ")", this);
                 }
             }
-            else if (debugLogs)
+            /*else if (debugLogs)
             {
                 if (all.Length == 0)
                 {
@@ -277,7 +277,7 @@ namespace JellyGame.GamePlay.Enemy.AI
                     Debug.Log("[BehaviorManager] Found " + all.Length +
                               " StrokeTrailRecorder(s), but none have points yet.", this);
                 }
-            }
+            }*/
         }
     }
 }

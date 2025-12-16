@@ -16,31 +16,31 @@ namespace JellyGame.GamePlay.Camera
         [SerializeField] private float followHeight = 6f;
 
         [Header("Occlusion Handling")]
-        [Tooltip("Layers considered as obstacles between camera and target.")]
         [SerializeField] private LayerMask occlusionLayers = ~0;
-
-        [Tooltip("How much extra height the camera can gain to see over obstacles behind the character.")]
         [SerializeField] private float maxExtraHeight = 4f;
-
-        [Tooltip("How far above the camera we check for overhead blockers (trees, ceilings, etc.).")]
         [SerializeField] private float overheadCheckDistance = 3f;
 
-        [Header("Centering Mode")]
-        [Tooltip("If true, the camera will always keep the target EXACTLY at the screen center (no smoothing).")]
-        [SerializeField] private bool hardLockCenter = true;
+        [Header("Smart Rotation")]
+        [Tooltip("How fast the camera orbits to get behind the player.")]
+        [SerializeField] private float orbitSpeed = 90f;
+        
+        [Tooltip("If the player runs towards the camera, stop orbiting to prevent spinning.")]
+        [SerializeField] private bool preventReverseSpin = true;
 
-        [Header("Smoothness (ignored if Hard Lock is enabled)")]
-        [SerializeField] private float followSmooth = 0.4f;
-        [SerializeField] private float lookSmooth = 120f;
+        [Header("Smoothing")]
+        [SerializeField] private float positionSmoothTime = 0.1f;
+        [SerializeField] private float lookSmoothTime = 0.1f; // For the camera's own rotation
 
         [Header("Events")]
         [SerializeField] private bool listenToActiveCubeEvent = true;
-
-        [Header("Initialization")]
         [SerializeField] private bool snapOnTargetChange = true;
 
-        private Vector3 _followVelocity = Vector3.zero;
-        private bool _needsSnap = true;
+        private Vector3 _currentVelocity; // For SmoothDamp position
+        private Vector3 _lastTargetPos;
+        
+        // We track a virtual "Forward" vector for the camera orbit, 
+        // separate from the player's actual rotation.
+        private Vector3 _currentOrbitForward; 
 
         private void Awake()
         {
@@ -54,144 +54,118 @@ namespace JellyGame.GamePlay.Camera
                 EventManager.StopListening(EventManager.GameEvent.ActiveCubeChanged, OnActiveCubeChanged);
         }
 
-        private void OnEnable()
+        private void Start()
         {
-            _needsSnap = true;
+            if (target != null)
+            {
+                _currentOrbitForward = target.forward;
+                // Flatten orbit forward to prevent camera diving into ground
+                _currentOrbitForward.y = 0; 
+                _currentOrbitForward.Normalize();
+                SnapToTargetImmediate();
+            }
         }
 
         private void OnActiveCubeChanged(object data)
         {
             Transform newTarget = null;
-
             if (data is Transform tr) newTarget = tr;
             else if (data is GameObject go) newTarget = go.transform;
 
-            if (newTarget != null)
-                SetTarget(newTarget);
+            if (newTarget != null) SetTarget(newTarget);
         }
 
         private void LateUpdate()
         {
             if (target == null) return;
 
-            // Base camera position: behind + above the target.
-            Vector3 cubeForward = target.forward;
-            Vector3 basePos =
-                target.position
-                - cubeForward * followDistance
-                + Vector3.up * followHeight;
+            float dt = Time.deltaTime;
 
+            // 1. Calculate Orbit Rotation
+            // We want the camera to be behind the target, but intelligently.
+            Vector3 targetForward = target.forward;
+            targetForward.y = 0; // Work on XZ plane
+            targetForward.Normalize();
+
+            // Check alignment: 1.0 = Facing Away, -1.0 = Facing Camera
+            float alignment = Vector3.Dot(targetForward, _currentOrbitForward);
+
+            float effectiveOrbitSpeed = orbitSpeed;
+
+            if (preventReverseSpin)
+            {
+                // If alignment is negative (facing camera), reduce orbit speed to zero.
+                // Map [-1, 0] -> [0, 0] speed. Map [0, 1] -> [0, Max] speed.
+                // We use a curve so sideways movement still rotates a bit.
+                float rotationFactor = Mathf.Clamp01((alignment + 0.2f)); // +0.2 allows small rotation when sideways
+                effectiveOrbitSpeed *= rotationFactor;
+            }
+
+            // Smoothly rotate our orbit vector towards the target's forward
+            if (effectiveOrbitSpeed > 0.01f && targetForward.sqrMagnitude > 0.01f)
+            {
+                _currentOrbitForward = Vector3.RotateTowards(
+                    _currentOrbitForward, 
+                    targetForward, 
+                    effectiveOrbitSpeed * Mathf.Deg2Rad * dt, 
+                    0f
+                );
+                _currentOrbitForward.Normalize();
+            }
+
+            // 2. Calculate Base Position
+            // Position is relative to target using our STABLE orbit vector, not the jittery target.forward
+            Vector3 basePos = target.position 
+                              - _currentOrbitForward * followDistance 
+                              + Vector3.up * followHeight;
+
+            // 3. Occlusion Logic (Same as before)
             Vector3 desiredPos = basePos;
-
-            // -------------------------
-            // OCCLUSION / HEIGHT ADJUST
-            // -------------------------
-            // Check if something blocks the view between camera and target
             if (Physics.Linecast(basePos, target.position, out RaycastHit hitToTarget, occlusionLayers, QueryTriggerInteraction.Ignore))
             {
-                // Now check if there is ALSO something above the camera that is NOT the same collider.
                 bool overheadBlocked = false;
-
                 if (Physics.Raycast(basePos, Vector3.up, out RaycastHit overheadHit, overheadCheckDistance, occlusionLayers, QueryTriggerInteraction.Ignore))
                 {
-                    if (overheadHit.collider != hitToTarget.collider)
-                    {
-                        // Different collider above camera = tree / ceiling / canopy.
-                        // In that case we DO NOT raise the camera to avoid getting buried in it.
-                        overheadBlocked = true;
-                    }
+                    if (overheadHit.collider != hitToTarget.collider) overheadBlocked = true;
                 }
 
-                if (!overheadBlocked)
-                {
-                    // We are blocked by something behind the character and there is no separate
-                    // overhead blocker, so we can safely raise the camera.
-                    desiredPos = basePos + Vector3.up * maxExtraHeight;
-                }
-                else
-                {
-                    // There is an overhead blocker that is NOT the same as the one between camera & target.
-                    // Keep base height to avoid shoving the camera into the tree canopy.
-                    desiredPos = basePos;
-                }
+                if (!overheadBlocked) desiredPos = basePos + Vector3.up * maxExtraHeight;
+                else desiredPos = basePos;
             }
 
-            // -------------------------
-            // FINAL ROTATION (ALWAYS LOOK AT TARGET)
-            // -------------------------
-            Vector3 lookDir = target.position - desiredPos;
-            Quaternion desiredRot = lookDir.sqrMagnitude > 0.0001f
-                ? Quaternion.LookRotation(lookDir.normalized, Vector3.up)
-                : transform.rotation;
+            // 4. Apply Position with Smoothing
+            transform.position = Vector3.SmoothDamp(transform.position, desiredPos, ref _currentVelocity, positionSmoothTime);
 
-            // -------------------------
-            // HARD LOCK CENTER (NO SMOOTHING)
-            // -------------------------
-            if (hardLockCenter)
+            // 5. Look At Target
+            Vector3 lookDir = target.position - transform.position;
+            if (lookDir.sqrMagnitude > 0.001f)
             {
-                transform.position = desiredPos;
-                transform.rotation = desiredRot;
-                return;
-            }
-
-            // -------------------------
-            // SMOOTH MODE
-            // -------------------------
-            if (_needsSnap)
-            {
-                transform.position = desiredPos;
-                transform.rotation = desiredRot;
-                _followVelocity = Vector3.zero;
-                _needsSnap = false;
-            }
-            else
-            {
-                float smoothTime = Mathf.Max(0.01f, followSmooth);
-                transform.position = Vector3.SmoothDamp(
-                    transform.position,
-                    desiredPos,
-                    ref _followVelocity,
-                    smoothTime
-                );
-
-                float maxRotSpeed = Mathf.Max(1f, lookSmooth);
-                transform.rotation = Quaternion.RotateTowards(
-                    transform.rotation,
-                    desiredRot,
-                    maxRotSpeed * Time.deltaTime
-                );
+                Quaternion desiredRot = Quaternion.LookRotation(lookDir, Vector3.up);
+                transform.rotation = Quaternion.Slerp(transform.rotation, desiredRot, lookSmoothTime * 10f * dt);
             }
         }
 
         public void SetTarget(Transform newTarget, bool? snapImmediately = null)
         {
             target = newTarget;
-
             bool shouldSnap = snapImmediately ?? snapOnTargetChange;
-            if (shouldSnap && target != null)
-                _needsSnap = true;
+            if (shouldSnap && target != null) SnapToTargetImmediate();
         }
-
-        public void SnapToTarget() => _needsSnap = true;
 
         public void SnapToTargetImmediate()
         {
             if (target == null) return;
 
-            Vector3 cubeForward = target.forward;
-            Vector3 basePos =
-                target.position
-                - cubeForward * followDistance
-                + Vector3.up * followHeight;
+            // Reset orbit to match target instantly
+            _currentOrbitForward = target.forward;
+            _currentOrbitForward.y = 0;
+            _currentOrbitForward.Normalize();
 
+            Vector3 basePos = target.position - _currentOrbitForward * followDistance + Vector3.up * followHeight;
             transform.position = basePos;
-
-            Vector3 lookDir = target.position - basePos;
-            if (lookDir.sqrMagnitude > 0.0001f)
-                transform.rotation = Quaternion.LookRotation(lookDir.normalized, Vector3.up);
-
-            _followVelocity = Vector3.zero;
-            _needsSnap = false;
+            
+            transform.LookAt(target);
+            _currentVelocity = Vector3.zero;
         }
     }
 }
