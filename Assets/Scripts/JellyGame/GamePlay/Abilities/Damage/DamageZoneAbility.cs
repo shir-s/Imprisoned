@@ -20,16 +20,9 @@ namespace JellyGame.GamePlay.Abilities.Zones
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
-
-        [Tooltip("Draw gizmos on the live zone while it exists.")]
         [SerializeField] private bool debugDrawZoneGizmos = true;
-
-        [Tooltip("Spawn a separate ghost object that keeps the gizmos after the zone is destroyed.")]
         [SerializeField] private bool debugSpawnGhost = true;
-
-        [Tooltip("How long the ghost stays (seconds).")]
         [SerializeField] private float debugGhostLifetimeSeconds = 30f;
-
         [SerializeField] private float debugDrawYOffset = 0.03f;
 
         public Color PaintColor => paintColor;
@@ -37,8 +30,12 @@ namespace JellyGame.GamePlay.Abilities.Zones
 
         public void SpawnZone(AbilityZoneContext ctx)
         {
+            // 1. Initial Validation
             if (ctx.Surface == null || ctx.LocalPolygonXZ == null || ctx.LocalPolygonXZ.Count < 3)
+            {
+                Debug.LogWarning("[DamageZoneAbility] Spawn aborted: Invalid context or empty polygon.");
                 return;
+            }
 
             GameObject root = new GameObject("AbilityZone_Damage");
             Transform rt = root.transform;
@@ -61,11 +58,17 @@ namespace JellyGame.GamePlay.Abilities.Zones
                 viz.Configure(paintColor, debugDrawYOffset, true);
             }
 
+            // 2. Prepare Polygon for Triangulation
             var shifted = ShiftPolygon(ctx.LocalPolygonXZ, -new Vector2(localCenter.x, localCenter.z));
 
+            // 3. Attempt Triangulation
             var tris = ZoneMeshBuilder.TriangulatePolygonXZ(shifted);
+
+            // 4. CHECK FOR FAILURE
             if (tris == null || tris.Count < 3)
             {
+                // HERE IS THE PROBLEM: If we reach here, physics will not work.
+                Debug.LogError($"[DamageZoneAbility] TRIANGULATION FAILED. Destroying Zone. Point Count: {shifted.Count}");
                 Object.Destroy(root);
                 return;
             }
@@ -91,7 +94,6 @@ namespace JellyGame.GamePlay.Abilities.Zones
                 triGo.AddComponent<ZoneTriggerForwarder>();
             }
 
-            // IMPORTANT: spawn ghost AFTER colliders exist (so it can bake them).
             if (debugSpawnGhost)
             {
                 GameObject ghostGo = new GameObject("AbilityZone_DebugGhost");
@@ -100,7 +102,7 @@ namespace JellyGame.GamePlay.Abilities.Zones
             }
 
             if (debugLogs)
-                Debug.Log($"[DamageZoneAbility] Spawned zone with {tris.Count / 3} triangle triggers.", root);
+                Debug.Log($"[DamageZoneAbility] SUCCESS. Spawned zone with {tris.Count / 3} tris.", root);
         }
 
         private static System.Collections.Generic.List<Vector2> ShiftPolygon(System.Collections.Generic.IReadOnlyList<Vector2> poly, Vector2 delta)
