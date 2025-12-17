@@ -815,12 +815,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PickupRespawner
   pickupPrefab: {fileID: 2929676164190397839, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
+  parentToSpawner: 1
   center: {x: 0, y: 0}
   halfSize: {x: 20, y: 20}
   spawnHeight: 10
   groundLayer:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 64
   minClearance: 0.5
   maxTries: 10
 --- !u!4 &1473102173

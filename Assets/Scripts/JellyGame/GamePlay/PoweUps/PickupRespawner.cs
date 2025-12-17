@@ -5,15 +5,16 @@ public class PickupRespawner : MonoBehaviour
 {
     [Header("What to spawn")]
     [SerializeField] private GameObject pickupPrefab;
+    [SerializeField] private bool parentToSpawner = true; // new toggle
 
     [Header("Map bounds (world space)")]
-    [SerializeField] private Vector2 center = Vector2.zero;          // XZ center of your map
-    [SerializeField] private Vector2 halfSize = new Vector2(20f, 20f); // half extents in XZ
+    [SerializeField] private Vector2 center = Vector2.zero;
+    [SerializeField] private Vector2 halfSize = new Vector2(25.11f, 25.11f);
 
     [Header("Placement")]
-    [SerializeField] private float spawnHeight = 10f; // cast down from this height
-    [SerializeField] private LayerMask groundLayer;   // set to your floor/terrain layer
-    [SerializeField] private float minClearance = 0.5f; // height above hit point
+    [SerializeField] private float spawnHeight = 15f;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private float minClearance = 0.5f;
     [SerializeField] private int maxTries = 10;
 
     private void OnEnable()
@@ -36,7 +37,9 @@ public class PickupRespawner : MonoBehaviour
 
         if (TryGetSpawnPosition(out Vector3 pos))
         {
-            Instantiate(pickupPrefab, pos, Quaternion.identity);
+            // Parent to this spawner if desired (e.g., object named PickUpSpawner)
+            Transform parent = parentToSpawner ? transform : null;
+            Instantiate(pickupPrefab, pos, Quaternion.identity, parent);
         }
         else
         {
