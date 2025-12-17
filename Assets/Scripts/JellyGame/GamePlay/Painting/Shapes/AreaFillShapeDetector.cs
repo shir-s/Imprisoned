@@ -26,7 +26,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [SerializeField] private bool useGpuPolygonFill = true;
 
         [Header("Progressive Animated Fill (budgeted)")]
-        [Tooltip("Max CPU/GPU work time per frame for the progressive fill. Lower = safer FPS on weak PCs.")]
+        [Tooltip("Work time per frame for build+paint. Keeps FPS stable on weak PCs.")]
         [SerializeField] private float progressiveTimeBudgetMsPerFrame = 1.5f;
 
         [Tooltip("Hard cap on UV samples. Larger shapes increase UV step to fit this cap.")]
@@ -44,14 +44,21 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [Tooltip("Extra multiplier for UV step when dynamic quality kicks in (>=1).")]
         [SerializeField] private float progressiveDynamicStepMaxMultiplier = 2.0f;
 
-        [Header("Liquid Solid Look")]
+        [Header("Uneven / Liquid-like progression")]
+        [SerializeField] private bool unevenFrontEnabled = true;
+        [SerializeField, Range(0f, 1f)] private float unevenFrontStrength = 0.55f;
+        [SerializeField] private float unevenFrontNoiseScale = 6.0f;
+
+        [SerializeField] private bool unevenFingersEnabled = true;
+        [SerializeField] private float unevenFingerCount = 4.0f;
+        [SerializeField, Range(0f, 1f)] private float unevenFingerStrength = 0.55f;
+        [SerializeField] private float unevenFingerWidth = 0.35f;
+        [SerializeField] private int unevenSeed = 1337;
+
+        [Header("Liquid Solid Look (per-stamp goo)")]
         [SerializeField] private bool liquidEnabled = true;
-
         [SerializeField] private float liquidBaseSizeMultiplier = 1.0f;
-
-        [SerializeField, Range(0f, 1f)]
-        private float liquidSizeVariance = 0.55f;
-
+        [SerializeField, Range(0f, 1f)] private float liquidSizeVariance = 0.55f;
         [SerializeField] private float liquidJitterRadiusUv = 0.0045f;
         [SerializeField] private float liquidNoiseScale = 40f;
         [SerializeField] private float liquidFlowStrength = 1.2f;
@@ -86,7 +93,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (referenceSurface == null)
                 return false;
 
-            // 1) Build polygon in surface LOCAL XZ
+            // Build polygon in surface LOCAL XZ
             List<Vector2> localPolyXZ = new List<Vector2>();
 
             float minX = float.MaxValue, maxX = float.MinValue;
@@ -108,7 +115,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (localPolyXZ.Count < 3)
                 return false;
 
-            // Force CCW winding
             if (IsClockwise(localPolyXZ))
             {
                 localPolyXZ.Reverse();
@@ -118,7 +124,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (debugPolygon)
                 Debug.Log($"[AreaFill] Loop closed. Local bounds X:{minX:F2}->{maxX:F2} Z:{minZ:F2}->{maxZ:F2}", this);
 
-            // Ability / zone logic stays immediate
+            // Ability/zone logic immediately
             if (PlayerAbilityManager.Instance != null)
             {
                 Bounds localBounds = new Bounds(
@@ -153,7 +159,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             if (fillMode == AreaFillMode.ProgressiveAnimated)
             {
-                _fillRoutine = StartCoroutine(FillUvProgressiveOutsideInAsync(referenceSurface, uvPoly));
+                _fillRoutine = StartCoroutine(FillUvProgressiveOutsideIn_InterleavedAsync(referenceSurface, uvPoly));
                 return true;
             }
 
@@ -173,11 +179,11 @@ namespace JellyGame.GamePlay.Painting.Shapes
             return true;
         }
 
-        // ----------------- Progressive fill (outside -> inside), time-sliced -----------------
+        // ================== NEW: Interleaved build + paint (so slow PCs see fill immediately) ==================
 
-        private IEnumerator FillUvProgressiveOutsideInAsync(SimplePaintSurface surface, List<Vector2> uvPoly)
+        private IEnumerator FillUvProgressiveOutsideIn_InterleavedAsync(SimplePaintSurface surface, List<Vector2> uvPoly)
         {
-            // UV bounds
+            // UV bounds + centroid
             float minU = 1f, maxU = 0f, minV = 1f, maxV = 0f;
             Vector2 centroid = Vector2.zero;
 
@@ -208,7 +214,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             if (progressiveDynamicQuality)
             {
-                // Optional extra safety: if still big, bump step a bit more (bounded)
                 float est2 = (width / step) * (height / step);
                 if (est2 > progressiveMaxTotalSamples * 0.95f)
                 {
@@ -224,6 +229,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             for (int i = 0; i < rings; i++)
                 buckets[i] = new List<Vector2>(1024);
 
+            // radius normalization
             Vector2 corner0 = new Vector2(minU, minV);
             Vector2 corner1 = new Vector2(minU, maxV);
             Vector2 corner2 = new Vector2(maxU, minV);
@@ -237,94 +243,163 @@ namespace JellyGame.GamePlay.Painting.Shapes
             );
             maxR = Mathf.Max(1e-6f, maxR);
 
-            // Build buckets (yield during build using the same time budget)
+            float budgetSec = Mathf.Max(0.0001f, progressiveTimeBudgetMsPerFrame / 1000f);
+
+            // Stable rotation for finger directions
+            float fingerRot = Hash01(centroid, unevenSeed + 999) * Mathf.PI * 2f;
+
+            // We'll paint from outside->inside as soon as we have points
+            int paintRing = rings - 1;
+
             List<float> intersections = new List<float>(64);
 
-            int buildOps = 0;
-            float buildBudgetSec = Mathf.Max(0.0001f, progressiveTimeBudgetMsPerFrame / 1000f);
-
-            for (float v = minV; v <= maxV; v += step)
+            // Build scanlines, but time-slice and paint within the same budget
+            float v = minV;
+            while (v <= maxV)
             {
                 float frameStart = Time.realtimeSinceStartup;
 
-                intersections.Clear();
-                ComputeScanlineIntersections(v, uvPoly, intersections);
-                if (intersections.Count < 2)
-                    continue;
-
-                intersections.Sort();
-
-                for (int i = 0; i + 1 < intersections.Count; i += 2)
+                // Do build work until budget is about half used, then paint with the remainder (so we always show progress)
+                while (v <= maxV && (Time.realtimeSinceStartup - frameStart) < budgetSec * 0.55f)
                 {
-                    float u0 = intersections[i];
-                    float u1 = intersections[i + 1];
-                    if (u1 < u0) { float t = u0; u0 = u1; u1 = t; }
+                    intersections.Clear();
+                    ComputeScanlineIntersections(v, uvPoly, intersections);
 
-                    for (float u = u0; u <= u1; u += step)
+                    if (intersections.Count >= 2)
                     {
-                        Vector2 uv = new Vector2(u, v);
+                        intersections.Sort();
 
-                        float r = Vector2.Distance(uv, centroid);
-                        float tNorm = Mathf.Clamp01(r / maxR);
-                        int bucket = Mathf.Clamp(Mathf.FloorToInt(tNorm * (rings - 1)), 0, rings - 1);
-
-                        buckets[bucket].Add(uv);
-
-                        buildOps++;
-                        if (buildOps >= 5000)
+                        for (int i = 0; i + 1 < intersections.Count; i += 2)
                         {
-                            buildOps = 0;
+                            float u0 = intersections[i];
+                            float u1 = intersections[i + 1];
+                            if (u1 < u0) { float t = u0; u0 = u1; u1 = t; }
 
-                            if (Time.realtimeSinceStartup - frameStart >= buildBudgetSec)
-                                yield return null;
+                            for (float u = u0; u <= u1; u += step)
+                            {
+                                Vector2 uv = new Vector2(u, v);
+
+                                float r = Vector2.Distance(uv, centroid);
+                                float tNorm = Mathf.Clamp01(r / maxR); // 0 center, 1 outside-ish
+
+                                float tWarped = tNorm;
+
+                                if (unevenFrontEnabled)
+                                {
+                                    float ns = Mathf.Max(0.0001f, unevenFrontNoiseScale);
+                                    float n = Mathf.PerlinNoise(
+                                        uv.x * ns + unevenSeed * 0.01f,
+                                        uv.y * ns + unevenSeed * 0.02f
+                                    );
+                                    tWarped += (n * 2f - 1f) * unevenFrontStrength * 0.18f;
+
+                                    if (unevenFingersEnabled)
+                                    {
+                                        Vector2 d = uv - centroid;
+                                        float ang = Mathf.Atan2(d.y, d.x) + fingerRot;
+                                        float stripes = Mathf.Sin(ang * Mathf.Max(0.5f, unevenFingerCount));
+                                        float ridge = Mathf.Abs(stripes);
+                                        ridge = Mathf.Pow(Mathf.Clamp01(1f - ridge), Mathf.Lerp(1f, 6f, Mathf.Clamp01(unevenFingerWidth)));
+                                        tWarped -= ridge * unevenFingerStrength * 0.22f;
+                                    }
+
+                                    tWarped = Mathf.Clamp01(tWarped);
+                                }
+
+                                int bucket = Mathf.Clamp(Mathf.FloorToInt(tWarped * (rings - 1)), 0, rings - 1);
+                                buckets[bucket].Add(uv);
+
+                                // If we’re out of build time, break early so we can paint this frame.
+                                if ((Time.realtimeSinceStartup - frameStart) >= budgetSec * 0.55f)
+                                    break;
+                            }
+
+                            if ((Time.realtimeSinceStartup - frameStart) >= budgetSec * 0.55f)
+                                break;
                         }
                     }
+
+                    v += step;
+
+                    if ((Time.realtimeSinceStartup - frameStart) >= budgetSec * 0.55f)
+                        break;
                 }
 
-                if (Time.realtimeSinceStartup - frameStart >= buildBudgetSec)
-                    yield return null;
+                // Paint whatever we already have (outside -> inside) for the rest of the budget
+                PaintAvailableOuterBucketsWithinBudget(surface, buckets, ref paintRing, frameStart, budgetSec);
+
+                yield return null;
             }
 
-            // Paint buckets from outside -> inside with a strict time budget each frame
-            float paintBudgetSec = Mathf.Max(0.0001f, progressiveTimeBudgetMsPerFrame / 1000f);
-            int ring = rings - 1;
-
-            while (ring >= 0)
+            // Build is done; finish painting remaining points (still budgeted)
+            while (paintRing >= 0)
             {
                 float frameStart = Time.realtimeSinceStartup;
-
-                while (ring >= 0 && (Time.realtimeSinceStartup - frameStart) < paintBudgetSec)
-                {
-                    var list = buckets[ring];
-
-                    if (list.Count == 0)
-                    {
-                        ring--;
-                        continue;
-                    }
-
-                    // Pop from end
-                    int last = list.Count - 1;
-                    Vector2 uv = list[last];
-                    list.RemoveAt(last);
-
-                    PaintLiquidSolidAtUV(surface, uv);
-
-                    // Keep going until budget is exhausted
-                    if (list.Count == 0)
-                        ring--;
-                }
-
+                PaintAvailableOuterBucketsWithinBudget(surface, buckets, ref paintRing, frameStart, budgetSec);
                 yield return null;
             }
 
             _fillRoutine = null;
         }
 
+        private void PaintAvailableOuterBucketsWithinBudget(
+            SimplePaintSurface surface,
+            List<Vector2>[] buckets,
+            ref int paintRing,
+            float frameStart,
+            float budgetSec)
+        {
+            // Always try to paint at least one point if available (prevents "nothing until end" feeling).
+            bool paintedOne = false;
+
+            while (paintRing >= 0 && (Time.realtimeSinceStartup - frameStart) < budgetSec)
+            {
+                var list = buckets[paintRing];
+
+                if (list.Count == 0)
+                {
+                    paintRing--;
+                    continue;
+                }
+
+                int last = list.Count - 1;
+                Vector2 uv = list[last];
+                list.RemoveAt(last);
+
+                PaintLiquidSolidAtUV(surface, uv);
+                paintedOne = true;
+
+                // If we painted one and we’re already over budget, stop.
+                if (paintedOne && (Time.realtimeSinceStartup - frameStart) >= budgetSec)
+                    break;
+            }
+
+            // If we didn’t paint anything because we're at a ring with no points yet,
+            // scan downward until we find a non-empty ring and paint one point immediately.
+            if (!paintedOne)
+            {
+                int r = paintRing;
+                while (r >= 0)
+                {
+                    var list = buckets[r];
+                    if (list.Count > 0)
+                    {
+                        int last = list.Count - 1;
+                        Vector2 uv = list[last];
+                        list.RemoveAt(last);
+
+                        PaintLiquidSolidAtUV(surface, uv);
+                        break;
+                    }
+                    r--;
+                }
+            }
+        }
+
+        // ----------------- Liquid stamping (unchanged) -----------------
+
         private void PaintLiquidSolidAtUV(SimplePaintSurface surface, Vector2 uv)
         {
-            // If you still want more FPS safety on weak machines, keep these conservative:
-            // smearMax 2-3, splatsMax 1-2, jitter modest.
             if (!liquidEnabled)
             {
                 painter.PaintAtUV(surface, uv);
@@ -346,10 +421,8 @@ namespace JellyGame.GamePlay.Painting.Shapes
             float angle = (nA * 2f - 1f) * Mathf.PI * liquidFlowStrength + (r1 * 2f - 1f) * 0.55f;
             Vector2 flowDir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)).normalized;
 
-            // Base blob
             painter.PaintAtUV(surface, uv, half0, 1f);
 
-            // Extra splats (cheap-ish)
             int extraMin = Mathf.Max(0, liquidExtraSplatsMin);
             int extraMax = Mathf.Max(extraMin, liquidExtraSplatsMax);
             int extraSplats = (extraMax == extraMin) ? extraMin : extraMin + Mathf.FloorToInt(r2 * (extraMax - extraMin + 1));
@@ -373,7 +446,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 painter.PaintAtUV(surface, uv2, h, op);
             }
 
-            // Smear chain (most expensive) — keep it short for low-end
             int smearMin = Mathf.Max(0, liquidSmearStepsMin);
             int smearMax = Mathf.Max(smearMin, liquidSmearStepsMax);
             int smearSteps = (smearMax == smearMin)
@@ -384,7 +456,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 return;
 
             float stepUv = Mathf.Max(0.00001f, baseHalf * Mathf.Lerp(0.75f, 2.2f, nB) * liquidFlowStrength);
-
             Vector2 pos = uv;
 
             for (int s = 1; s <= smearSteps; s++)
@@ -525,6 +596,10 @@ namespace JellyGame.GamePlay.Painting.Shapes
             progressiveRingCount = Mathf.Clamp(progressiveRingCount, 6, 128);
 
             progressiveDynamicStepMaxMultiplier = Mathf.Clamp(progressiveDynamicStepMaxMultiplier, 1f, 6f);
+
+            unevenFrontNoiseScale = Mathf.Clamp(unevenFrontNoiseScale, 0.5f, 40f);
+            unevenFingerCount = Mathf.Clamp(unevenFingerCount, 1f, 16f);
+            unevenFingerWidth = Mathf.Clamp(unevenFingerWidth, 0.05f, 0.9f);
 
             liquidBaseSizeMultiplier = Mathf.Clamp(liquidBaseSizeMultiplier, 0.25f, 5f);
             liquidJitterRadiusUv = Mathf.Clamp(liquidJitterRadiusUv, 0f, 0.03f);

@@ -11653,12 +11653,20 @@ MonoBehaviour:
   painter: {fileID: 3684147384832064450}
   fillMode: 1
   useGpuPolygonFill: 1
-  progressiveTimeBudgetMsPerFrame: 1.5
+  progressiveTimeBudgetMsPerFrame: 1
   progressiveMaxTotalSamples: 180000
   progressiveBaseUvStep: 0.01
   progressiveRingCount: 16
   progressiveDynamicQuality: 1
   progressiveDynamicStepMaxMultiplier: 2
+  unevenFrontEnabled: 1
+  unevenFrontStrength: 0.55
+  unevenFrontNoiseScale: 6
+  unevenFingersEnabled: 1
+  unevenFingerCount: 4
+  unevenFingerStrength: 0.55
+  unevenFingerWidth: 0.35
+  unevenSeed: 1337
   liquidEnabled: 1
   liquidBaseSizeMultiplier: 1
   liquidSizeVariance: 0.55
