@@ -9,7 +9,7 @@ namespace JellyGame.GamePlay.Combat
     {
         [SerializeField] private float maxHp = 10f;
         [SerializeField] private bool destroyOnDeath = true;
-
+        [SerializeField] private GameObject particleSystem;
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
@@ -20,6 +20,10 @@ namespace JellyGame.GamePlay.Combat
         {
             _hp = maxHp;
             _dead = false;
+            if(particleSystem != null)
+            {
+                particleSystem.SetActive(false);
+            }
         }
 
         public void ApplyDamage(float amount)
@@ -59,6 +63,11 @@ namespace JellyGame.GamePlay.Combat
                 EventManager.GameEvent.EntityDied,
                 new EntityDiedEventData(gameObject, gameObject.layer)
             );
+            if (particleSystem != null)
+            {
+                particleSystem.SetActive(true);
+                Instantiate(particleSystem, transform.position, Quaternion.identity);
+            }
 
             if (destroyOnDeath)
                 Destroy(gameObject);

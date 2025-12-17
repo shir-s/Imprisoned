@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/Core/EventManager.cs
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace JellyGame.GamePlay.Managers
 {
@@ -7,7 +8,7 @@ namespace JellyGame.GamePlay.Managers
 
     public static class EventManager
     {
-        private static Dictionary<GameEvent, EventAction> eventTable =
+        private static readonly Dictionary<GameEvent, EventAction> eventTable =
             new Dictionary<GameEvent, EventAction>();
 
         public enum GameEvent
@@ -31,12 +32,23 @@ namespace JellyGame.GamePlay.Managers
             FriendlyNpcKilled,   // data: GameObject or Transform (the NPC that died)
 
             // Enemies
-            EnemyKilled,          // data: GameObject or Transform (the enemy that died)
+            EnemyKilled,         // data: GameObject or Transform (the enemy that died)
 
             // Universal
-            EntityDied,           // data: EntityDiedEventData
+            EntityDied,          // data: EntityDiedEventData
 
-            GameWin
+            // Win/Lose
+            GameWin,
+            GameOver,            // data: null
+
+            // Pickups / misc
+            PickupCollected,
+            PlayerDamaged,
+
+            // Legacy JellyGameEvents equivalents
+            FirstEnemyDied,      // data: null
+            AllEnemiesDied,      // data: null
+            EnemyDied            // data: Vector3 (enemy position)
         }
 
         public static void StartListening(GameEvent eventType, EventAction listener)
@@ -74,6 +86,12 @@ namespace JellyGame.GamePlay.Managers
             {
                 thisEvent?.Invoke(eventData);
             }
+        }
+
+        // Convenience overloads (optional)
+        public static void TriggerEvent(GameEvent eventType, Vector3 eventData)
+        {
+            TriggerEvent(eventType, (object)eventData);
         }
     }
 }

@@ -1,4 +1,3 @@
-// FILEPATH: Assets/Scripts/Abilities/Zones/AbilityZone.cs
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -21,7 +20,13 @@ namespace JellyGame.GamePlay.Abilities.Zones
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
+        // MASTER LIST: Used by Effects to apply damage
         private readonly HashSet<Collider> _inside = new HashSet<Collider>();
+        
+        // REFERENCE COUNTER: Used to handle multi-triangle logic
+        // Key = Enemy Collider, Value = Number of Zone Triangles touching it
+        private readonly Dictionary<Collider, int> _triggerCounts = new Dictionary<Collider, int>();
+
         private IZoneEffect[] _effects;
 
         private float _lifeTimer;
@@ -37,8 +42,6 @@ namespace JellyGame.GamePlay.Abilities.Zones
             targetLayers = targets;
             debugLogs = debug;
 
-            // IMPORTANT: Configure can be called AFTER Awake at runtime.
-            // So we must also update the actual running timers here.
             _lifeTimer = lifetimeSeconds;
             _tickTimer = tickInterval;
         }
@@ -46,11 +49,8 @@ namespace JellyGame.GamePlay.Abilities.Zones
         private void Awake()
         {
             EnsureKinematicRigidbody();
-
-            // Initialize timers with current values (may be overwritten by Configure() after Awake)
             _lifeTimer = lifetimeSeconds;
             _tickTimer = tickInterval;
-
             _awakeDone = true;
         }
 
@@ -75,6 +75,7 @@ namespace JellyGame.GamePlay.Abilities.Zones
 
             if (tickInterval <= 0f)
             {
+                // Run every frame
                 for (int i = 0; i < _effects.Length; i++)
                     _effects[i]?.Tick(Time.deltaTime);
                 return;
@@ -84,7 +85,7 @@ namespace JellyGame.GamePlay.Abilities.Zones
             if (_tickTimer <= 0f)
             {
                 _tickTimer += tickInterval;
-
+                // Pass the fixed interval to ensure consistent damage calculation
                 for (int i = 0; i < _effects.Length; i++)
                     _effects[i]?.Tick(tickInterval);
             }
@@ -97,14 +98,24 @@ namespace JellyGame.GamePlay.Abilities.Zones
             if (!IsInLayerMask(other.gameObject.layer, targetLayers))
                 return;
 
-            if (_inside.Add(other))
+            // --- REFERENCE COUNTING LOGIC ---
+            if (!_triggerCounts.ContainsKey(other))
             {
-                if (debugLogs)
-                    Debug.Log($"[AbilityZone] Enter: {other.name} (layer {other.gameObject.layer})", this);
+                _triggerCounts[other] = 0;
+            }
 
-                if (_effects == null) return;
-                for (int i = 0; i < _effects.Length; i++)
-                    _effects[i]?.OnTargetEntered(other);
+            _triggerCounts[other]++;
+
+            // Only add to the "Active" list if this is the FIRST triangle encountered
+            if (_triggerCounts[other] == 1)
+            {
+                if (_inside.Add(other))
+                {
+                    if (debugLogs)
+                        Debug.Log($"[AbilityZone] Enter: {other.name} (Count: 1)", this);
+
+                    NotifyEffectsTargetEntered(other);
+                }
             }
         }
 
@@ -112,22 +123,44 @@ namespace JellyGame.GamePlay.Abilities.Zones
         {
             EnsureEffectsInitialized();
 
-            if (_inside.Remove(other))
-            {
-                if (debugLogs)
-                    Debug.Log($"[AbilityZone] Exit: {other.name}", this);
+            // Handle edge case where object was destroyed/disabled and dictionary was cleared
+            if (!_triggerCounts.ContainsKey(other))
+                return;
 
-                if (_effects == null) return;
-                for (int i = 0; i < _effects.Length; i++)
-                    _effects[i]?.OnTargetExited(other);
+            _triggerCounts[other]--;
+
+            // Only remove from "Active" list if count drops to ZERO (left all triangles)
+            if (_triggerCounts[other] <= 0)
+            {
+                _triggerCounts.Remove(other);
+
+                if (_inside.Remove(other))
+                {
+                    if (debugLogs)
+                        Debug.Log($"[AbilityZone] Exit: {other.name} (Count: 0)", this);
+
+                    NotifyEffectsTargetExited(other);
+                }
             }
+        }
+
+        private void NotifyEffectsTargetEntered(Collider other)
+        {
+            if (_effects == null) return;
+            for (int i = 0; i < _effects.Length; i++)
+                _effects[i]?.OnTargetEntered(other);
+        }
+
+        private void NotifyEffectsTargetExited(Collider other)
+        {
+            if (_effects == null) return;
+            for (int i = 0; i < _effects.Length; i++)
+                _effects[i]?.OnTargetExited(other);
         }
 
         private void EnsureEffectsInitialized()
         {
-            if (_effectsInitialized)
-                return;
-
+            if (_effectsInitialized) return;
             CacheEffectsAndNotifySpawned();
         }
 
@@ -141,9 +174,6 @@ namespace JellyGame.GamePlay.Abilities.Zones
                 for (int i = 0; i < _effects.Length; i++)
                     _effects[i]?.OnZoneSpawned(this);
             }
-
-            if (debugLogs)
-                Debug.Log($"[AbilityZone] Effects found: {(_effects == null ? 0 : _effects.Length)} | lifetime={lifetimeSeconds} tick={tickInterval}", this);
         }
 
         private void Despawn()

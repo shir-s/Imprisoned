@@ -1,4 +1,4 @@
-// FILEPATH: Assets/Scripts/World/Doors/DoorByDeaths.cs
+    // FILEPATH: Assets/Scripts/World/Doors/DoorByDeaths.cs
 using JellyGame.GamePlay.Managers;
 using UnityEngine;
 

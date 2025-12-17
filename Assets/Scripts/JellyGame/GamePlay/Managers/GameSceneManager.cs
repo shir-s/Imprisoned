@@ -1,72 +1,130 @@
+// FILEPATH: Assets/Scripts/Managers/GameSceneManager.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using JellyGame.GamePlay.Utils;
 
 namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
-    /// Manages scene transitions between Game and GameOver scenes
+    /// Manages scene transitions between Game, GameOver, and Win scenes.
+    /// Also listens to EntityDied and triggers GameOver if the victim layer matches.
+    /// Win is triggered by listening to a Win event (recommended) or via a cheat key.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
         [Header("Scene Settings (Use Build Index)")]
         [Tooltip("Build index of the game scene. Check Build Settings to see the index number.")]
         [SerializeField] private int gameSceneBuildIndex = 0;
-        
+
         [Tooltip("Build index of the game over scene. Check Build Settings to see the index number.")]
         [SerializeField] private int gameOverSceneBuildIndex = 1;
+
+        [Tooltip("Build index of the win scene. Check Build Settings to see the index number.")]
+        [SerializeField] private int winSceneBuildIndex = 2;
 
         [Header("Scene Names (Fallback)")]
         [Tooltip("Name of the game scene (used as fallback if build index fails)")]
         [SerializeField] private string gameSceneName = "JellyWithArt";
-        
+
         [Tooltip("Name of the game over scene (used as fallback if build index fails)")]
         [SerializeField] private string gameOverSceneName = "GameOver";
 
-        [Header("Cheat Code")]
+        [Tooltip("Name of the win scene (used as fallback if build index fails)")]
+        [SerializeField] private string winSceneName = "Win";
+
+        [Header("GameOver Trigger")]
+        [Tooltip("If an EntityDied event is triggered with a victim layer in this mask => trigger GameOver.")]
+        [SerializeField] private LayerMask gameOverOnVictimLayers;
+
+        [Header("Win Trigger")]
+        [Tooltip("If true, listens to EventManager.GameEvent.Win (you must add that enum value).")]
+        [SerializeField] private bool listenToWinEvent = true;
+
+        [Header("Cheat Codes")]
         [Tooltip("Key to press to trigger GameOver (cheat code)")]
         [SerializeField] private KeyCode gameOverKey = KeyCode.R;
 
+        [Tooltip("Key to press to trigger Win (cheat code)")]
+        [SerializeField] private KeyCode winKey = KeyCode.T;
+
         [Header("Debug")]
-        [SerializeField] private bool debugLogs = true; // Set to true to see what's happening
+        [SerializeField] private bool debugLogs = true;
 
         private void OnEnable()
         {
-            // Subscribe to GameOver event
-            JellyGameEvents.GameOver += OnGameOver;
-            
+            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDiedEvent);
+            EventManager.StartListening(EventManager.GameEvent.GameOver, OnGameOverEvent);
+
+            if (listenToWinEvent)
+                EventManager.StartListening(EventManager.GameEvent.GameWin, OnWinEvent);
+
             if (debugLogs)
                 Debug.Log($"[GameSceneManager] Enabled in scene: {SceneManager.GetActiveScene().name}", this);
         }
 
         private void OnDisable()
         {
-            // Unsubscribe from GameOver event
-            JellyGameEvents.GameOver -= OnGameOver;
+            EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDiedEvent);
+            EventManager.StopListening(EventManager.GameEvent.GameOver, OnGameOverEvent);
+
+            if (listenToWinEvent)
+                EventManager.StopListening(EventManager.GameEvent.GameWin, OnWinEvent);
         }
 
         private void Update()
         {
-            // Cheat code: Press R to trigger GameOver (only in game scene)
+            // Cheat code: trigger GameOver
             if (Input.GetKeyDown(gameOverKey))
             {
                 if (debugLogs)
                     Debug.Log($"[GameSceneManager] Cheat code pressed ({gameOverKey})! Triggering GameOver", this);
-                
-                // Trigger the GameOver event (which will call OnGameOver and switch scenes)
-                JellyGameEvents.GameOver?.Invoke();
+
+                EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
+            }
+
+            // Cheat code: trigger Win
+            if (Input.GetKeyDown(winKey))
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Cheat code pressed ({winKey})! Triggering Win", this);
+
+                EventManager.TriggerEvent(EventManager.GameEvent.GameWin);
             }
         }
 
-        /// <summary>
-        /// Called when GameOver event is triggered - switches to GameOver scene
-        /// </summary>
-        private void OnGameOver()
+        private void OnEntityDiedEvent(object eventData)
+        {
+            if (eventData is not EntityDiedEventData died)
+            {
+                if (debugLogs)
+                    Debug.LogWarning("[GameSceneManager] EntityDied received with unexpected payload type.", this);
+                return;
+            }
+
+            // layer mask match
+            bool match = (gameOverOnVictimLayers.value & (1 << died.VictimLayer)) != 0;
+            if (!match)
+                return;
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] EntityDied matched layer {died.VictimLayer} ({LayerMask.LayerToName(died.VictimLayer)}). Triggering GameOver.", this);
+
+            EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
+        }
+
+        private void OnGameOverEvent(object _)
         {
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] GameOver triggered! Loading scene index: {gameOverSceneBuildIndex}", this);
-            
+                Debug.Log($"[GameSceneManager] GameOver event received! Loading scene index: {gameOverSceneBuildIndex}", this);
+
             LoadGameOverScene();
+        }
+
+        private void OnWinEvent(object _)
+        {
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] Win event received! Loading scene index: {winSceneBuildIndex}", this);
+
+            LoadWinScene();
         }
 
         /// <summary>
@@ -74,7 +132,6 @@ namespace JellyGame.GamePlay.Managers
         /// </summary>
         public void LoadGameOverScene()
         {
-            // Try build index first (more reliable)
             if (gameOverSceneBuildIndex >= 0 && gameOverSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
             {
                 if (debugLogs)
@@ -83,7 +140,6 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // Fallback to scene name
             if (!string.IsNullOrEmpty(gameOverSceneName))
             {
                 if (debugLogs)
@@ -96,15 +152,38 @@ namespace JellyGame.GamePlay.Managers
         }
 
         /// <summary>
+        /// Loads the Win scene
+        /// </summary>
+        public void LoadWinScene()
+        {
+            if (winSceneBuildIndex >= 0 && winSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Loading Win scene by index: {winSceneBuildIndex}", this);
+                SceneManager.LoadScene(winSceneBuildIndex);
+                return;
+            }
+
+            if (!string.IsNullOrEmpty(winSceneName))
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Loading Win scene by name: {winSceneName}", this);
+                SceneManager.LoadScene(winSceneName);
+                return;
+            }
+
+            Debug.LogError("[GameSceneManager] Win scene build index and name are not set correctly!", this);
+        }
+
+        /// <summary>
         /// Restarts the game by loading the game scene
-        /// Call this from the restart button in GameOver scene
+        /// Call this from the restart button in GameOver/Win scenes
         /// </summary>
         public void RestartGame()
         {
             if (debugLogs)
                 Debug.Log($"[GameSceneManager] RestartGame() called! Loading game scene index: {gameSceneBuildIndex}", this);
-            
-            // Try build index first (more reliable)
+
             if (gameSceneBuildIndex >= 0 && gameSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
             {
                 if (debugLogs)
@@ -113,7 +192,6 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // Fallback to scene name
             if (!string.IsNullOrEmpty(gameSceneName))
             {
                 if (debugLogs)

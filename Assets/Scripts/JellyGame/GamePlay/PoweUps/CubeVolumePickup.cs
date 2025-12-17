@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/PowerUps/CubeVolumePickup.cs
 using JellyGame.GamePlay.Combat;
+using JellyGame.GamePlay.Managers;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.PowerUps
@@ -52,6 +53,8 @@ namespace JellyGame.GamePlay.PowerUps
 
             // Heal = grow
             damageable.Heal(healAmount);
+
+            EventManager.TriggerEvent(EventManager.GameEvent.PickupCollected, gameObject);
 
             if (debugLogs)
                 Debug.Log($"[CubeVolumePickup] Healed {other.name} for {healAmount}", this);
