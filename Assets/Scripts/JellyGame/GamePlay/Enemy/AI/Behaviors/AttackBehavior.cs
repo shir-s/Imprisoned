@@ -3,6 +3,7 @@ using System;
 using UnityEngine;
 using JellyGame.GamePlay.Enemy.AI.Movement;
 using JellyGame.GamePlay.Combat;
+using JellyGame.GamePlay.Managers;
 
 namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 {
@@ -186,6 +187,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             dmg.ApplyDamage(damagePerHit);
             _nextHitTime = Time.time + Mathf.Max(0.01f, hitCooldownSeconds);
+            
+            EventManager.TriggerEvent(EventManager.GameEvent.PlayerDamaged, dmg);
+
         }
 
         public void OnExit()
