@@ -17,6 +17,9 @@ public class PickupRespawner : MonoBehaviour
     [SerializeField] private float minClearance = 0.5f;
     [SerializeField] private int maxTries = 10;
 
+    [SerializeField] private float respawnDelaySeconds = 5f;
+
+
     private void OnEnable()
     {
         EventManager.StartListening(EventManager.GameEvent.PickupCollected, OnPickupCollected);
@@ -34,10 +37,15 @@ public class PickupRespawner : MonoBehaviour
             Debug.LogWarning("PickupRespawner: pickupPrefab is not set.");
             return;
         }
+        StartCoroutine(RespawnAfterDelay());
+    }
+
+    private System.Collections.IEnumerator RespawnAfterDelay()
+    {
+        yield return new WaitForSeconds(respawnDelaySeconds);
 
         if (TryGetSpawnPosition(out Vector3 pos))
         {
-            // Parent to this spawner if desired (e.g., object named PickUpSpawner)
             Transform parent = parentToSpawner ? transform : null;
             Instantiate(pickupPrefab, pos, Quaternion.identity, parent);
         }
