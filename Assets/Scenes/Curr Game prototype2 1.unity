@@ -658,7 +658,7 @@ MonoBehaviour:
   orbitSpeed: 90
   preventReverseSpin: 1
   positionSmoothTime: 0.1
-  lookSmoothTime: 0.1
+  lookSmoothTime: 0.5
   listenToActiveCubeEvent: 1
   snapOnTargetChange: 1
 --- !u!114 &1410603019
@@ -785,6 +785,59 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
+--- !u!1 &1473102171
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1473102173}
+  - component: {fileID: 1473102172}
+  m_Layer: 0
+  m_Name: PickupRespawner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1473102172
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1473102171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba7125314358b9c4d9ac1b9b3859c44f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PickupRespawner
+  pickupPrefab: {fileID: 2929676164190397839, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
+  center: {x: 0, y: 0}
+  halfSize: {x: 20, y: 20}
+  spawnHeight: 10
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 0
+  minClearance: 0.5
+  maxTries: 10
+--- !u!4 &1473102173
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1473102171}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 18.0201, y: 16.37883, z: 35.49108}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1750702146 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5495868282089515004, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
@@ -11927,3 +11980,4 @@ SceneRoots:
   - {fileID: 1410603021}
   - {fileID: 601042314}
   - {fileID: 493221078}
+  - {fileID: 1473102173}

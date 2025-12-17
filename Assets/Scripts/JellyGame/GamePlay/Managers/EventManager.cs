@@ -36,7 +36,9 @@ namespace JellyGame.GamePlay.Managers
             // Universal
             EntityDied,           // data: EntityDiedEventData
 
-            GameWin
+            GameWin,
+
+            PickupCollected
         }
 
         public static void StartListening(GameEvent eventType, EventAction listener)
