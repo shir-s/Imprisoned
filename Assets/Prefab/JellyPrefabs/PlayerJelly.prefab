@@ -376,7 +376,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7436787547629168166}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.875481, y: 1.64, z: 23.73514}
   m_LocalScale: {x: 1.4, y: 1.4, z: 1.4}
   m_ConstrainProportionsScale: 1
@@ -750,8 +750,8 @@ MonoBehaviour:
   useGpuPolygonFill: 1
   progressiveTimeBudgetMsPerFrame: 1.5
   progressiveMaxTotalSamples: 160000
-  progressiveBaseUvStep: 0.0022
-  progressiveRingCount: 20
+  progressiveBaseUvStep: 0.01
+  progressiveRingCount: 50
   progressiveDynamicQuality: 1
   progressiveDynamicStepMaxMultiplier: 2
   unevenFrontEnabled: 1
@@ -769,9 +769,9 @@ MonoBehaviour:
   liquidNoiseScale: 40
   liquidFlowStrength: 1.2
   liquidSmearStepsMin: 1
-  liquidSmearStepsMax: 3
+  liquidSmearStepsMax: 1
   liquidExtraSplatsMin: 1
-  liquidExtraSplatsMax: 2
+  liquidExtraSplatsMax: 1
   liquidSeed: 1337
   fallbackToCpuUvFill: 1
   fallbackMaxPaintsPerFrame: 4000
