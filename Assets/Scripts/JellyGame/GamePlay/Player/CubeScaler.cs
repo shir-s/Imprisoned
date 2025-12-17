@@ -2,6 +2,7 @@
 using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Combat;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace JellyGame.GamePlay.Player
 {
@@ -31,6 +32,18 @@ namespace JellyGame.GamePlay.Player
         [Tooltip("If true: hoverHeight scales linearly with size (size=2 => hoverHeight*2).")]
         [SerializeField] private bool scaleHoverHeightWithSize = true;
 
+        [Header("UI Health Indicator (optional)")]
+        [Tooltip("Optional UI element (Image/RectTransform) that moves DOWN as the cube shrinks.\n" +
+                 "Assumes its current anchoredPosition.y is the 'full health' position (at maxSize).")]
+        [SerializeField] private RectTransform healthImageRect;
+
+        [Tooltip("How many UI units (anchored Y) to move DOWN when size reaches minSize.\n" +
+                 "Example: 30 => at minSize, Y is (startY - 30).")]
+        [SerializeField] private float healthImageDownAtMinSize = 30f;
+
+        [Tooltip("If true, update health UI on Awake as well (so it's correct on scene start).")]
+        [SerializeField] private bool updateHealthUiOnAwake = true;
+
         [Header("Debug")]
         [SerializeField] private bool logChanges = false;
 
@@ -38,10 +51,31 @@ namespace JellyGame.GamePlay.Player
 
         private bool _dead;
 
+        // UI baseline (at max size)
+        private float _healthStartAnchoredY;
+        private bool _hasHealthStartY;
+
         private void Awake()
         {
             if (surfaceSlider == null)
                 surfaceSlider = GetComponent<KinematicSurfaceSlider>();
+
+            CacheHealthUiStartY();
+
+            if (updateHealthUiOnAwake)
+            {
+                float current = GetCurrentSize();
+                UpdateHealthUiY(current);
+            }
+        }
+
+        private void CacheHealthUiStartY()
+        {
+            if (healthImageRect == null)
+                return;
+
+            _healthStartAnchoredY = healthImageRect.anchoredPosition.y;
+            _hasHealthStartY = true;
         }
 
         public void ApplyDamage(float amount)
@@ -100,6 +134,9 @@ namespace JellyGame.GamePlay.Player
             // Tell movement script how far the pivot should hover above the surface.
             UpdateHoverHeight(size);
 
+            // Update UI health position (optional)
+            UpdateHealthUiY(size);
+
             OnSizeChanged?.Invoke(oldSize, size);
 
             if (logChanges)
@@ -120,6 +157,26 @@ namespace JellyGame.GamePlay.Player
                 newHover *= Mathf.Max(0.01f, size);
 
             surfaceSlider.SetHoverHeight(newHover);
+        }
+
+        private void UpdateHealthUiY(float size)
+        {
+            if (healthImageRect == null)
+                return;
+
+            if (!_hasHealthStartY)
+                CacheHealthUiStartY();
+
+            // Normalize size: maxSize => 1, minSize => 0
+            float t = Mathf.InverseLerp(minSize, maxSize, size);
+
+            // At maxSize (t=1): offsetDown = 0
+            // At minSize (t=0): offsetDown = healthImageDownAtMinSize
+            float offsetDown = (1f - t) * healthImageDownAtMinSize;
+
+            Vector2 p = healthImageRect.anchoredPosition;
+            p.y = _healthStartAnchoredY - offsetDown;
+            healthImageRect.anchoredPosition = p;
         }
 
         private void Die()
