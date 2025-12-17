@@ -1,71 +1,93 @@
+// FILEPATH: Assets/Scripts/Managers/GameSceneManager.cs
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using JellyGame.GamePlay.Utils;
+using JellyGame.GamePlay.Managers;
 
 namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
-    /// Manages scene transitions between Game and GameOver scenes
+    /// Manages scene transitions between Game and GameOver scenes.
+    /// Also listens to EntityDied and triggers GameOver if the victim layer matches.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
         [Header("Scene Settings (Use Build Index)")]
         [Tooltip("Build index of the game scene. Check Build Settings to see the index number.")]
         [SerializeField] private int gameSceneBuildIndex = 0;
-        
+
         [Tooltip("Build index of the game over scene. Check Build Settings to see the index number.")]
         [SerializeField] private int gameOverSceneBuildIndex = 1;
 
         [Header("Scene Names (Fallback)")]
         [Tooltip("Name of the game scene (used as fallback if build index fails)")]
         [SerializeField] private string gameSceneName = "JellyWithArt";
-        
+
         [Tooltip("Name of the game over scene (used as fallback if build index fails)")]
         [SerializeField] private string gameOverSceneName = "GameOver";
+
+        [Header("GameOver Trigger")]
+        [Tooltip("If an EntityDied event is triggered with a victim layer in this mask => trigger GameOver.")]
+        [SerializeField] private LayerMask gameOverOnVictimLayers;
 
         [Header("Cheat Code")]
         [Tooltip("Key to press to trigger GameOver (cheat code)")]
         [SerializeField] private KeyCode gameOverKey = KeyCode.R;
 
         [Header("Debug")]
-        [SerializeField] private bool debugLogs = true; // Set to true to see what's happening
+        [SerializeField] private bool debugLogs = true;
 
         private void OnEnable()
         {
-            // Subscribe to GameOver event
-            JellyGameEvents.GameOver += OnGameOver;
-            
+            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDiedEvent);
+            EventManager.StartListening(EventManager.GameEvent.GameOver, OnGameOverEvent);
+
             if (debugLogs)
                 Debug.Log($"[GameSceneManager] Enabled in scene: {SceneManager.GetActiveScene().name}", this);
         }
 
         private void OnDisable()
         {
-            // Unsubscribe from GameOver event
-            JellyGameEvents.GameOver -= OnGameOver;
+            EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDiedEvent);
+            EventManager.StopListening(EventManager.GameEvent.GameOver, OnGameOverEvent);
         }
 
         private void Update()
         {
-            // Cheat code: Press R to trigger GameOver (only in game scene)
+            // Cheat code: Press R to trigger GameOver
             if (Input.GetKeyDown(gameOverKey))
             {
                 if (debugLogs)
                     Debug.Log($"[GameSceneManager] Cheat code pressed ({gameOverKey})! Triggering GameOver", this);
-                
-                // Trigger the GameOver event (which will call OnGameOver and switch scenes)
-                JellyGameEvents.GameOver?.Invoke();
+
+                EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
             }
         }
 
-        /// <summary>
-        /// Called when GameOver event is triggered - switches to GameOver scene
-        /// </summary>
-        private void OnGameOver()
+        private void OnEntityDiedEvent(object eventData)
+        {
+            if (eventData is not EntityDiedEventData died)
+            {
+                if (debugLogs)
+                    Debug.LogWarning("[GameSceneManager] EntityDied received with unexpected payload type.", this);
+                return;
+            }
+
+            // layer mask match
+            bool match = (gameOverOnVictimLayers.value & (1 << died.VictimLayer)) != 0;
+            if (!match)
+                return;
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] EntityDied matched layer {died.VictimLayer} ({LayerMask.LayerToName(died.VictimLayer)}). Triggering GameOver.", this);
+
+            EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
+        }
+
+        private void OnGameOverEvent(object _)
         {
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] GameOver triggered! Loading scene index: {gameOverSceneBuildIndex}", this);
-            
+                Debug.Log($"[GameSceneManager] GameOver event received! Loading scene index: {gameOverSceneBuildIndex}", this);
+
             LoadGameOverScene();
         }
 
@@ -74,7 +96,6 @@ namespace JellyGame.GamePlay.Managers
         /// </summary>
         public void LoadGameOverScene()
         {
-            // Try build index first (more reliable)
             if (gameOverSceneBuildIndex >= 0 && gameOverSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
             {
                 if (debugLogs)
@@ -83,7 +104,6 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // Fallback to scene name
             if (!string.IsNullOrEmpty(gameOverSceneName))
             {
                 if (debugLogs)
@@ -103,8 +123,7 @@ namespace JellyGame.GamePlay.Managers
         {
             if (debugLogs)
                 Debug.Log($"[GameSceneManager] RestartGame() called! Loading game scene index: {gameSceneBuildIndex}", this);
-            
-            // Try build index first (more reliable)
+
             if (gameSceneBuildIndex >= 0 && gameSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
             {
                 if (debugLogs)
@@ -113,7 +132,6 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // Fallback to scene name
             if (!string.IsNullOrEmpty(gameSceneName))
             {
                 if (debugLogs)
