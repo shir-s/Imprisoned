@@ -393,6 +393,7 @@ GameObject:
   - component: {fileID: 1340203972}
   - component: {fileID: 1340203975}
   - component: {fileID: 1340203976}
+  - component: {fileID: 1340203977}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -525,7 +526,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1340203971}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 337fb43ac9dcf344499e0b5d2041929b, type: 3}
   m_Name: 
@@ -539,6 +540,34 @@ MonoBehaviour:
   toggleMouseLookKey: 102
   sensitivity: 2
   pitchLimit: 85
+--- !u!114 &1340203977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340203971}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e95eb8bb6123c244b6b2935b9e45894, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
+  cam: {fileID: 1340203973}
+  target: {fileID: 4728341372407457261}
+  snapToTargetOnStart: 1
+  snapIfTargetBehindCamera: 1
+  screenMargin: 0.25
+  followStrength: 1
+  easingPower: 2
+  easingSoftness: 0.6
+  smoothTime: 0.18
+  maxSpeed: 30
+  moveOnX: 1
+  moveOnY: 0
+  moveOnZ: 1
+  useBounds: 0
+  boundsMin: {x: -30, y: -100, z: -40}
+  boundsMax: {x: 25, y: 100, z: 30}
 --- !u!1001 &1344263627
 PrefabInstance:
   m_ObjectHideFlags: 0
