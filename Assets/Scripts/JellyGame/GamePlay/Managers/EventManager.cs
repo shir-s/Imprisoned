@@ -38,7 +38,9 @@ namespace JellyGame.GamePlay.Managers
 
             GameWin,
 
-            PickupCollected
+            PickupCollected,
+            
+            PlayerDamaged
         }
 
         public static void StartListening(GameEvent eventType, EventAction listener)
