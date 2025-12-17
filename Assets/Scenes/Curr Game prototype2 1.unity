@@ -565,7 +565,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
-  target: {fileID: 4728341372407457261}
+  target: {fileID: 663472628}
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.25
@@ -720,7 +720,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fac22106eacb7e14281f3d3a521ea6bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FollowCubeCamera
-  target: {fileID: 4728341372407457261}
+  target: {fileID: 663472628}
   followDistance: 15
   followHeight: 5
   occlusionLayers:
@@ -3381,6 +3381,10 @@ PrefabInstance:
       propertyPath: 'paintSurfaces.Array.data[2]'
       value: 
       objectReference: {fileID: 908559004392173923}
+    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: maxSize
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.x
       value: -2.875481
