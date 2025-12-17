@@ -156,7 +156,7 @@ MonoBehaviour:
   winSceneName: Win
   gameOverOnVictimLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 128
   listenToWinEvent: 1
   gameOverKey: 114
   winKey: 116
@@ -937,7 +937,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5495868282089515004, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.3799999
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5495868282089515004, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
       propertyPath: m_LocalPosition.x
@@ -977,6 +977,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5495868282089515004, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5495868282089515004, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
+      propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

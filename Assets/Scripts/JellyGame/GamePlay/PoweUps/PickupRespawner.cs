@@ -1,11 +1,13 @@
+// FILEPATH: Assets/Scripts/World/Pickups/PickupRespawner.cs
 using UnityEngine;
 using JellyGame.GamePlay.Managers;
+using System.Collections;
 
 public class PickupRespawner : MonoBehaviour
 {
     [Header("What to spawn")]
     [SerializeField] private GameObject pickupPrefab;
-    [SerializeField] private bool parentToSpawner = true; // new toggle
+    [SerializeField] private bool parentToSpawner = true;
 
     [Header("Map bounds (world space)")]
     [SerializeField] private Vector2 center = Vector2.zero;
@@ -14,11 +16,15 @@ public class PickupRespawner : MonoBehaviour
     [Header("Placement")]
     [SerializeField] private float spawnHeight = 15f;
     [SerializeField] private LayerMask groundLayer;
+
+    [Tooltip("Minimum free radius around the spawned pickup")]
     [SerializeField] private float minClearance = 0.5f;
+
+    [Tooltip("Layers that the pickup must NOT overlap with")]
+    [SerializeField] private LayerMask forbiddenOverlapLayers;
+
     [SerializeField] private int maxTries = 10;
-
     [SerializeField] private float respawnDelaySeconds = 5f;
-
 
     private void OnEnable()
     {
@@ -37,10 +43,11 @@ public class PickupRespawner : MonoBehaviour
             Debug.LogWarning("PickupRespawner: pickupPrefab is not set.");
             return;
         }
+
         StartCoroutine(RespawnAfterDelay());
     }
 
-    private System.Collections.IEnumerator RespawnAfterDelay()
+    private IEnumerator RespawnAfterDelay()
     {
         yield return new WaitForSeconds(respawnDelaySeconds);
 
@@ -51,7 +58,7 @@ public class PickupRespawner : MonoBehaviour
         }
         else
         {
-            Debug.LogWarning("PickupRespawner: failed to find spawn position.");
+            Debug.LogWarning("PickupRespawner: failed to find valid spawn position.");
         }
     }
 
@@ -61,16 +68,41 @@ public class PickupRespawner : MonoBehaviour
         {
             float x = Random.Range(center.x - halfSize.x, center.x + halfSize.x);
             float z = Random.Range(center.y - halfSize.y, center.y + halfSize.y);
-            Vector3 start = new Vector3(x, spawnHeight, z);
+            Vector3 rayStart = new Vector3(x, spawnHeight, z);
 
-            if (Physics.Raycast(start, Vector3.down, out RaycastHit hit, spawnHeight * 2f, groundLayer))
-            {
-                pos = hit.point + Vector3.up * minClearance;
-                return true;
-            }
+            // 1) Find ground
+            if (!Physics.Raycast(rayStart, Vector3.down, out RaycastHit hit, spawnHeight * 2f, groundLayer))
+                continue;
+
+            Vector3 candidatePos = hit.point + Vector3.up * minClearance;
+
+            // 2) Check overlap against forbidden layers
+            bool blocked = Physics.CheckSphere(
+                candidatePos,
+                minClearance,
+                forbiddenOverlapLayers,
+                QueryTriggerInteraction.Ignore
+            );
+
+            if (blocked)
+                continue;
+
+            pos = candidatePos;
+            return true;
         }
 
         pos = Vector3.zero;
         return false;
     }
+
+#if UNITY_EDITOR
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = new Color(1f, 0f, 0f, 0.25f);
+        Gizmos.DrawWireCube(
+            new Vector3(center.x, 0f, center.y),
+            new Vector3(halfSize.x * 2f, 0.1f, halfSize.y * 2f)
+        );
+    }
+#endif
 }
