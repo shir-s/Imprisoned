@@ -10,18 +10,41 @@ namespace JellyGame.GamePlay.Abilities.Zones
     /// </summary>
     public static class ZoneMeshBuilder
     {
+        /// <summary>
+        /// Returns triangle indices that ALWAYS refer to the ORIGINAL <paramref name="polyXZ"/> indexing.
+        /// (Fixes the bug where reversing for CCW produced indices for a reversed copy.)
+        /// </summary>
         public static List<int> TriangulatePolygonXZ(IReadOnlyList<Vector2> polyXZ)
         {
             if (polyXZ == null || polyXZ.Count < 3)
                 return null;
 
-            List<Vector2> poly = new List<Vector2>(polyXZ);
+            int n = polyXZ.Count;
 
-            // Ear clipping below assumes CCW
-            if (SignedArea(poly) < 0f)
+            // Copy so ear clipping can work on a mutable list.
+            List<Vector2> poly = new List<Vector2>(n);
+            for (int i = 0; i < n; i++)
+                poly.Add(polyXZ[i]);
+
+            // Ear clipping assumes CCW. If CW, we reverse the WORKING copy,
+            // but then we MUST remap returned indices back to the original indexing.
+            bool reversed = (SignedArea(poly) < 0f);
+            if (reversed)
                 poly.Reverse();
 
-            return TriangulateEarClip(poly);
+            List<int> tris = TriangulateEarClip(poly);
+            if (tris == null)
+                return null;
+
+            if (!reversed)
+                return tris;
+
+            // Remap indices from reversed-copy space -> original polyXZ space.
+            // reversedCopyIndex i corresponds to original index (n - 1 - i)
+            for (int i = 0; i < tris.Count; i++)
+                tris[i] = (n - 1 - tris[i]);
+
+            return tris;
         }
 
         public static Mesh BuildExtrudedTriangleXZ(Vector2 a, Vector2 b, Vector2 c, float thickness)

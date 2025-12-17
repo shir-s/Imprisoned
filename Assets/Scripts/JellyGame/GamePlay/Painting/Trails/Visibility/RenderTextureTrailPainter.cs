@@ -141,7 +141,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             Graphics.Blit(_tempRT, rt);
         }
 
-        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
+        /*public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
         {
             if (surface == null || brushBlitMaterial == null)
                 return;
@@ -161,7 +161,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
             Graphics.Blit(_tempRT, rt);
-        }
+        }*/
 
         private void EnsureTemp(RenderTexture rt)
         {
@@ -206,6 +206,45 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             return new Vector2(halfU, halfV);
         }
+        
+        // ========== NEW: for animated fills / liquid stamps ==========
+
+        public float DefaultHalfSizeUV => fallbackHalfSizeUV;
+
+        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
+        {
+            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f);
+        }
+
+        /// <summary>
+        /// Paint a single brush stamp in UV space with custom size/opacity.
+        /// halfSizeUV is the brush "radius" in UV units (0..1).
+        /// </summary>
+        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
+        {
+            if (surface == null || brushBlitMaterial == null)
+                return;
+
+            var rt = surface.PaintRT;
+            if (rt == null)
+                return;
+
+            UpdatePaintColor();
+
+            halfSizeUV = Mathf.Max(0.00001f, halfSizeUV);
+            opacity = Mathf.Clamp01(opacity);
+
+            brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+            brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
+            brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
+
+            EnsureTemp(rt);
+
+            brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
+            Graphics.Blit(rt, _tempRT, brushBlitMaterial);
+            Graphics.Blit(_tempRT, rt);
+        }
+
 
         // ========== NEW: GPU polygon fill with robustness + result ==========
         public bool FillPolygonUV(SimplePaintSurface surface, List<Vector2> uvPolygon)
