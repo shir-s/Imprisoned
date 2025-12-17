@@ -11303,7 +11303,33 @@ MonoBehaviour:
   - {fileID: 5748549117683082274}
   - {fileID: 908559004392173923}
   painter: {fileID: 3684147384832064450}
+  fillMode: 1
   useGpuPolygonFill: 1
+  progressiveTimeBudgetMsPerFrame: 1.5
+  progressiveMaxTotalSamples: 160000
+  progressiveBaseUvStep: 0.0022
+  progressiveRingCount: 20
+  progressiveDynamicQuality: 1
+  progressiveDynamicStepMaxMultiplier: 2
+  unevenFrontEnabled: 1
+  unevenFrontStrength: 0.55
+  unevenFrontNoiseScale: 6
+  unevenFingersEnabled: 1
+  unevenFingerCount: 4
+  unevenFingerStrength: 0.55
+  unevenFingerWidth: 0.35
+  unevenSeed: 1337
+  liquidEnabled: 1
+  liquidBaseSizeMultiplier: 1
+  liquidSizeVariance: 0.55
+  liquidJitterRadiusUv: 0.0045
+  liquidNoiseScale: 40
+  liquidFlowStrength: 1.2
+  liquidSmearStepsMin: 1
+  liquidSmearStepsMax: 3
+  liquidExtraSplatsMin: 1
+  liquidExtraSplatsMax: 2
+  liquidSeed: 1337
   fallbackToCpuUvFill: 1
   fallbackMaxPaintsPerFrame: 4000
   fallbackMaxTotalSamples: 250000
