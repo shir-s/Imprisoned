@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5e90d7b2a924bf7b024cecc57661b81, type: 3}
+  m_Name: GameAudioSettings 1
+  m_EditorClassIdentifier: Assembly-CSharp::Sound.AudioSettings
+  audioConfigs:
+  - name: Background
+    clip: {fileID: 8300000, guid: f9c7ee9e8416e435989ce032f95dec38, type: 3}
+    volume: 0.3
+    loop: 1
+  - name: Win
+    clip: {fileID: 8300000, guid: 1a90a3d6f70ae43bea9ca6f80fa39327, type: 3}
+    volume: 0.5
+    loop: 0
+  - name: Lose
+    clip: {fileID: 8300000, guid: b0c6ba8238d6e4c0aa1fa5f6a1a297e8, type: 3}
+    volume: 1
+    loop: 0
+  - name: SlimeWalk
+    clip: {fileID: 8300000, guid: 19080eab5eb0b4e4192714d422aa2e5d, type: 3}
+    volume: 1
+    loop: 1
+  - name: RechageCollect
+    clip: {fileID: 8300000, guid: e611a5db47de8446f947fc1aee743317, type: 3}
+    volume: 0.5
+    loop: 0
+  - name: SlimeHit
+    clip: {fileID: 8300000, guid: 7f4d94b54108d40ad815543879f6c892, type: 3}
+    volume: 0.5
+    loop: 0
+  - name: CloseArea
+    clip: {fileID: 8300000, guid: d2b2662ad948b49f8b723df0493a4b7b, type: 3}
+    volume: 0.7
+    loop: 0
+  - name: DoorOpen
+    clip: {fileID: 8300000, guid: fbe4c334e31bb499dbb85a0c9387736f, type: 3}
+    volume: 0.5
+    loop: 0
+  - name: DoorOpen
+    clip: {fileID: 8300000, guid: fbe4c334e31bb499dbb85a0c9387736f, type: 3}
+    volume: 0.5
+    loop: 0
