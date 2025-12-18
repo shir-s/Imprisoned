@@ -67,7 +67,7 @@ namespace JellyGame.GamePlay.World.Finish
         }
         private IEnumerator GameWinEvent(Collider other)
         {
-            yield return new WaitForSeconds(5);
+            yield return new WaitForSeconds(0);
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameWin, other.gameObject);
         }

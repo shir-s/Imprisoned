@@ -193,7 +193,7 @@ namespace JellyGame.GamePlay.Player
                 yield break;
             _dead = true;
             
-            yield return new WaitForSeconds(0);
+            yield return new WaitForSeconds(1);
 
             EventManager.TriggerEvent(
                 EventManager.GameEvent.EntityDied,
