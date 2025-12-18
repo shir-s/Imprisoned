@@ -44,6 +44,13 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Assign the ROOT GameObject that contains the win particles (can have multiple ParticleSystem children).")]
         [SerializeField] private GameObject winFxRoot;
 
+        [Tooltip("If true, the FX root is disabled on start so nothing can PlayOnAwake.\n" +
+                 "It will be enabled only when Win is triggered.")]
+        [SerializeField] private bool disableWinFxRootOnStart = true;
+
+        [Tooltip("If true, we also force-stop and clear all ParticleSystems under winFxRoot on start.")]
+        [SerializeField] private bool stopWinFxOnStart = true;
+
         [Tooltip("Delay (seconds) after win is triggered before loading the Win scene.\n" +
                  "If winFxRoot is assigned and this is <= 0, we will auto-compute a delay from the longest ParticleSystem.")]
         [SerializeField] private float winSceneLoadDelay = 0f;
@@ -63,6 +70,40 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private bool debugLogs = true;
 
         private bool _winSequenceRunning;
+
+        private void Awake()
+        {
+            PrepareWinFxForStart();
+        }
+
+        private void PrepareWinFxForStart()
+        {
+            if (winFxRoot == null)
+                return;
+
+            // If your teammate's particles are set to Play On Awake, the only guaranteed way
+            // to prevent them from playing at game start is to disable the whole root.
+            if (disableWinFxRootOnStart && winFxRoot.activeSelf)
+                winFxRoot.SetActive(false);
+
+            // Optional extra safety: stop & clear them so even if root is enabled later,
+            // we restart from a clean state when Win happens.
+            if (stopWinFxOnStart)
+                StopAndClearAllWinFx(includeInactive: true);
+        }
+
+        private void StopAndClearAllWinFx(bool includeInactive)
+        {
+            if (winFxRoot == null)
+                return;
+
+            var systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(includeInactive);
+            for (int i = 0; i < systems.Length; i++)
+            {
+                if (systems[i] == null) continue;
+                systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
 
         private void OnEnable()
         {
@@ -152,15 +193,15 @@ namespace JellyGame.GamePlay.Managers
             // Play ALL particle systems under the root (your teammate's prefab style)
             if (winFxRoot != null)
             {
+                // Enable only now (so they don't show at start)
+                if (!winFxRoot.activeInHierarchy)
+                    winFxRoot.SetActive(true);
+
                 ParticleSystem[] systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
 
                 if (systems != null && systems.Length > 0)
                 {
-                    // Optional: ensure root is active so children can render
-                    if (!winFxRoot.activeInHierarchy)
-                        winFxRoot.SetActive(true);
-
-                    // Stop+clear then play all (so it restarts cleanly)
+                    // Restart clean
                     for (int i = 0; i < systems.Length; i++)
                     {
                         if (systems[i] == null) continue;
@@ -185,7 +226,6 @@ namespace JellyGame.GamePlay.Managers
 
             if (pauseGameplayOnWin)
             {
-                // WARNING: default particles are scaled-time. If you pause, they may freeze unless set to unscaled simulation.
                 Time.timeScale = 0f;
             }
 
@@ -214,20 +254,10 @@ namespace JellyGame.GamePlay.Managers
 
                 var main = ps.main;
 
-                // Approx total time until last visible particle:
-                // duration (emission window) + max startLifetime
-                float lifetimeMax = 0f;
-                var lt = main.startLifetime;
+                float lifetimeMax = main.startLifetime.constantMax;
+                float startDelayMax = main.startDelay.constantMax;
 
-                // Supports Constant / TwoConstants / Curves - take the maximum available value.
-                lifetimeMax = lt.constantMax;
-
-                float total = Mathf.Max(0f, main.duration + lifetimeMax);
-
-                // If system has startDelay, include it too
-                var sd = main.startDelay;
-                float startDelayMax = sd.constantMax;
-                total += Mathf.Max(0f, startDelayMax);
+                float total = Mathf.Max(0f, startDelayMax + main.duration + lifetimeMax);
 
                 if (total > max)
                     max = total;
