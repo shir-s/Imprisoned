@@ -9,6 +9,11 @@ namespace Utils
     public class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
     {
         private static T _instance;
+        
+        private void Awake()
+        {
+            DontDestroyOnLoad(gameObject);
+        }
 
         public static T Instance
         {
