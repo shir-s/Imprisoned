@@ -2336,9 +2336,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fac22106eacb7e14281f3d3a521ea6bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FollowCubeCamera
-  target: {fileID: 0}
+  target: {fileID: 663472628}
   followDistance: 15
-  followHeight: 5
+  followHeight: 7
   occlusionLayers:
     serializedVersion: 2
     m_Bits: 1056768
@@ -2347,7 +2347,7 @@ MonoBehaviour:
   orbitSpeed: 90
   preventReverseSpin: 1
   positionSmoothTime: 0.1
-  lookSmoothTime: 0.5
+  lookSmoothTime: 0.6
   listenToActiveCubeEvent: 1
   snapOnTargetChange: 1
 --- !u!114 &1410603019
@@ -3646,6 +3646,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 06219c5371e1e4c749cec5551d2bf94e, type: 2}
+    - target: {fileID: -7286767767749883421, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: -6336110751132988908, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -3658,6 +3662,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c23809d86d66f410abf4a9568e401a01, type: 2}
+    - target: {fileID: -5554158724812180570, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: -4335374031469214536, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -3678,6 +3686,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c23809d86d66f410abf4a9568e401a01, type: 2}
+    - target: {fileID: -2855312607356505257, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: -1948558900384022131, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -3686,6 +3698,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 06219c5371e1e4c749cec5551d2bf94e, type: 2}
+    - target: {fileID: -1063269394388702953, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: -640337898443651891, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -3706,9 +3722,17 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 06219c5371e1e4c749cec5551d2bf94e, type: 2}
+    - target: {fileID: 761113318896764743, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: m_Name
       value: simple ptototype isle
+      objectReference: {fileID: 0}
+    - target: {fileID: 1466915526407406928, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 2071871664596267966, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -3750,6 +3774,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 06219c5371e1e4c749cec5551d2bf94e, type: 2}
+    - target: {fileID: 5412705472666599696, guid: f2827461cb56c49499d72218e048539a, type: 3}
+      propertyPath: m_Layer
+      value: 20
+      objectReference: {fileID: 0}
     - target: {fileID: 6216587143325692320, guid: f2827461cb56c49499d72218e048539a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
