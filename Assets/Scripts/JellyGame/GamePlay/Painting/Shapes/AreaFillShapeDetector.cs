@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using JellyGame.GamePlay.Abilities;
+using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Map.Surfaces;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
 using UnityEngine;
@@ -131,6 +132,8 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     new Vector3((minX + maxX) * 0.5f, 0f, (minZ + maxZ) * 0.5f),
                     new Vector3(Mathf.Max(0.001f, maxX - minX), 0.5f, Mathf.Max(0.001f, maxZ - minZ))
                 );
+                
+                SoundManager.Instance.PlaySound("CloseArea", this.transform);
 
                 PlayerAbilityManager.Instance.OnAreaFilled(referenceSurface, localPolyXZ, localBounds);
             }

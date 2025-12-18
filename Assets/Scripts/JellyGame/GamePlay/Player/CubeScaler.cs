@@ -1,4 +1,7 @@
 // FILEPATH: Assets/Scripts/Player/CubeScaler.cs
+
+using System.Collections;
+using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Combat;
 using UnityEngine;
@@ -143,9 +146,14 @@ namespace JellyGame.GamePlay.Player
                 Debug.Log($"[CubeScaler] Size {oldSize:F3} -> {size:F3}", this);
 
             if (!_dead && size <= minSize + 1e-4f)
-                Die();
+            {
+                SoundManager.Instance.StopAllSounds();
+                SoundManager.Instance.PlaySound("Lose", this.transform);
+                StartCoroutine(Die());
+            }
         }
-
+        
+        
         private void UpdateHoverHeight(float size)
         {
             if (surfaceSlider == null)
@@ -179,10 +187,13 @@ namespace JellyGame.GamePlay.Player
             healthImageRect.anchoredPosition = p;
         }
 
-        private void Die()
+        private IEnumerator Die()
         {
-            if (_dead) return;
+            if (_dead)
+                yield break;
             _dead = true;
+            
+            yield return new WaitForSeconds(0);
 
             EventManager.TriggerEvent(
                 EventManager.GameEvent.EntityDied,

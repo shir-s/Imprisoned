@@ -1,4 +1,6 @@
 // FILEPATH: Assets/Scripts/Managers/GameSceneManager.cs
+
+using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -68,6 +70,12 @@ namespace JellyGame.GamePlay.Managers
 
             if (listenToWinEvent)
                 EventManager.StopListening(EventManager.GameEvent.GameWin, OnWinEvent);
+        }
+
+        private void Awake()
+        {
+            SoundManager.Instance.StopAllSounds();
+            SoundManager.Instance.PlaySound("Background", this.transform);
         }
 
         private void Update()
@@ -199,6 +207,9 @@ namespace JellyGame.GamePlay.Managers
                 SceneManager.LoadScene(gameSceneName);
                 return;
             }
+            
+            SoundManager.Instance.StopAllSounds();
+            SoundManager.Instance.PlaySound("Background", this.transform);
 
             Debug.LogError("[GameSceneManager] Game scene build index and name are not set correctly!", this);
         }

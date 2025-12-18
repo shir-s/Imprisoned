@@ -1,5 +1,7 @@
     // FILEPATH: Assets/Scripts/World/Doors/DoorByDeaths.cs
-using JellyGame.GamePlay.Managers;
+
+    using JellyGame.GamePlay.Audio.Core;
+    using JellyGame.GamePlay.Managers;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.World.Doors
@@ -91,6 +93,8 @@ namespace JellyGame.GamePlay.World.Doors
         private System.Collections.IEnumerator OpenRoutine()
         {
             _opening = true;
+            
+            SoundManager.Instance.PlaySound("DoorOpen", transform);
 
             Vector3 dir = openLocalDirection;
             if (dir.sqrMagnitude < 1e-6f)

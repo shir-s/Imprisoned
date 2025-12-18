@@ -1,3 +1,4 @@
+using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 
 public class KinematicSurfaceSlider : MonoBehaviour
@@ -21,6 +22,8 @@ public class KinematicSurfaceSlider : MonoBehaviour
 
     private Vector3 _velocity;
     private bool _isGrounded;
+    private bool _isMoving = false;
+    private AudioSourceWrapper _movementSound;
 
     public void SetHoverHeight(float value)
     {
@@ -53,7 +56,55 @@ public class KinematicSurfaceSlider : MonoBehaviour
             // transform.position = Vector3.up * 5;
             // _velocity = Vector3.zero;
         }
+        
+        UpdateMovementSound();
     }
+    
+    private void UpdateMovementSound()
+    {
+        float movementThreshold = 0.1f;
+        bool currentlyMoving = _velocity.magnitude > movementThreshold;
+
+        if (currentlyMoving && !_isMoving)
+        {
+            _isMoving = true;
+            StartMovementSound();
+        }
+        else if (!currentlyMoving && _isMoving)
+        {
+            _isMoving = false;
+            StopMovementSound();
+        }
+    }
+    
+    private void StartMovementSound()
+    {
+        if (_movementSound != null)
+            return;
+
+        var soundManager = SoundManager.Instance;
+        if (soundManager == null)
+            return;
+        
+        var config = soundManager.GetType()
+            .GetMethod("PlaySound", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+
+        _movementSound = SoundManager.Instance.PlayLoopingSound("SlimeWalk",
+            transform
+        );
+    }
+    private void StopMovementSound()
+    {
+        if (_movementSound == null)
+            return;
+
+        _movementSound.Reset();
+        _movementSound.gameObject.SetActive(false);
+        SoundPool.Instance.Return(_movementSound);
+        _movementSound = null;
+    }
+
+
 
     private void HandleGrounded(RaycastHit hit)
     {

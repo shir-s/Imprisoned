@@ -1,4 +1,6 @@
 // FILEPATH: Assets/Scripts/Combat/SimpleHealth.cs
+
+using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
 using UnityEngine;
 
@@ -57,6 +59,8 @@ namespace JellyGame.GamePlay.Combat
                 return;
 
             _dead = true;
+            
+            SoundManager.Instance.PlaySound("EnemyDeath", transform);
 
             // Trigger universal event BEFORE destruction.
             EventManager.TriggerEvent(

@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/AI/Behaviors/AttackBehavior.cs
 using System;
+using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using JellyGame.GamePlay.Enemy.AI.Movement;
 using JellyGame.GamePlay.Combat;
@@ -186,6 +187,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                 Debug.Log($"[AttackBehavior] Hit {_currentTarget.name} for {damagePerHit} damage.", this);
 
             dmg.ApplyDamage(damagePerHit);
+            SoundManager.Instance.PlaySound("SlimeHit", transform);
+            
             _nextHitTime = Time.time + Mathf.Max(0.01f, hitCooldownSeconds);
             
             EventManager.TriggerEvent(EventManager.GameEvent.PlayerDamaged, dmg);

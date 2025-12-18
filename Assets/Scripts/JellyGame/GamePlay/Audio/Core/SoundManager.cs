@@ -34,7 +34,7 @@ namespace JellyGame.GamePlay.Audio.Core
              EventManager.StopListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
 
          }
-
+    
         private void EndGame()
         {
             StopAllSounds();
@@ -69,6 +69,23 @@ namespace JellyGame.GamePlay.Audio.Core
             StartCoroutine(WaitAndRemove(soundObject));
             
         }
+        
+        public AudioSourceWrapper PlayLoopingSound(string audioName, Transform spawnTransform, float customVolume = -1f)
+        {
+            var config = FindAudioConfig(audioName);
+            if (config == null)
+                return null;
+
+            var soundObject = SoundPool.Instance.Get();
+            soundObject.transform.position = spawnTransform.position;
+
+            float finalVolume = (customVolume >= 0f) ? customVolume : config.volume;
+            soundObject.Play(config.clip, finalVolume, true); // FORCE LOOP
+
+            activeSounds.Add(soundObject);
+            return soundObject;
+        }
+
         
         private IEnumerator WaitAndRemove(AudioSourceWrapper wrapper)
         {

@@ -1,4 +1,7 @@
 // FILEPATH: Assets/Scripts/World/Finish/FinishTrigger.cs
+
+using System.Collections;
+using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
 using UnityEngine;
 
@@ -56,9 +59,19 @@ namespace JellyGame.GamePlay.World.Finish
 
             if (debugLogs)
                 Debug.Log($"[FinishTrigger] GameWin triggered by {other.name} (layer {layer})", this);
+            
+            SoundManager.Instance.StopAllSounds();
+            SoundManager.Instance.PlaySound("Win", this.transform);
+            
+            StartCoroutine(GameWinEvent(other));
+        }
+        private IEnumerator GameWinEvent(Collider other)
+        {
+            yield return new WaitForSeconds(5);
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameWin, other.gameObject);
         }
+        
 
         private void EnsureKinematicRigidbody()
         {

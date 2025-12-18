@@ -2,6 +2,7 @@
 using UnityEngine;
 using JellyGame.GamePlay.Managers;
 using System.Collections;
+using JellyGame.GamePlay.Audio.Core;
 
 public class PickupRespawner : MonoBehaviour
 {
@@ -43,6 +44,8 @@ public class PickupRespawner : MonoBehaviour
             Debug.LogWarning("PickupRespawner: pickupPrefab is not set.");
             return;
         }
+        
+        SoundManager.Instance.PlaySound("RechargeCollect", transform);
 
         StartCoroutine(RespawnAfterDelay());
     }
