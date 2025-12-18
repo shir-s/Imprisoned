@@ -119,6 +119,66 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &271501518
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 271501521}
+  - component: {fileID: 271501520}
+  - component: {fileID: 271501519}
+  m_Layer: 0
+  m_Name: SoundSystem
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &271501519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 271501518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a8bc95336fc14106b97e917822d47aed, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Audio.Core.SoundPool
+  initialPoolSize: 25
+  prefab: {fileID: 7889389469387461156, guid: a0e9a5fe8c605f94188752a8f00eddb8, type: 3}
+--- !u!114 &271501520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 271501518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8413fd2d1e6f4918bf177e24a4728588, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Audio.Core.SoundManager
+  settings: {fileID: 11400000, guid: a4aa2565e754e467f98d756288f4f135, type: 2}
+--- !u!4 &271501521
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 271501518}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.07968, y: 1.10727, z: -42.17775}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &108963026
 GameObject:
   m_ObjectHideFlags: 0
@@ -2713,39 +2773,39 @@ PrefabInstance:
       value: EnemyBackAndForth
       objectReference: {fileID: 0}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[0]'
+      propertyPath: waypoints.Array.data[0]
       value: 
       objectReference: {fileID: 1859433184824261077}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[1]'
+      propertyPath: waypoints.Array.data[1]
       value: 
       objectReference: {fileID: 8557988584903246046}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[2]'
+      propertyPath: waypoints.Array.data[2]
       value: 
       objectReference: {fileID: 5508152598470888574}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[3]'
+      propertyPath: waypoints.Array.data[3]
       value: 
       objectReference: {fileID: 3061111537006861104}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[4]'
+      propertyPath: waypoints.Array.data[4]
       value: 
       objectReference: {fileID: 3996131942960180629}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[5]'
+      propertyPath: waypoints.Array.data[5]
       value: 
       objectReference: {fileID: 7040842470820398990}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[6]'
+      propertyPath: waypoints.Array.data[6]
       value: 
       objectReference: {fileID: 4004860234743228453}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[7]'
+      propertyPath: waypoints.Array.data[7]
       value: 
       objectReference: {fileID: 870935105006836414}
     - target: {fileID: 8653399766579604034, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
-      propertyPath: 'waypoints.Array.data[8]'
+      propertyPath: waypoints.Array.data[8]
       value: 
       objectReference: {fileID: 6524308858867805206}
     m_RemovedComponents: []
@@ -3891,11 +3951,11 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6257479600386218102, guid: 887481c17cdfb471d974bc7d35cf2985, type: 3}
-      propertyPath: 'waypoints.Array.data[0]'
+      propertyPath: waypoints.Array.data[0]
       value: 
       objectReference: {fileID: 1505290033922725403}
     - target: {fileID: 6257479600386218102, guid: 887481c17cdfb471d974bc7d35cf2985, type: 3}
-      propertyPath: 'waypoints.Array.data[1]'
+      propertyPath: waypoints.Array.data[1]
       value: 
       objectReference: {fileID: 6520605667437447760}
     m_RemovedComponents: []
@@ -4936,15 +4996,15 @@ PrefabInstance:
     m_TransformParent: {fileID: 3793594676184193298}
     m_Modifications:
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[0]'
+      propertyPath: paintSurfaces.Array.data[0]
       value: 
       objectReference: {fileID: 3260622557042798612}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[1]'
+      propertyPath: paintSurfaces.Array.data[1]
       value: 
       objectReference: {fileID: 5748549117683082274}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[2]'
+      propertyPath: paintSurfaces.Array.data[2]
       value: 
       objectReference: {fileID: 908559004392173923}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
@@ -5103,6 +5163,9 @@ MonoBehaviour:
   surfaceSlider: {fileID: 0}
   hoverHeightAtSize1: 0.5
   scaleHoverHeightWithSize: 1
+  healthImageRect: {fileID: 0}
+  healthImageDownAtMinSize: 30
+  updateHealthUiOnAwake: 1
   logChanges: 0
 --- !u!33 &5049727052313177043
 MeshFilter:
@@ -7136,4 +7199,5 @@ SceneRoots:
   - {fileID: 1410603021}
   - {fileID: 601042314}
   - {fileID: 493221078}
+  - {fileID: 271501521}
   - {fileID: 281805272}
