@@ -1,4 +1,5 @@
 // FILEPATH: Assets/Scripts/Managers/GameSceneManager.cs
+using System.Collections;
 
 using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
@@ -9,7 +10,7 @@ namespace JellyGame.GamePlay.Managers
     /// <summary>
     /// Manages scene transitions between Game, GameOver, and Win scenes.
     /// Also listens to EntityDied and triggers GameOver if the victim layer matches.
-    /// Win is triggered by listening to a Win event (recommended) or via a cheat key.
+    /// Win is triggered by listening to GameWin or via a cheat key.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
@@ -41,6 +42,25 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("If true, listens to EventManager.GameEvent.Win (you must add that enum value).")]
         [SerializeField] private bool listenToWinEvent = true;
 
+        [Header("Win FX (optional)")]
+        [Tooltip("Assign the ROOT GameObject that contains the win particles (can have multiple ParticleSystem children).")]
+        [SerializeField] private GameObject winFxRoot;
+
+        [Tooltip("If true, the FX root is disabled on start so nothing can PlayOnAwake.\n" +
+                 "It will be enabled only when Win is triggered.")]
+        [SerializeField] private bool disableWinFxRootOnStart = true;
+
+        [Tooltip("If true, we also force-stop and clear all ParticleSystems under winFxRoot on start.")]
+        [SerializeField] private bool stopWinFxOnStart = true;
+
+        [Tooltip("Delay (seconds) after win is triggered before loading the Win scene.\n" +
+                 "If winFxRoot is assigned and this is <= 0, we will auto-compute a delay from the longest ParticleSystem.")]
+        [SerializeField] private float winSceneLoadDelay = 0f;
+
+        [Tooltip("If true, pause gameplay during win.\n" +
+                 "Note: ParticleSystem uses scaled time by default, so if you pause and your particles are scaled-time, they may freeze.")]
+        [SerializeField] private bool pauseGameplayOnWin = false;
+
         [Header("Cheat Codes")]
         [Tooltip("Key to press to trigger GameOver (cheat code)")]
         [SerializeField] private KeyCode gameOverKey = KeyCode.R;
@@ -50,6 +70,44 @@ namespace JellyGame.GamePlay.Managers
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = true;
+
+        private bool _winSequenceRunning;
+
+        private void Awake()
+        {
+            PrepareWinFxForStart();
+            SoundManager.Instance.StopAllSounds();
+            SoundManager.Instance.PlaySound("Background", this.transform);
+        }
+
+        private void PrepareWinFxForStart()
+        {
+            if (winFxRoot == null)
+                return;
+
+            // If your teammate's particles are set to Play On Awake, the only guaranteed way
+            // to prevent them from playing at game start is to disable the whole root.
+            if (disableWinFxRootOnStart && winFxRoot.activeSelf)
+                winFxRoot.SetActive(false);
+
+            // Optional extra safety: stop & clear them so even if root is enabled later,
+            // we restart from a clean state when Win happens.
+            if (stopWinFxOnStart)
+                StopAndClearAllWinFx(includeInactive: true);
+        }
+
+        private void StopAndClearAllWinFx(bool includeInactive)
+        {
+            if (winFxRoot == null)
+                return;
+
+            var systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(includeInactive);
+            for (int i = 0; i < systems.Length; i++)
+            {
+                if (systems[i] == null) continue;
+                systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
 
         private void OnEnable()
         {
@@ -70,12 +128,6 @@ namespace JellyGame.GamePlay.Managers
 
             if (listenToWinEvent)
                 EventManager.StopListening(EventManager.GameEvent.GameWin, OnWinEvent);
-        }
-
-        private void Awake()
-        {
-            SoundManager.Instance.StopAllSounds();
-            SoundManager.Instance.PlaySound("Background", this.transform);
         }
 
         private void Update()
@@ -129,10 +181,94 @@ namespace JellyGame.GamePlay.Managers
 
         private void OnWinEvent(object _)
         {
+            if (_winSequenceRunning)
+                return;
+
+            _winSequenceRunning = true;
+            StartCoroutine(WinSequence());
+        }
+
+        private IEnumerator WinSequence()
+        {
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] Win event received! Loading scene index: {winSceneBuildIndex}", this);
+                Debug.Log("[GameSceneManager] Win sequence started.", this);
+
+            float delay = winSceneLoadDelay;
+
+            // Play ALL particle systems under the root (your teammate's prefab style)
+            if (winFxRoot != null)
+            {
+                // Enable only now (so they don't show at start)
+                if (!winFxRoot.activeInHierarchy)
+                    winFxRoot.SetActive(true);
+
+                ParticleSystem[] systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
+
+                if (systems != null && systems.Length > 0)
+                {
+                    // Restart clean
+                    for (int i = 0; i < systems.Length; i++)
+                    {
+                        if (systems[i] == null) continue;
+                        systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    }
+
+                    for (int i = 0; i < systems.Length; i++)
+                    {
+                        if (systems[i] == null) continue;
+                        systems[i].Play(true);
+                    }
+
+                    // Auto delay if user didn't set one
+                    if (delay <= 0f)
+                        delay = ComputeLongestFxDurationSeconds(systems);
+                }
+                else if (debugLogs)
+                {
+                    Debug.LogWarning("[GameSceneManager] winFxRoot assigned but no ParticleSystem found in children.", this);
+                }
+            }
+
+            if (pauseGameplayOnWin)
+            {
+                Time.timeScale = 0f;
+            }
+
+            if (delay > 0f)
+            {
+                if (pauseGameplayOnWin)
+                    yield return new WaitForSecondsRealtime(delay);
+                else
+                    yield return new WaitForSeconds(delay);
+            }
+
+            if (pauseGameplayOnWin)
+                Time.timeScale = 1f;
 
             LoadWinScene();
+        }
+
+        private static float ComputeLongestFxDurationSeconds(ParticleSystem[] systems)
+        {
+            float max = 0f;
+
+            for (int i = 0; i < systems.Length; i++)
+            {
+                ParticleSystem ps = systems[i];
+                if (ps == null) continue;
+
+                var main = ps.main;
+
+                float lifetimeMax = main.startLifetime.constantMax;
+                float startDelayMax = main.startDelay.constantMax;
+
+                float total = Mathf.Max(0f, startDelayMax + main.duration + lifetimeMax);
+
+                if (total > max)
+                    max = total;
+            }
+
+            return max;
         }
 
         /// <summary>
