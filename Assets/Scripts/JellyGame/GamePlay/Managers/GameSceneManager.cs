@@ -41,15 +41,15 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private bool listenToWinEvent = true;
 
         [Header("Win FX (optional)")]
-        [Tooltip("If assigned, will Play() this particle system before loading the Win scene.")]
-        [SerializeField] private ParticleSystem winParticles;
+        [Tooltip("Assign the ROOT GameObject that contains the win particles (can have multiple ParticleSystem children).")]
+        [SerializeField] private GameObject winFxRoot;
 
         [Tooltip("Delay (seconds) after win is triggered before loading the Win scene.\n" +
-                 "If winParticles is assigned and this is <= 0, we will use its main.duration.")]
+                 "If winFxRoot is assigned and this is <= 0, we will auto-compute a delay from the longest ParticleSystem.")]
         [SerializeField] private float winSceneLoadDelay = 0f;
 
-        [Tooltip("If true, pause gameplay during win (sets Time.timeScale=0 AFTER particles are started).\n" +
-                 "Note: ParticleSystem uses scaled time by default, so if you pause, make sure your particles use unscaled time if needed.")]
+        [Tooltip("If true, pause gameplay during win.\n" +
+                 "Note: ParticleSystem uses scaled time by default, so if you pause and your particles are scaled-time, they may freeze.")]
         [SerializeField] private bool pauseGameplayOnWin = false;
 
         [Header("Cheat Codes")]
@@ -115,7 +115,6 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // layer mask match
             bool match = (gameOverOnVictimLayers.value & (1 << died.VictimLayer)) != 0;
             if (!match)
                 return;
@@ -148,39 +147,93 @@ namespace JellyGame.GamePlay.Managers
             if (debugLogs)
                 Debug.Log("[GameSceneManager] Win sequence started.", this);
 
-            // Play particles first (optional)
             float delay = winSceneLoadDelay;
 
-            if (winParticles != null)
+            // Play ALL particle systems under the root (your teammate's prefab style)
+            if (winFxRoot != null)
             {
-                // Ensure particles are visible even if they were stopped
-                winParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                winParticles.Play(true);
+                ParticleSystem[] systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
 
-                if (delay <= 0f)
-                    delay = Mathf.Max(0f, winParticles.main.duration);
+                if (systems != null && systems.Length > 0)
+                {
+                    // Optional: ensure root is active so children can render
+                    if (!winFxRoot.activeInHierarchy)
+                        winFxRoot.SetActive(true);
+
+                    // Stop+clear then play all (so it restarts cleanly)
+                    for (int i = 0; i < systems.Length; i++)
+                    {
+                        if (systems[i] == null) continue;
+                        systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    }
+
+                    for (int i = 0; i < systems.Length; i++)
+                    {
+                        if (systems[i] == null) continue;
+                        systems[i].Play(true);
+                    }
+
+                    // Auto delay if user didn't set one
+                    if (delay <= 0f)
+                        delay = ComputeLongestFxDurationSeconds(systems);
+                }
+                else if (debugLogs)
+                {
+                    Debug.LogWarning("[GameSceneManager] winFxRoot assigned but no ParticleSystem found in children.", this);
+                }
             }
 
             if (pauseGameplayOnWin)
             {
-                // WARNING: default particles are scaled-time. If you pause, they may freeze unless set to unscaled.
+                // WARNING: default particles are scaled-time. If you pause, they may freeze unless set to unscaled simulation.
                 Time.timeScale = 0f;
             }
 
             if (delay > 0f)
             {
-                // If gameplay is paused, WaitForSeconds would also pause. Use realtime wait in that case.
                 if (pauseGameplayOnWin)
                     yield return new WaitForSecondsRealtime(delay);
                 else
                     yield return new WaitForSeconds(delay);
             }
 
-            // If we paused gameplay, restore time before switching scene (optional but sane).
             if (pauseGameplayOnWin)
                 Time.timeScale = 1f;
 
             LoadWinScene();
+        }
+
+        private static float ComputeLongestFxDurationSeconds(ParticleSystem[] systems)
+        {
+            float max = 0f;
+
+            for (int i = 0; i < systems.Length; i++)
+            {
+                ParticleSystem ps = systems[i];
+                if (ps == null) continue;
+
+                var main = ps.main;
+
+                // Approx total time until last visible particle:
+                // duration (emission window) + max startLifetime
+                float lifetimeMax = 0f;
+                var lt = main.startLifetime;
+
+                // Supports Constant / TwoConstants / Curves - take the maximum available value.
+                lifetimeMax = lt.constantMax;
+
+                float total = Mathf.Max(0f, main.duration + lifetimeMax);
+
+                // If system has startDelay, include it too
+                var sd = main.startDelay;
+                float startDelayMax = sd.constantMax;
+                total += Mathf.Max(0f, startDelayMax);
+
+                if (total > max)
+                    max = total;
+            }
+
+            return max;
         }
 
         /// <summary>
