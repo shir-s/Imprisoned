@@ -68,7 +68,7 @@ namespace JellyGame.GamePlay.Abilities.Zones
             if (tris == null || tris.Count < 3)
             {
                 // HERE IS THE PROBLEM: If we reach here, physics will not work.
-                Debug.LogError($"[DamageZoneAbility] TRIANGULATION FAILED. Destroying Zone. Point Count: {shifted.Count}");
+                //Debug.LogError($"[DamageZoneAbility] TRIANGULATION FAILED. Destroying Zone. Point Count: {shifted.Count}");
                 Object.Destroy(root);
                 return;
             }
