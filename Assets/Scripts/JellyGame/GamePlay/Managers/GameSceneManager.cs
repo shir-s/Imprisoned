@@ -1,4 +1,5 @@
 // FILEPATH: Assets/Scripts/Managers/GameSceneManager.cs
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -7,7 +8,7 @@ namespace JellyGame.GamePlay.Managers
     /// <summary>
     /// Manages scene transitions between Game, GameOver, and Win scenes.
     /// Also listens to EntityDied and triggers GameOver if the victim layer matches.
-    /// Win is triggered by listening to a Win event (recommended) or via a cheat key.
+    /// Win is triggered by listening to GameWin or via a cheat key.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
@@ -36,8 +37,20 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private LayerMask gameOverOnVictimLayers;
 
         [Header("Win Trigger")]
-        [Tooltip("If true, listens to EventManager.GameEvent.Win (you must add that enum value).")]
+        [Tooltip("If true, listens to EventManager.GameEvent.GameWin.")]
         [SerializeField] private bool listenToWinEvent = true;
+
+        [Header("Win FX (optional)")]
+        [Tooltip("If assigned, will Play() this particle system before loading the Win scene.")]
+        [SerializeField] private ParticleSystem winParticles;
+
+        [Tooltip("Delay (seconds) after win is triggered before loading the Win scene.\n" +
+                 "If winParticles is assigned and this is <= 0, we will use its main.duration.")]
+        [SerializeField] private float winSceneLoadDelay = 0f;
+
+        [Tooltip("If true, pause gameplay during win (sets Time.timeScale=0 AFTER particles are started).\n" +
+                 "Note: ParticleSystem uses scaled time by default, so if you pause, make sure your particles use unscaled time if needed.")]
+        [SerializeField] private bool pauseGameplayOnWin = false;
 
         [Header("Cheat Codes")]
         [Tooltip("Key to press to trigger GameOver (cheat code)")]
@@ -48,6 +61,8 @@ namespace JellyGame.GamePlay.Managers
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = true;
+
+        private bool _winSequenceRunning;
 
         private void OnEnable()
         {
@@ -121,8 +136,49 @@ namespace JellyGame.GamePlay.Managers
 
         private void OnWinEvent(object _)
         {
+            if (_winSequenceRunning)
+                return;
+
+            _winSequenceRunning = true;
+            StartCoroutine(WinSequence());
+        }
+
+        private IEnumerator WinSequence()
+        {
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] Win event received! Loading scene index: {winSceneBuildIndex}", this);
+                Debug.Log("[GameSceneManager] Win sequence started.", this);
+
+            // Play particles first (optional)
+            float delay = winSceneLoadDelay;
+
+            if (winParticles != null)
+            {
+                // Ensure particles are visible even if they were stopped
+                winParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                winParticles.Play(true);
+
+                if (delay <= 0f)
+                    delay = Mathf.Max(0f, winParticles.main.duration);
+            }
+
+            if (pauseGameplayOnWin)
+            {
+                // WARNING: default particles are scaled-time. If you pause, they may freeze unless set to unscaled.
+                Time.timeScale = 0f;
+            }
+
+            if (delay > 0f)
+            {
+                // If gameplay is paused, WaitForSeconds would also pause. Use realtime wait in that case.
+                if (pauseGameplayOnWin)
+                    yield return new WaitForSecondsRealtime(delay);
+                else
+                    yield return new WaitForSeconds(delay);
+            }
+
+            // If we paused gameplay, restore time before switching scene (optional but sane).
+            if (pauseGameplayOnWin)
+                Time.timeScale = 1f;
 
             LoadWinScene();
         }
