@@ -109,7 +109,7 @@ namespace JellyGame.GamePlay.Audio.Core
             activeSounds.Clear();
         }
 
-        private AudioConfig FindAudioConfig(string audioName)
+        public AudioConfig FindAudioConfig(string audioName)
         {
             var x = settings.audioConfigs.FirstOrDefault(config => config.name == audioName);
             if(x!= null)

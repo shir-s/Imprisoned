@@ -83,7 +83,8 @@ namespace JellyGame.GamePlay.Managers
         private void Start()
         {
             SoundManager.Instance.StopAllSounds();
-            SoundManager.Instance.PlaySound("Background", this.transform);        
+            if (SoundManager.Instance.FindAudioConfig("Background") != null)
+                SoundManager.Instance.PlaySound("Background", this.transform);        
         }
 
         private void PrepareWinFxForStart()
