@@ -56,6 +56,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         [Tooltip("How quickly we rotate to match a new surface normal.")]
         [SerializeField] private float surfaceAlignSpeed = 12f;
 
+        [Tooltip("If a hit normal is aligned with our current up by at least this dot, we treat it as the supporting surface.\n0.7 ~= 45 degrees cone.")]
+        [Range(0.0f, 0.99f)]
+        [SerializeField] private float supportSurfaceNormalDot = 0.7f;
+
         [Header("Wall Climbing Transition")]
         [Tooltip("Distance at which spider starts approaching the surface (ignores obstacle avoidance).")]
         [SerializeField] private float wallApproachStartDistance = 3.0f;
@@ -131,6 +135,18 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         public void SetObstacleMask(LayerMask newMask) { _activeObstacleMask = newMask; }
         public void ResetObstacleMask() { _activeObstacleMask = obstacleLayers; }
+
+        /// <summary>
+        /// Returns true if the navigator is currently in a wall climbing transition
+        /// (either Approaching or Climbing state). Used by AgentTrayStick to know
+        /// when to disable tray-sticking.
+        /// </summary>
+        public bool IsInClimbTransition => _climbState != ClimbState.None;
+
+        /// <summary>
+        /// Returns true if surface alignment (wall climbing) is enabled on this navigator.
+        /// </summary>
+        public bool IsSurfaceAlignmentEnabled => enableSurfaceAlignment && useLocalUpPlane;
 
         public void SetDestination(Vector3 targetPoint)
         {
@@ -239,6 +255,13 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             Vector3 rawTarget = _currentTarget.Value;
             Vector3 up = GetUp();
 
+            // SAFETY: Ensure we're still on a surface (prevents floating)
+            // BUT: Skip this during wall transitions - the climbing system handles positioning then
+            if (enableSurfaceAlignment && !_isHopping && _climbState == ClimbState.None)
+            {
+                EnsureGrounded();
+            }
+
             // First, update surface alignment (keeps spider stuck to current surface)
             if (enableSurfaceAlignment)
                 UpdateSurfaceAlignment(dt);
@@ -265,55 +288,115 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                     float distToSurface = Vector3.Distance(transform.position, surfacePoint);
                     
                     // Determine if we're going TO a floor or TO a wall
-                    bool targetIsFloor = Vector3.Angle(surfaceNormal, Vector3.up) < 45f;
+                    bool targetIsWall = Vector3.Angle(surfaceNormal, Vector3.up) > 45f;
+                    bool targetIsFloor = !targetIsWall;
+                    bool spiderOnFloor = Vector3.Angle(transform.up, Vector3.up) < 45f;
 
                     if (debugLogs && Time.frameCount % 30 == 0)
                     {
                         string targetType = targetIsFloor ? "FLOOR" : "WALL";
-                        Debug.Log($"[Spider] Approaching {targetType}, dist: {distToSurface:F2}, State: {_climbState}");
+                        string currentSurface = spiderOnFloor ? "floor" : "wall";
+                        Debug.Log($"[Spider] On {currentSurface}, approaching {targetType}, dist to approach point: {distToSurface:F2}, State: {_climbState}");
                     }
 
-                    // State machine for surface transitions
-                    if (distToSurface < wallClimbStartDistance)
+                    // SPECIAL CASE: Spider on floor approaching wall
+                    // surfacePoint is at the BASE of the wall
+                    // We need to detect when we're AT the base and should start climbing
+                    if (targetIsWall && spiderOnFloor)
                     {
-                        // TRANSITION STATE: Very close to new surface, rotate onto it
-                        _climbState = ClimbState.Climbing;
-                        LockSurfaceNormal(surfaceNormal);
-                        
-                        // Calculate movement direction based on transition type
-                        finalDir = CalculateTransitionDirection(surfacePoint, surfaceNormal, rawTarget, targetIsFloor);
-                        
-                        if (drawSurfaceRays)
+                        // Check if we're close to the wall base (horizontally)
+                        if (distToSurface < wallClimbStartDistance)
                         {
-                            Debug.DrawLine(transform.position, surfacePoint, targetIsFloor ? Color.green : Color.red);
-                            Debug.DrawRay(transform.position, finalDir * 2f, Color.white);
+                            // We're at the base of the wall - start climbing!
+                            _climbState = ClimbState.Climbing;
+                            LockSurfaceNormal(surfaceNormal);
+                            
+                            // Direction should be toward the wall (and up it)
+                            Vector3 toWall = surfacePoint - transform.position;
+                            Vector3 toWallFlat = Vector3.ProjectOnPlane(toWall, Vector3.up);
+                            
+                            if (toWallFlat.sqrMagnitude > 0.001f)
+                            {
+                                finalDir = toWallFlat.normalized;
+                            }
+                            else
+                            {
+                                // Already at the wall, move toward waypoint projected onto wall
+                                Vector3 toWaypoint = rawTarget - transform.position;
+                                finalDir = toWaypoint.normalized;
+                            }
+                            
+                            if (debugLogs)
+                                Debug.Log($"[Spider] CLIMBING - At wall base, starting wall climb. Dir: {finalDir}");
+                            
+                            if (drawSurfaceRays)
+                            {
+                                Debug.DrawLine(transform.position, surfacePoint, Color.red);
+                                Debug.DrawRay(transform.position, finalDir * 2f, Color.white);
+                            }
                         }
-                    }
-                    else if (distToSurface < wallApproachStartDistance)
-                    {
-                        // APPROACH STATE: Close enough, move toward surface, ignore obstacle avoidance
-                        _climbState = ClimbState.Approaching;
-                        
-                        // Move toward the surface contact point on our current plane
-                        Vector3 toSurface = surfacePoint - transform.position;
-                        Vector3 toSurfacePlanar = Vector3.ProjectOnPlane(toSurface, up);
-                        
-                        if (toSurfacePlanar.sqrMagnitude > 0.01f)
-                            finalDir = toSurfacePlanar.normalized;
+                        else if (distToSurface < wallApproachStartDistance)
+                        {
+                            // Approaching the wall base
+                            _climbState = ClimbState.Approaching;
+                            
+                            Vector3 toSurface = surfacePoint - transform.position;
+                            Vector3 toSurfacePlanar = Vector3.ProjectOnPlane(toSurface, up);
+                            
+                            if (toSurfacePlanar.sqrMagnitude > 0.01f)
+                                finalDir = toSurfacePlanar.normalized;
+                            else
+                                finalDir = toSurface.normalized;
+                            
+                            if (debugLogs && Time.frameCount % 30 == 0)
+                                Debug.Log($"[Spider] APPROACHING wall base. Dir: {finalDir}");
+                            
+                            if (drawSurfaceRays)
+                                Debug.DrawLine(transform.position, surfacePoint, Color.yellow);
+                        }
                         else
                         {
-                            // We're directly above/below the surface point
-                            // Use world-space direction toward the surface
-                            finalDir = toSurface.normalized;
+                            _climbState = ClimbState.None;
                         }
-                        
-                        if (drawSurfaceRays)
-                            Debug.DrawLine(transform.position, surfacePoint, Color.yellow);
                     }
+                    // Standard transitions (wall to floor, wall to wall, etc.)
                     else
                     {
-                        // FAR STATE: Use normal navigation toward the surface
-                        _climbState = ClimbState.None;
+                        if (distToSurface < wallClimbStartDistance)
+                        {
+                            // TRANSITION STATE: Very close to new surface, rotate onto it
+                            _climbState = ClimbState.Climbing;
+                            LockSurfaceNormal(surfaceNormal);
+                            
+                            // Calculate movement direction based on transition type
+                            finalDir = CalculateTransitionDirection(surfacePoint, surfaceNormal, rawTarget, targetIsFloor);
+                            
+                            if (drawSurfaceRays)
+                            {
+                                Debug.DrawLine(transform.position, surfacePoint, targetIsFloor ? Color.green : Color.red);
+                                Debug.DrawRay(transform.position, finalDir * 2f, Color.white);
+                            }
+                        }
+                        else if (distToSurface < wallApproachStartDistance)
+                        {
+                            // APPROACH STATE: Close enough, move toward surface
+                            _climbState = ClimbState.Approaching;
+                            
+                            Vector3 toSurface = surfacePoint - transform.position;
+                            Vector3 toSurfacePlanar = Vector3.ProjectOnPlane(toSurface, up);
+                            
+                            if (toSurfacePlanar.sqrMagnitude > 0.01f)
+                                finalDir = toSurfacePlanar.normalized;
+                            else
+                                finalDir = toSurface.normalized;
+                            
+                            if (drawSurfaceRays)
+                                Debug.DrawLine(transform.position, surfacePoint, Color.yellow);
+                        }
+                        else
+                        {
+                            _climbState = ClimbState.None;
+                        }
                     }
                 }
                 else
@@ -616,13 +699,69 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         /// <summary>
         /// Given a surface collider and a point on a specific face (with its normal),
         /// find the best approach point for the spider on that SAME FACE.
+        /// 
+        /// For WALLS: Returns a point at the BASE of the wall (floor level) so the spider
+        /// walks to the wall first, then climbs up.
+        /// 
+        /// For FLOORS: Returns the closest point on the floor surface.
         /// </summary>
         private Vector3 FindApproachPointOnSameFace(Collider surfaceCol, Vector3 pointOnFace, Vector3 faceNormal)
         {
-            // Project the spider's position onto the plane of the target face
-            // Then find the closest point on the collider that's on that face
-
-            // First, cast a ray from the spider toward the face
+            bool targetIsWall = Vector3.Angle(faceNormal, Vector3.up) > 45f;
+            bool spiderOnFloor = Vector3.Angle(transform.up, Vector3.up) < 45f;
+            
+            // CASE 1: Spider on floor, waypoint on wall
+            // We need to find the BASE of the wall (where floor meets wall)
+            if (targetIsWall && spiderOnFloor)
+            {
+                // Cast a ray from spider toward the wall at floor level
+                Vector3 spiderPos = transform.position;
+                Vector3 toWaypoint = pointOnFace - spiderPos;
+                Vector3 toWaypointFlat = new Vector3(toWaypoint.x, 0f, toWaypoint.z); // Flatten to XZ
+                
+                if (toWaypointFlat.sqrMagnitude > 0.01f)
+                {
+                    Vector3 rayDir = toWaypointFlat.normalized;
+                    Vector3 rayOrigin = spiderPos + Vector3.up * 0.3f; // Slightly above floor
+                    
+                    if (Physics.Raycast(rayOrigin, rayDir, out RaycastHit wallHit, toWaypointFlat.magnitude + 5f, surfaceLayers, QueryTriggerInteraction.Ignore))
+                    {
+                        // Check if we hit the wall (normal is horizontal-ish)
+                        if (Vector3.Angle(wallHit.normal, Vector3.up) > 45f)
+                        {
+                            // Found the wall! Return a point at the base
+                            Vector3 basePoint = wallHit.point;
+                            basePoint.y = spiderPos.y; // Keep at spider's floor level
+                            
+                            // Offset slightly away from wall so spider doesn't clip
+                            basePoint += wallHit.normal * (bodyRadius + 0.1f);
+                            
+                            if (drawSurfaceRays)
+                            {
+                                Debug.DrawLine(transform.position, basePoint, Color.green, 0.5f);
+                                Debug.DrawLine(basePoint, pointOnFace, Color.yellow, 0.5f);
+                            }
+                            
+                            if (debugLogs && Time.frameCount % 60 == 0)
+                                Debug.Log($"[Spider] Wall approach: returning base point at floor level");
+                            
+                            return basePoint;
+                        }
+                    }
+                }
+                
+                // Fallback: use closest point on collider projected to floor
+                Vector3 closestOnWall = surfaceCol.ClosestPoint(spiderPos);
+                closestOnWall.y = spiderPos.y;
+                
+                if (debugLogs && Time.frameCount % 60 == 0)
+                    Debug.Log($"[Spider] Wall approach fallback: using closest point at floor level");
+                
+                return closestOnWall;
+            }
+            
+            // CASE 2: Spider on wall, waypoint on floor (or both on same type)
+            // Cast a ray from the spider toward the face
             Vector3 toFace = pointOnFace - transform.position;
             
             // Check if there's a clear line of sight to the face
@@ -639,18 +778,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             }
 
             // We can't see the target face directly (it's on the other side of the wall)
-            // Find the edge of the wall and return a point that leads around it
-            
             // Project spider position onto the face plane
             Plane facePlane = new Plane(faceNormal, pointOnFace);
             Vector3 projectedSpider = transform.position - faceNormal * facePlane.GetDistanceToPoint(transform.position);
             
             // The approach point should be at the edge of the collider, on the target face side
-            // For now, return the closest point on the collider from the projected position
             Vector3 approachPoint = surfaceCol.ClosestPoint(projectedSpider);
             
             // Verify this point is actually on the correct face by checking normal
-            Vector3 checkDir = (approachPoint - (approachPoint + faceNormal * 0.5f)).normalized;
             if (Physics.Raycast(approachPoint + faceNormal * 0.5f, -faceNormal, out RaycastHit checkHit, 1f, surfaceLayers))
             {
                 if (Vector3.Angle(checkHit.normal, faceNormal) < 30f)
@@ -661,10 +796,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
 
-            // If we still can't find a good point on the correct face,
-            // return the waypoint's surface point as fallback (spider will need to go around)
+            // Fallback: return the waypoint's surface point
             if (debugLogs)
-                Debug.Log("[Spider] Can't find direct approach to target face, waypoint may require going around obstacle");
+                Debug.Log("[Spider] Can't find direct approach to target face, using waypoint position");
             
             if (drawSurfaceRays)
                 Debug.DrawLine(transform.position, pointOnFace, Color.red, 0.5f);
@@ -939,7 +1073,17 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRot, turnSpeed * dt);
 
             float currentSpeed = moveSpeed * _speedMultiplier;
-            transform.position += transform.forward * currentSpeed * dt;
+            Vector3 movement = transform.forward * currentSpeed * dt;
+            
+            // Apply movement with surface grounding
+            if (enableSurfaceAlignment)
+            {
+                ApplyGroundedMovement(movement);
+            }
+            else
+            {
+                transform.position += movement;
+            }
         }
 
         private void MoveAndRotateHopping(Vector3 dir, float dt)
@@ -961,6 +1105,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 Vector3 pos = Vector3.Lerp(_hopStartPos, _hopEndPos, t);
                 float arc = Mathf.Sin(t * Mathf.PI) * hopHeight;
                 pos += _hopUp * arc;
+
+                // Ground the hop end position
+                if (enableSurfaceAlignment && t >= 1f)
+                {
+                    pos = GroundPositionToSurface(pos);
+                }
 
                 transform.position = pos;
 
@@ -986,7 +1136,292 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (planarForward.sqrMagnitude < 0.0001f)
                 planarForward = dir;
 
-            _hopEndPos = _hopStartPos + planarForward * hopDistance;
+            Vector3 hopEndCandidate = _hopStartPos + planarForward * hopDistance;
+            
+            // Ground the hop destination
+            if (enableSurfaceAlignment)
+            {
+                _hopEndPos = GroundPositionToSurface(hopEndCandidate);
+            }
+            else
+            {
+                _hopEndPos = hopEndCandidate;
+            }
+        }
+
+        /// <summary>
+        /// Applies movement while keeping the spider grounded to surfaces.
+        /// Prevents floating off into space or clipping through geometry.
+        /// </summary>
+        private void ApplyGroundedMovement(Vector3 movement)
+        {
+            // During wall transitions, use simpler movement without strict grounding
+            // The climbing system and surface alignment handle positioning
+            if (_climbState != ClimbState.None)
+            {
+                transform.position += movement;
+                return;
+            }
+            
+            Vector3 currentPos = transform.position;
+            Vector3 up = transform.up;
+            
+            // Calculate target position
+            Vector3 targetPos = currentPos + movement;
+            
+            // Step 1: Check if movement would clip through a surface (wall in front)
+            float moveDist = movement.magnitude;
+            if (moveDist > 0.001f)
+            {
+                Vector3 moveDir = movement.normalized;
+                
+                // Raycast in movement direction to check for walls
+                if (Physics.Raycast(currentPos, moveDir, out RaycastHit wallHit, moveDist + bodyRadius, surfaceLayers, QueryTriggerInteraction.Ignore))
+                {
+                    // Check if this is a wall (not the floor we're walking on)
+                    float dotWithUp = Vector3.Dot(wallHit.normal, up);
+                    
+                    if (dotWithUp < supportSurfaceNormalDot) // It's a wall, not floor
+                    {
+                        // Slide along the wall instead of stopping
+                        Vector3 slideDir = Vector3.ProjectOnPlane(moveDir, wallHit.normal).normalized;
+                        float slideAmount = moveDist * Mathf.Max(0, Vector3.Dot(moveDir, slideDir));
+                        targetPos = currentPos + slideDir * slideAmount;
+                        
+                        if (debugLogs && Time.frameCount % 30 == 0)
+                            Debug.Log($"[Spider] Sliding along wall");
+                    }
+                }
+            }
+            
+            // Step 2: Ground the target position to the nearest surface
+            targetPos = GroundPositionToSurface(targetPos);
+            
+            // Step 3: Validate the final position is on a surface
+            if (!IsPositionOnSurface(targetPos))
+            {
+                // Can't find a valid surface at target - try to stay grounded at current position
+                if (debugLogs)
+                    Debug.LogWarning("[Spider] Movement would leave surface, staying put");
+                
+                // Try to ground current position instead
+                Vector3 groundedCurrent = GroundPositionToSurface(currentPos);
+                if (IsPositionOnSurface(groundedCurrent))
+                {
+                    transform.position = groundedCurrent;
+                }
+                // else: stay where we are
+                return;
+            }
+            
+            transform.position = targetPos;
+        }
+
+        /// <summary>
+        /// Projects a position onto the nearest surface along the spider's current -up direction.
+        /// Returns the grounded position, or the original if no surface is found nearby.
+        /// </summary>
+        private Vector3 GroundPositionToSurface(Vector3 position)
+        {
+            Vector3 up = transform.up;
+            float searchDist = surfaceStickDistance * 2f;
+            
+            // Primary: raycast from above the position downward (along -up)
+            Vector3 rayOrigin = position + up * surfaceStickDistance;
+            
+            if (Physics.Raycast(rayOrigin, -up, out RaycastHit hit, searchDist, surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                // Found surface - position spider slightly above it
+                Vector3 groundedPos = hit.point + hit.normal * (bodyRadius * 0.1f);
+                
+                if (drawSurfaceRays)
+                    Debug.DrawLine(rayOrigin, hit.point, Color.green, 0.1f);
+                
+                return groundedPos;
+            }
+            
+            // Secondary: try world down (for when transitioning between surfaces)
+            if (Physics.Raycast(position + Vector3.up * 2f, Vector3.down, out hit, 5f, surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                Vector3 groundedPos = hit.point + hit.normal * (bodyRadius * 0.1f);
+                
+                if (drawSurfaceRays)
+                    Debug.DrawLine(position, hit.point, Color.yellow, 0.1f);
+                
+                return groundedPos;
+            }
+            
+            // Tertiary: try multiple directions to find ANY nearby surface
+            Vector3[] searchDirs = new Vector3[]
+            {
+                -up,
+                Vector3.down,
+                -transform.forward,
+                transform.forward,
+                -transform.right,
+                transform.right
+            };
+            
+            float bestDist = float.MaxValue;
+            Vector3 bestPos = position;
+            bool found = false;
+            
+            foreach (var dir in searchDirs)
+            {
+                if (Physics.Raycast(position, dir, out hit, searchDist, surfaceLayers, QueryTriggerInteraction.Ignore))
+                {
+                    if (hit.distance < bestDist)
+                    {
+                        bestDist = hit.distance;
+                        bestPos = hit.point + hit.normal * (bodyRadius * 0.1f);
+                        found = true;
+                    }
+                }
+            }
+            
+            if (found)
+            {
+                if (drawSurfaceRays)
+                    Debug.DrawLine(position, bestPos, Color.cyan, 0.1f);
+                return bestPos;
+            }
+            
+            // No surface found - return original position (will be caught by validation)
+            if (debugLogs && Time.frameCount % 60 == 0)
+                Debug.LogWarning("[Spider] GroundPositionToSurface: No surface found!");
+            
+            return position;
+        }
+
+        /// <summary>
+        /// Checks if a position is on or very close to a valid surface.
+        /// </summary>
+        private bool IsPositionOnSurface(Vector3 position)
+        {
+            Vector3 up = transform.up;
+            float checkDist = bodyRadius + 0.3f;
+            
+            // Check if there's a surface below us (along -up)
+            if (Physics.Raycast(position + up * 0.1f, -up, checkDist, surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                return true;
+            }
+            
+            // Also check world down for transitioning spiders
+            if (Physics.Raycast(position + Vector3.up * 0.1f, Vector3.down, checkDist, surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                return true;
+            }
+            
+            // Check if we're touching any surface
+            Collider[] nearby = Physics.OverlapSphere(position, bodyRadius * 0.5f, surfaceLayers, QueryTriggerInteraction.Ignore);
+            return nearby.Length > 0;
+        }
+
+        /// <summary>
+        /// Called every frame to ensure the spider stays grounded.
+        /// If the spider is floating, it will be snapped back to the nearest surface.
+        /// </summary>
+        private void EnsureGrounded()
+        {
+            // Skip if we're in the middle of a hop (hopping handles its own grounding)
+            if (_isHopping) return;
+            
+            Vector3 currentPos = transform.position;
+            
+            // Check if we're currently on a surface
+            if (IsPositionOnSurface(currentPos))
+                return; // All good
+            
+            // We're floating! Try to find a surface and snap to it
+            if (debugLogs)
+                Debug.LogWarning("[Spider] Not on surface! Attempting to re-ground...");
+            
+            Vector3 groundedPos = GroundPositionToSurface(currentPos);
+            
+            if (IsPositionOnSurface(groundedPos))
+            {
+                transform.position = groundedPos;
+                
+                if (debugLogs)
+                    Debug.Log("[Spider] Successfully re-grounded");
+            }
+            else
+            {
+                // Still can't find a surface - try a broader search
+                Vector3 foundPos;
+                if (TryFindAnySurfaceNearby(currentPos, out foundPos, out Vector3 surfaceNormal))
+                {
+                    transform.position = foundPos;
+                    
+                    // Also align to this surface
+                    _lockedSurfaceNormal = surfaceNormal;
+                    _surfaceNormalUnlockTime = Time.time + 0.5f;
+                    
+                    if (debugLogs)
+                        Debug.Log("[Spider] Re-grounded via broad search");
+                }
+                else
+                {
+                    // Last resort: stop movement to prevent further floating
+                    if (debugLogs)
+                        Debug.LogError("[Spider] Cannot find any surface! Stopping.");
+                    
+                    // Don't call Stop() as that clears the target - just prevent movement this frame
+                }
+            }
+        }
+
+        /// <summary>
+        /// Performs a broad search for any nearby surface when the spider is lost.
+        /// </summary>
+        private bool TryFindAnySurfaceNearby(Vector3 position, out Vector3 surfacePosition, out Vector3 surfaceNormal)
+        {
+            surfacePosition = position;
+            surfaceNormal = Vector3.up;
+            
+            float searchRadius = 5f; // Broad search
+            
+            // Try overlap sphere first
+            Collider[] nearby = Physics.OverlapSphere(position, searchRadius, surfaceLayers, QueryTriggerInteraction.Ignore);
+            
+            if (nearby.Length == 0)
+                return false;
+            
+            // Find the closest surface
+            float bestDist = float.MaxValue;
+            Collider bestCol = null;
+            
+            foreach (var col in nearby)
+            {
+                Vector3 closest = col.ClosestPoint(position);
+                float dist = Vector3.Distance(position, closest);
+                
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestCol = col;
+                }
+            }
+            
+            if (bestCol == null)
+                return false;
+            
+            // Get the surface point and normal
+            Vector3 closestPoint = bestCol.ClosestPoint(position);
+            Vector3 toSurface = (closestPoint - position).normalized;
+            
+            if (Physics.Raycast(position, toSurface, out RaycastHit hit, bestDist + 1f, surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                surfacePosition = hit.point + hit.normal * (bodyRadius * 0.1f);
+                surfaceNormal = hit.normal;
+                return true;
+            }
+            
+            // Fallback: just use closest point
+            surfacePosition = closestPoint + Vector3.up * (bodyRadius * 0.1f);
+            surfaceNormal = Vector3.up;
+            return true;
         }
 
         private void UpdateSurfaceAlignment(float dt)

@@ -256,21 +256,29 @@ namespace JellyGame.GamePlay.Enemy.AI
 
         /// <summary>
         /// Determines if the spider is currently climbing a wall (not on the tray floor).
-        /// Uses the angle between transform.up and tray.up to detect this.
+        /// Uses multiple methods to detect this:
+        /// 1. Angle between transform.up and tray.up
+        /// 2. SteeringNavigator's internal climb state (if available)
         /// </summary>
         private bool IsCurrentlyWallClimbing()
         {
             if (!tray)
                 return false;
 
-            // Method 1: Check angle between spider's up and tray's up
+            // Method 1: Check if SteeringNavigator is in a climbing/approaching state
+            // This catches the transition BEFORE the spider has rotated
+            if (_navigator != null && _navigator.IsInClimbTransition)
+            {
+                if (debugLogs && Time.frameCount % 60 == 0)
+                    Debug.Log("[AgentTrayStick] Navigator reports climb transition active");
+                return true;
+            }
+
+            // Method 2: Check angle between spider's up and tray's up
+            // This catches when the spider is already rotated onto the wall
             float angle = Vector3.Angle(transform.up, tray.up);
             if (angle > wallClimbAngleThreshold)
                 return true;
-
-            // Method 2 (optional): If we have a SteeringNavigator, we could also check its internal state
-            // This would require exposing the climb state from SteeringNavigator
-            // For now, the angle check is sufficient
 
             return false;
         }

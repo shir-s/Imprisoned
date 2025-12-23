@@ -20571,8 +20571,8 @@ MonoBehaviour:
   waypoints:
   - {fileID: 8557988584903246046}
   - {fileID: 5508152598470888574}
-  waitTimeAtWaypoint: 1
-  arrivalThreshold: 0.25
+  waitTimeAtWaypoint: 0.5
+  arrivalThreshold: 1
   debugLogs: 0
 --- !u!1 &674463785322572972
 GameObject:
@@ -40587,13 +40587,14 @@ MonoBehaviour:
   surfaceStickDistance: 1.5
   forwardSurfaceProbeDistance: 1
   surfaceAlignSpeed: 12
+  supportSurfaceNormalDot: 0.7
   wallApproachStartDistance: 3
   wallClimbStartDistance: 0.8
   surfaceAngleThreshold: 30
   waypointSurfaceSearchRadius: 2
   waypointSurfaceMaxSearchRadius: 8
   waypointSurfaceSearchStep: 2
-  surfaceAnchorOffset: 0.05
+  surfaceAnchorOffset: 0.3
   surfaceNormalLockSeconds: 0.25
   drawSensorRays: 1
   drawDangerRays: 1
