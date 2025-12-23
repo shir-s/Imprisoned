@@ -1,3 +1,5 @@
+// FILEPATH: Assets/Scripts/AI/AgentTrayStick.cs
+using JellyGame.GamePlay.Enemy.AI.Movement;
 using JellyGame.GamePlay.Map;
 using UnityEngine;
 
@@ -7,12 +9,8 @@ namespace JellyGame.GamePlay.Enemy.AI
     /// IMPROVED VERSION: Keeps an enemy "stuck" to a tilted tray BUT respects movement
     /// from behaviors (like AttackBehavior).
     /// 
-    /// Key improvements:
-    /// - Better raycast origin calculation (always from current position + offset)
-    /// - Validates that raycasts actually hit the tray
-    /// - Smoother Y transitions to prevent sudden jumps
-    /// - Better handling of edge cases (no tray found, out of bounds)
-    /// - Optional debug visualization
+    /// NEW: Automatically disables tray-sticking when SteeringNavigator is in wall-climbing mode.
+    /// This allows spiders to climb walls without being forced back onto the tray.
     /// </summary>
     [DisallowMultipleComponent]
     public class AgentTrayStick : MonoBehaviour
@@ -60,6 +58,14 @@ namespace JellyGame.GamePlay.Enemy.AI
         [Tooltip("If using ProjectToTray fallback, how far to cast upward looking for tray.")]
         [SerializeField] private float upwardRayDistance = 10f;
 
+        [Header("Wall Climbing Integration")]
+        [Tooltip("If true, automatically disables tray-sticking when SteeringNavigator is climbing walls.")]
+        [SerializeField] private bool respectWallClimbing = true;
+        
+        [Tooltip("Angle threshold (degrees) between transform.up and tray.up to consider 'off tray'. " +
+                 "When the spider's up differs from tray's up by more than this, tray-sticking is disabled.")]
+        [SerializeField] private float wallClimbAngleThreshold = 25f;
+
         [Header("Debug")]
         [SerializeField] private bool debugRays = false;
         [SerializeField] private bool debugBoundsGizmos = false;
@@ -78,6 +84,10 @@ namespace JellyGame.GamePlay.Enemy.AI
         private bool _hasValidTrayY;
         private int _consecutiveMisses;
         private const int MAX_CONSECUTIVE_MISSES = 5;
+
+        // Wall climbing detection
+        private SteeringNavigator _navigator;
+        private bool _isWallClimbing;
 
         private void Awake()
         {
@@ -99,6 +109,9 @@ namespace JellyGame.GamePlay.Enemy.AI
                 }
             }
 
+            // Cache the SteeringNavigator for wall-climbing detection
+            _navigator = GetComponent<SteeringNavigator>();
+
             _lastValidTrayY = transform.position.y;
             _hasValidTrayY = false;
         }
@@ -106,6 +119,8 @@ namespace JellyGame.GamePlay.Enemy.AI
         /// <summary>
         /// CRITICAL: We now respect the position that was set by behaviors in Update().
         /// We only adjust Y and clamp to bounds, we don't override the XZ movement.
+        /// 
+        /// NEW: We also check if the spider is wall-climbing and skip tray-sticking if so.
         /// </summary>
         private void LateUpdate()
         {
@@ -116,6 +131,30 @@ namespace JellyGame.GamePlay.Enemy.AI
                     Debug.LogWarning("[EnemyTrayStick] No tray assigned!", this);
                 }
                 return;
+            }
+
+            // Check if we should skip tray-sticking due to wall climbing
+            if (respectWallClimbing && IsCurrentlyWallClimbing())
+            {
+                _isWallClimbing = true;
+                
+                if (debugLogs && Time.frameCount % 60 == 0)
+                {
+                    Debug.Log("[EnemyTrayStick] Wall climbing detected - skipping tray stick", this);
+                }
+                return; // Don't modify position or rotation while wall climbing
+            }
+            
+            // If we WERE wall climbing but now we're back on the tray, smoothly transition
+            if (_isWallClimbing)
+            {
+                _isWallClimbing = false;
+                _currentYVelocity = 0f; // Reset smoothing to avoid jerky transitions
+                
+                if (debugLogs)
+                {
+                    Debug.Log("[EnemyTrayStick] Returned to tray from wall climbing", this);
+                }
             }
 
             Vector3 trayUp = tray.up;
@@ -216,20 +255,35 @@ namespace JellyGame.GamePlay.Enemy.AI
         }
 
         /// <summary>
+        /// Determines if the spider is currently climbing a wall (not on the tray floor).
+        /// Uses the angle between transform.up and tray.up to detect this.
+        /// </summary>
+        private bool IsCurrentlyWallClimbing()
+        {
+            if (!tray)
+                return false;
+
+            // Method 1: Check angle between spider's up and tray's up
+            float angle = Vector3.Angle(transform.up, tray.up);
+            if (angle > wallClimbAngleThreshold)
+                return true;
+
+            // Method 2 (optional): If we have a SteeringNavigator, we could also check its internal state
+            // This would require exposing the climb state from SteeringNavigator
+            // For now, the angle check is sufficient
+
+            return false;
+        }
+
+        /// <summary>
         /// Find the Y position of the tray surface at the given XZ position.
         /// Returns the Y value and whether a valid hit was found.
-        /// 
-        /// Strategy:
-        /// 1. Cast downward from above the position
-        /// 2. Optionally validate that we hit the tray object
-        /// 3. Add surface offset
         /// </summary>
         private float FindTrayYAtPosition(Vector3 position, Vector3 trayUp, out bool hitFound)
         {
             hitFound = false;
 
             // Start the ray ABOVE the current position
-            // Use a fixed offset based on rayDistance to ensure we're always above the tray
             Vector3 rayOrigin = position + trayUp * rayDistance;
             Vector3 rayDir = -trayUp;
 
@@ -252,7 +306,7 @@ namespace JellyGame.GamePlay.Enemy.AI
 
             if (!didHit)
             {
-                return position.y; // Fallback to current Y
+                return position.y;
             }
 
             // Optional: Validate that we actually hit the tray object
@@ -269,18 +323,14 @@ namespace JellyGame.GamePlay.Enemy.AI
                     {
                         Debug.LogWarning($"[EnemyTrayStick] Hit non-tray object: {hit.collider.name}", this);
                     }
-                    return position.y; // Not the tray, maintain current Y
+                    return position.y;
                 }
             }
 
             hitFound = true;
 
-            // Calculate final Y with offset
             float trayY = hit.point.y;
-            float offsetDistance = surfaceOffset;
-        
-            // If tray is tilted, we need to offset along the tray's up direction, not world up
-            Vector3 offsetVector = trayUp * offsetDistance;
+            Vector3 offsetVector = trayUp * surfaceOffset;
             Vector3 finalPosition = hit.point + offsetVector;
 
             return finalPosition.y;
@@ -294,7 +344,7 @@ namespace JellyGame.GamePlay.Enemy.AI
             trayY = position.y;
 
             Vector3 rayOrigin = position;
-            Vector3 rayDir = trayUp; // Cast upward
+            Vector3 rayDir = trayUp;
 
             if (debugRays)
             {
@@ -318,7 +368,6 @@ namespace JellyGame.GamePlay.Enemy.AI
                 return false;
             }
 
-            // Validate hit if enabled
             if (validateTrayHit)
             {
                 Transform hitTransform = hit.collider.transform;
@@ -332,7 +381,6 @@ namespace JellyGame.GamePlay.Enemy.AI
                 }
             }
 
-            // Found tray above - calculate Y with offset
             Vector3 offsetVector = trayUp * surfaceOffset;
             Vector3 finalPosition = hit.point + offsetVector;
             trayY = finalPosition.y;
@@ -348,14 +396,11 @@ namespace JellyGame.GamePlay.Enemy.AI
             if (!tray)
                 return worldPos;
 
-            // Convert to tray local
             Vector3 local = tray.InverseTransformPoint(worldPos);
 
-            // Clamp XZ
             local.x = Mathf.Clamp(local.x, minLocalX, maxLocalX);
             local.z = Mathf.Clamp(local.z, minLocalZ, maxLocalZ);
 
-            // Back to world
             return tray.TransformPoint(local);
         }
 
@@ -364,13 +409,11 @@ namespace JellyGame.GamePlay.Enemy.AI
         /// </summary>
         private void AlignRotation(Vector3 trayUp)
         {
-            // Project current forward onto tray plane so we don't flip randomly
             Vector3 fwd = transform.forward;
             Vector3 projectedFwd = Vector3.ProjectOnPlane(fwd, trayUp).normalized;
 
             if (projectedFwd.sqrMagnitude < 1e-4f)
             {
-                // Fall back to tray forward if our own forward is too vertical
                 projectedFwd = Vector3.ProjectOnPlane(tray.forward, trayUp).normalized;
             }
 
@@ -380,7 +423,6 @@ namespace JellyGame.GamePlay.Enemy.AI
             }
             else
             {
-                // As a last resort, just set up = trayUp
                 transform.up = trayUp;
             }
         }
@@ -397,7 +439,12 @@ namespace JellyGame.GamePlay.Enemy.AI
         /// <summary>
         /// Check if the enemy is currently on the tray surface.
         /// </summary>
-        public bool IsOnTray => _consecutiveMisses == 0;
+        public bool IsOnTray => _consecutiveMisses == 0 && !_isWallClimbing;
+
+        /// <summary>
+        /// Check if the enemy is currently climbing a wall.
+        /// </summary>
+        public bool IsWallClimbing => _isWallClimbing;
 
         /// <summary>
         /// Manually set a new tray (useful for multi-tray levels).
@@ -420,6 +467,10 @@ namespace JellyGame.GamePlay.Enemy.AI
         public void ForceUpdate()
         {
             if (!tray)
+                return;
+
+            // Don't force update while wall climbing
+            if (_isWallClimbing)
                 return;
 
             Vector3 currentPos = transform.position;
@@ -451,7 +502,6 @@ namespace JellyGame.GamePlay.Enemy.AI
             if (!tray)
                 return;
 
-            // Draw bounds
             if (debugBoundsGizmos && useLocalBounds)
             {
                 Vector3 a = tray.TransformPoint(new Vector3(minLocalX, 0f, minLocalZ));
@@ -466,10 +516,16 @@ namespace JellyGame.GamePlay.Enemy.AI
                 Gizmos.DrawLine(d, a);
             }
 
-            // Draw status indicator
             if (Application.isPlaying)
             {
-                Gizmos.color = _consecutiveMisses > 0 ? Color.red : Color.green;
+                // Red = wall climbing, Yellow = lost tray, Green = on tray
+                if (_isWallClimbing)
+                    Gizmos.color = Color.blue;
+                else if (_consecutiveMisses > 0)
+                    Gizmos.color = Color.red;
+                else
+                    Gizmos.color = Color.green;
+                    
                 Gizmos.DrawWireSphere(transform.position, 0.2f);
             }
         }
