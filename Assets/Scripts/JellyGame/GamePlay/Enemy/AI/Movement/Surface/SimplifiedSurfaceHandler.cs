@@ -4,11 +4,10 @@ using UnityEngine;
 namespace JellyGame.GamePlay.Enemy.AI.Movement
 {
     /// <summary>
-    /// v22 - Fixed falling during transition:
-    /// - Position is now FROZEN during transition (only rotation changes)
-    /// - GroundPosition() returns the frozen position during transition
-    /// - ShouldBlockMovement returns true during transition to stop locomotion
-    /// - Position only updates at the end via ForceGroundToCurrentSurface()
+    /// v26 - Fixed surface continuation check for walls:
+    /// - CheckSurfaceExistsBelow now checks if the SAME surface continues ahead
+    /// - For walls: if spider is near bottom (Y close to floor level), trigger floor check
+    /// - Added proactive floor detection when spider Y is low enough
     /// </summary>
     public class SimplifiedSurfaceHandler : ISurfaceHandler, ISurfaceProvider
     {
@@ -26,12 +25,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private Vector3 _lockedStartNormal = Vector3.up;
         private float _transitionProgress = 0f;
         
-        // Position management during transition
         private Vector3 _preTransitionPosition = Vector3.zero;
-        private Vector3 _frozenPosition = Vector3.zero; // Position to maintain during transition
+        private Vector3 _frozenPosition = Vector3.zero;
 
         private float _transitionCooldownTimer = 0f;
-        private const float TRANSITION_COOLDOWN = 0.3f;
+        private const float TRANSITION_COOLDOWN = 0.5f;
         private const float TRANSITION_DURATION = 0.35f;
 
         // Logging
@@ -49,10 +47,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         public bool IsInTransition => _isTransitioning;
         public ClimbTransitionState TransitionState => _isTransitioning ? ClimbTransitionState.Climbing : ClimbTransitionState.None;
         public Vector3 TransitionMoveDirection => _lockedMoveDirection;
-        
-        /// <summary>
-        /// Block movement during transitions to prevent falling/drifting.
-        /// </summary>
         public bool ShouldBlockMovement => _isTransitioning;
         #endregion
 
@@ -93,8 +87,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private void ContinueTransition(float deltaTime)
         {
             _transitionProgress += deltaTime / TRANSITION_DURATION;
-            
-            // IMPORTANT: Keep position frozen during transition!
             _transform.position = _frozenPosition;
 
             if (_transitionProgress >= 1f)
@@ -111,12 +103,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
                 if (_debugLogs)
                 {
-                    Debug.Log($"[Surface] ✓ COMPLETE: now on {V(_currentNormal)} | preTransPos={V(_preTransitionPosition)}", _transform);
+                    Debug.Log($"[Surface] ✓ COMPLETE: now on {V(_currentNormal)}", _transform);
                 }
                 
                 _wasTransitioning = false;
-                
-                // NOW we can update position to the correct surface
                 ForceGroundToCurrentSurface(oldNormal);
                 return;
             }
@@ -127,7 +117,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 _wasTransitioning = true;
             }
 
-            // Only rotate, don't move
             Vector3 interpolatedNormal = Vector3.Slerp(_lockedStartNormal, _targetNormal, _transitionProgress).normalized;
             AlignToNormalSmooth(interpolatedNormal);
         }
@@ -143,13 +132,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             RaycastHit bestHit = default;
             bool found = false;
             
-            // CASE 1: Wall → Floor/Top transition
             if (wasOnWall && nowOnFloor)
             {
-                // Use the pre-transition position to find the top surface
-                Vector3 searchOrigin = _preTransitionPosition + Vector3.up * 2.0f;
+                Vector3 awayFromWall = _preTransitionPosition - previousNormal * 1.0f;
+                Vector3 searchOrigin = awayFromWall + Vector3.up * 0.5f;
                 
-                if (Physics.Raycast(searchOrigin, Vector3.down, out RaycastHit hit1, 4.0f, 
+                if (Physics.Raycast(searchOrigin, Vector3.down, out RaycastHit hit1, 3.0f, 
                     _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
                 {
                     Vector3 hitNormal = SnapToAxis(hit1.normal);
@@ -159,40 +147,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                         found = true;
                         
                         if (_debugLogs)
-                        {
-                            Debug.Log($"[Surface] Wall→Top grounding: found surface at {V(hit1.point)}", _transform);
-                        }
-                        
-                        if (_debugRays)
-                            Debug.DrawRay(searchOrigin, Vector3.down * hit1.distance, Color.green, 1.0f);
-                    }
-                }
-                
-                // Fallback: try from slightly forward
-                if (!found)
-                {
-                    Vector3 forwardDir = _lockedMoveDirection.sqrMagnitude > 0.01f ? _lockedMoveDirection : _transform.forward;
-                    Vector3 searchOrigin2 = _preTransitionPosition + forwardDir * 0.5f + Vector3.up * 2.0f;
-                    
-                    if (Physics.Raycast(searchOrigin2, Vector3.down, out RaycastHit hit2, 4.0f, 
-                        _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
-                    {
-                        Vector3 hitNormal = SnapToAxis(hit2.normal);
-                        if (hitNormal.y > 0.5f)
-                        {
-                            bestHit = hit2;
-                            found = true;
-                            
-                            if (_debugLogs)
-                            {
-                                Debug.Log($"[Surface] Wall→Top grounding (fallback): found surface at {V(hit2.point)}", _transform);
-                            }
-                        }
+                            Debug.Log($"[Surface] Wall→Floor grounding: found at {V(hit1.point)}", _transform);
                     }
                 }
             }
             
-            // CASE 2: Standard grounding
             if (!found)
             {
                 Vector3 rayOrigin1 = pos + up * 1.5f;
@@ -227,19 +186,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (found)
             {
                 Vector3 newPos = bestHit.point + up * (_settings.BodyRadius * 0.1f);
-                float dist = Vector3.Distance(pos, newPos);
-                
                 _transform.position = newPos;
                 _isGrounded = true;
                 
                 if (_debugLogs)
-                {
-                    Debug.Log($"[Surface] Post-transition grounded at {V(newPos)} (moved {dist:F2})", _transform);
-                }
-            }
-            else if (_debugLogs)
-            {
-                Debug.LogWarning($"[Surface] Post-transition grounding FAILED!", _transform);
+                    Debug.Log($"[Surface] Post-transition grounded at {V(newPos)}", _transform);
             }
         }
 
@@ -263,24 +214,47 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             bool onWall = Mathf.Abs(up.y) < 0.5f;
             float movingUpward = Vector3.Dot(forward, Vector3.up);
             
-            bool shouldLogDetection = _debugLogs && (_frameCount % LOG_DETECTION_EVERY_N_FRAMES == 0);
-            if (shouldLogDetection)
+            bool shouldLog = _debugLogs && (_frameCount % LOG_DETECTION_EVERY_N_FRAMES == 0);
+            if (shouldLog)
             {
                 Debug.Log($"[Surface] DETECT: pos={V(pos)} up={V(up)} fwd={V(forward)} onWall={onWall} movingUp={movingUpward:F2} distToTarget={distToTarget:F2}", _transform);
             }
 
-            // RAY 1: Look for wall ahead
+            // ========== PROACTIVE FLOOR CHECK (WALL ONLY) ==========
+            // When on a wall, ALWAYS check if there's a floor nearby that we should transition to
+            // This runs BEFORE the normal surface continuation check
+            if (onWall)
+            {
+                // Check if we're near the bottom of the wall (floor is close)
+                if (TryDetectFloorNearby(pos, forward, up, shouldLog, out Vector3 floorNormal, out float floorDist))
+                {
+                    // Only transition if:
+                    // 1. Floor is very close (within transition distance), OR
+                    // 2. We're moving downward toward the floor
+                    bool floorIsClose = floorDist < 1.5f;
+                    bool movingTowardFloor = movingUpward < -0.3f && floorDist < 3.0f;
+                    
+                    if (floorIsClose || movingTowardFloor)
+                    {
+                        if (shouldLog)
+                            Debug.Log($"[Surface] Floor detected! dist={floorDist:F2} movingUp={movingUpward:F2} close={floorIsClose} movingToward={movingTowardFloor}", _transform);
+                        
+                        StartTransition(floorNormal, forward, $"floor nearby (dist={floorDist:F2})");
+                        return;
+                    }
+                }
+            }
+
+            // ========== RAY 1: Wall ahead? ==========
             Vector3 ray1Origin = pos + up * 0.15f;
-            bool ray1Hit = Physics.Raycast(ray1Origin, forward, out RaycastHit hit1, checkDist, 
-                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore);
-
-            if (_debugRays)
-                Debug.DrawRay(ray1Origin, forward * checkDist, ray1Hit ? Color.yellow : Color.gray);
-
-            if (ray1Hit)
+            if (Physics.Raycast(ray1Origin, forward, out RaycastHit hit1, checkDist, 
+                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
             {
                 Vector3 hitNormal = SnapToAxis(hit1.normal);
                 float angle = Vector3.Angle(up, hitNormal);
+                
+                if (_debugRays)
+                    Debug.DrawRay(ray1Origin, forward * hit1.distance, Color.yellow);
                 
                 if (angle > 30f)
                 {
@@ -289,74 +263,52 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
 
-            // RAY 2: Check surface ahead
+            // ========== RAY 2: Check if wall continues in movement direction ==========
+            // For walls, we need to check if the SAME wall face extends in the direction we're moving
             Vector3 aheadPos = pos + forward * checkDist;
-            bool surfaceContinues = CheckSurfaceExistsBelow(aheadPos, up, out RaycastHit hit2, out Vector3 hitNormal2);
-
-            if (_debugRays)
-            {
-                Vector3 rayOrigin = aheadPos + up * 1.0f;
-                Debug.DrawRay(rayOrigin, -up * 2.0f, surfaceContinues ? Color.cyan : Color.red);
-            }
+            bool surfaceContinues = CheckWallContinuesAhead(pos, forward, up, checkDist, shouldLog);
 
             if (surfaceContinues)
             {
-                float angleDiff = Vector3.Angle(up, hitNormal2);
-                
-                if (angleDiff < 30f)
-                {
-                    _consecutiveEdgeFailures = 0;
-                    return;
-                }
-                
-                StartTransition(hitNormal2, forward, $"surface changes to {V(hitNormal2)}");
-                return;
+                _consecutiveEdgeFailures = 0;
+                return; // Wall continues, keep walking
             }
             
-            // Edge detection
-            if (shouldLogDetection)
+            // ========== EDGE DETECTED ==========
+            if (shouldLog)
             {
-                Debug.Log($"[Surface] EDGE DETECTED: No surface ahead. onWall={onWall} movingUp={movingUpward:F2}", _transform);
+                Debug.Log($"[Surface] EDGE: Wall doesn't continue ahead. Checking for transitions...", _transform);
             }
             
-            // Wall top detection
+            // Check for wall top (if moving up)
             if (onWall && movingUpward > 0.2f)
             {
-                if (TryDetectWallTop(pos, forward, up, aheadPos, distToTarget, out Vector3 topNormal))
+                if (TryDetectWallTop(pos, forward, up, aheadPos, out Vector3 topNormal))
                 {
                     StartTransition(topNormal, forward, "wall top");
                     _consecutiveEdgeFailures = 0;
                     return;
                 }
-                else if (shouldLogDetection)
-                {
-                    Debug.LogWarning($"[Surface] Wall top detection FAILED!", _transform);
-                }
             }
             
-            // Wall bottom detection
-            if (onWall && movingUpward < -0.2f)
+            // Check for adjacent wall (corner)
+            if (onWall)
             {
-                if (TryDetectFloorBelow(pos, forward, up, out Vector3 floorNormal))
+                if (TryDetectAdjacentWall(pos, forward, up, shouldLog, out Vector3 wallNormal))
                 {
-                    StartTransition(floorNormal, forward, "wall bottom → floor");
+                    StartTransition(wallNormal, forward, "adjacent wall");
                     _consecutiveEdgeFailures = 0;
                     return;
                 }
             }
             
-            // Generic edge detection
-            Vector3 nextSurface = FindNextSurface(pos, aheadPos, forward, up);
-            
+            // Generic scan
+            Vector3 nextSurface = ScanForAdjacentSurface(pos, forward, up);
             if (nextSurface != Vector3.zero && nextSurface != up)
             {
-                float angle = Vector3.Angle(up, nextSurface);
-                if (angle > 30f)
-                {
-                    StartTransition(nextSurface, forward, $"edge → {V(nextSurface)}");
-                    _consecutiveEdgeFailures = 0;
-                    return;
-                }
+                StartTransition(nextSurface, forward, $"scanned surface {V(nextSurface)}");
+                _consecutiveEdgeFailures = 0;
+                return;
             }
             
             _consecutiveEdgeFailures++;
@@ -367,28 +319,146 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             }
         }
 
-        private bool CheckSurfaceExistsBelow(Vector3 position, Vector3 up, out RaycastHit hit, out Vector3 hitNormal)
+        /// <summary>
+        /// Check if the wall continues in the movement direction.
+        /// This is different from CheckSurfaceExistsBelow - we need to verify the SAME surface extends ahead.
+        /// </summary>
+        private bool CheckWallContinuesAhead(Vector3 pos, Vector3 forward, Vector3 up, float checkDist, bool shouldLog)
         {
-            hit = default;
-            hitNormal = Vector3.zero;
+            // The wall normal is 'up', so the wall surface is perpendicular to 'up'
+            // We need to check if, at the position ahead, the same wall still exists
             
-            Vector3 rayOrigin = position + up * 1.0f;
+            Vector3 aheadPos = pos + forward * checkDist;
             
-            if (Physics.Raycast(rayOrigin, -up, out hit, 2.0f, 
+            // Cast from ahead position back toward the wall (in -up direction... wait no)
+            // Actually, for a wall with up=(0,0,-1), the wall is at Z=-0.55 and extends in X/Y
+            // To check if wall continues at aheadPos, cast from outside the wall toward it
+            
+            // Cast from ahead+offset in the wall normal direction, back toward the wall
+            Vector3 outsideWall = aheadPos + up * 0.5f; // Move 0.5 units away from wall surface
+            
+            if (Physics.Raycast(outsideWall, -up, out RaycastHit hit, 1.0f, 
                 _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
             {
-                hitNormal = SnapToAxis(hit.normal);
-                return true;
+                Vector3 hitNormal = SnapToAxis(hit.normal);
+                
+                if (_debugRays)
+                    Debug.DrawRay(outsideWall, -up * hit.distance, Color.cyan, 0.1f);
+                
+                // Check if it's the same surface type (same normal)
+                if (hitNormal == up)
+                {
+                    return true; // Same wall continues
+                }
+                
+                // Different surface - might need to transition
+                if (shouldLog)
+                    Debug.Log($"[Surface] Wall check: found different surface {V(hitNormal)} at ahead pos", _transform);
+                
+                return false;
+            }
+            
+            if (_debugRays)
+                Debug.DrawRay(outsideWall, -up * 1.0f, Color.red, 0.1f);
+            
+            // No hit means wall doesn't continue
+            if (shouldLog)
+                Debug.Log($"[Surface] Wall check: no surface at ahead pos {V(aheadPos)}", _transform);
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Detect floor near the spider's current position.
+        /// Returns true if floor found, along with the distance to it.
+        /// </summary>
+        private bool TryDetectFloorNearby(Vector3 pos, Vector3 forward, Vector3 up, bool shouldLog, out Vector3 floorNormal, out float floorDistance)
+        {
+            floorNormal = Vector3.zero;
+            floorDistance = float.MaxValue;
+            
+            // Cast straight down from spider position (world down)
+            Vector3 origin1 = pos + Vector3.up * 0.3f;
+            if (Physics.Raycast(origin1, Vector3.down, out RaycastHit hit1, 5.0f, 
+                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                Vector3 normal1 = SnapToAxis(hit1.normal);
+                
+                if (_debugRays)
+                    Debug.DrawRay(origin1, Vector3.down * hit1.distance, Color.green, 0.1f);
+                
+                // Check if it's a floor (Y-up)
+                if (normal1.y > 0.5f)
+                {
+                    // Distance is from spider to floor
+                    floorDistance = pos.y - hit1.point.y;
+                    floorNormal = normal1;
+                    
+                    if (shouldLog)
+                        Debug.Log($"[Surface] FloorNearby: found at dist={floorDistance:F2} (hitDist={hit1.distance:F2})", _transform);
+                    
+                    return true;
+                }
+            }
+            
+            // Also try from position moved away from wall
+            Vector3 awayFromWall = pos - up * 0.8f;
+            Vector3 origin2 = awayFromWall + Vector3.up * 0.3f;
+            if (Physics.Raycast(origin2, Vector3.down, out RaycastHit hit2, 5.0f, 
+                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                Vector3 normal2 = SnapToAxis(hit2.normal);
+                
+                if (_debugRays)
+                    Debug.DrawRay(origin2, Vector3.down * hit2.distance, Color.yellow, 0.1f);
+                
+                if (normal2.y > 0.5f)
+                {
+                    float dist2 = pos.y - hit2.point.y;
+                    if (dist2 < floorDistance)
+                    {
+                        floorDistance = dist2;
+                        floorNormal = normal2;
+                        
+                        if (shouldLog)
+                            Debug.Log($"[Surface] FloorNearby (away): found at dist={floorDistance:F2}", _transform);
+                        
+                        return true;
+                    }
+                }
+            }
+            
+            return floorNormal != Vector3.zero;
+        }
+
+        private bool TryDetectAdjacentWall(Vector3 pos, Vector3 forward, Vector3 up, bool shouldLog, out Vector3 wallNormal)
+        {
+            wallNormal = Vector3.zero;
+            
+            Vector3 origin = pos + up * 0.2f;
+            if (Physics.Raycast(origin, forward, out RaycastHit hit, _settings.ClimbStartDistance * 1.5f, 
+                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                Vector3 normal = SnapToAxis(hit.normal);
+                float angle = Vector3.Angle(up, normal);
+                
+                if (shouldLog)
+                    Debug.Log($"[Surface] AdjacentWall: hit {hit.collider.name} normal={V(normal)} angle={angle:F1}", _transform);
+                
+                if (angle > 30f && Mathf.Abs(normal.y) < 0.5f)
+                {
+                    wallNormal = normal;
+                    return true;
+                }
             }
             
             return false;
         }
 
-        private bool TryDetectWallTop(Vector3 pos, Vector3 forward, Vector3 up, Vector3 aheadPos, float distToTarget, out Vector3 topNormal)
+        private bool TryDetectWallTop(Vector3 pos, Vector3 forward, Vector3 up, Vector3 aheadPos, out Vector3 topNormal)
         {
             topNormal = Vector3.zero;
             
-            // Strategy 1
             Vector3 origin1 = aheadPos + Vector3.up * 2.0f;
             if (Physics.Raycast(origin1, Vector3.down, out RaycastHit hit1, 3.0f, 
                 _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
@@ -402,7 +472,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
             
-            // Strategy 2
             Vector3 origin2 = pos + Vector3.up * 2.5f + forward * 0.5f;
             if (Physics.Raycast(origin2, Vector3.down, out RaycastHit hit2, 3.5f, 
                 _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
@@ -416,9 +485,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
             
-            // Strategy 3
-            Vector3 origin3 = pos + Vector3.up * 1.0f;
-            if (Physics.Raycast(origin3, Vector3.down, out RaycastHit hit3, 2.0f, 
+            Vector3 origin3 = aheadPos + Vector3.up * 1.5f;
+            if (Physics.SphereCast(origin3, 0.3f, Vector3.down, out RaycastHit hit3, 2.0f, 
                 _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
             {
                 Vector3 normal3 = SnapToAxis(hit3.normal);
@@ -429,135 +497,43 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 }
             }
             
-            // Strategy 4: SphereCast
-            Vector3 origin4 = aheadPos + Vector3.up * 1.5f;
-            if (Physics.SphereCast(origin4, 0.3f, Vector3.down, out RaycastHit hit4, 2.0f, 
-                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+            return false;
+        }
+
+        private Vector3 ScanForAdjacentSurface(Vector3 pos, Vector3 forward, Vector3 up)
+        {
+            Vector3[] directions = new Vector3[]
             {
-                Vector3 normal4 = SnapToAxis(hit4.normal);
-                if (normal4.y > 0.5f && Vector3.Angle(up, normal4) > 30f)
-                {
-                    topNormal = normal4;
-                    return true;
-                }
-            }
+                Vector3.down,
+                Vector3.up,
+                forward,
+                -forward,
+                Vector3.Cross(up, forward).normalized,
+                -Vector3.Cross(up, forward).normalized
+            };
             
-            // Strategy 5: Diagonal
-            Vector3 diagDir = (Vector3.up * 0.7f + forward * 0.3f).normalized;
-            if (Physics.Raycast(pos, diagDir, out RaycastHit hit5, 3.0f, 
-                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+            foreach (var dir in directions)
             {
-                Vector3 aboveHit = hit5.point + Vector3.up * 0.5f;
-                if (Physics.Raycast(aboveHit, Vector3.down, out RaycastHit topHit, 1.5f, 
+                if (dir.sqrMagnitude < 0.01f)
+                    continue;
+                    
+                Vector3 origin = pos + up * 0.2f;
+                if (Physics.Raycast(origin, dir, out RaycastHit hit, 3.0f, 
                     _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
                 {
-                    Vector3 normal5 = SnapToAxis(topHit.normal);
-                    if (normal5.y > 0.5f && Vector3.Angle(up, normal5) > 30f)
+                    Vector3 normal = SnapToAxis(hit.normal);
+                    float angle = Vector3.Angle(up, normal);
+                    
+                    if (angle > 30f)
                     {
-                        topNormal = normal5;
-                        return true;
+                        if (_debugRays)
+                            Debug.DrawRay(origin, dir * hit.distance, Color.white, 0.3f);
+                        return normal;
                     }
                 }
             }
             
-            // Strategy 6: Target-based
-            if (distToTarget < 3.0f)
-            {
-                Vector3 origin6 = new Vector3(aheadPos.x, pos.y + 2.0f, aheadPos.z);
-                if (Physics.Raycast(origin6, Vector3.down, out RaycastHit hit6, 4.0f, 
-                    _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
-                {
-                    Vector3 normal6 = SnapToAxis(hit6.normal);
-                    if (normal6.y > 0.5f && Vector3.Angle(up, normal6) > 30f)
-                    {
-                        topNormal = normal6;
-                        return true;
-                    }
-                }
-            }
-            
-            return false;
-        }
-
-        private bool TryDetectFloorBelow(Vector3 pos, Vector3 forward, Vector3 up, out Vector3 floorNormal)
-        {
-            floorNormal = Vector3.zero;
-            
-            if (Physics.Raycast(pos, Vector3.down, out RaycastHit hit, 3.0f, 
-                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
-            {
-                Vector3 normal = SnapToAxis(hit.normal);
-                if (_debugRays) Debug.DrawRay(pos, Vector3.down * hit.distance, Color.green);
-                if (normal.y > 0.5f && Vector3.Angle(up, normal) > 30f && hit.distance < 2.0f)
-                {
-                    floorNormal = normal;
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
-        private Vector3 FindNextSurface(Vector3 currentPos, Vector3 aheadPos, Vector3 forward, Vector3 currentUp)
-        {
-            bool onHorizontalSurface = Mathf.Abs(currentUp.y) > 0.5f;
-            
-            if (!onHorizontalSurface)
-            {
-                float movingDown = Vector3.Dot(forward, Vector3.down);
-                if (movingDown > 0.3f)
-                {
-                    if (TryCast(aheadPos + Vector3.up * 0.5f, Vector3.down, 3f, currentUp, out Vector3 n1))
-                        return n1;
-                }
-                
-                float movingUp = Vector3.Dot(forward, Vector3.up);
-                if (movingUp > 0.3f)
-                {
-                    if (TryCast(aheadPos - Vector3.up * 0.5f, Vector3.up, 3f, currentUp, out Vector3 n2))
-                        return n2;
-                }
-            }
-            else
-            {
-                if (TryCast(aheadPos + Vector3.up * 0.5f, Vector3.down, 4f, currentUp, out Vector3 n1))
-                    return n1;
-                if (TryCast(aheadPos - Vector3.up * 0.5f, Vector3.up, 4f, currentUp, out Vector3 n2))
-                    return n2;
-            }
-
-            Vector3 diagDown = (forward + Vector3.down).normalized;
-            if (TryCast(aheadPos, diagDown, 3f, currentUp, out Vector3 n3))
-                return n3;
-
-            Vector3 diagUp = (forward + Vector3.up).normalized;
-            if (TryCast(aheadPos, diagUp, 3f, currentUp, out Vector3 n4))
-                return n4;
-
-            if (TryCast(currentPos + currentUp * 0.3f, forward, 2f, currentUp, out Vector3 n5))
-                return n5;
-
             return Vector3.zero;
-        }
-
-        private bool TryCast(Vector3 origin, Vector3 dir, float dist, Vector3 currentUp, out Vector3 snappedNormal)
-        {
-            snappedNormal = Vector3.zero;
-            
-            bool hit = Physics.Raycast(origin, dir, out RaycastHit hitInfo, dist, 
-                _settings.SurfaceLayers, QueryTriggerInteraction.Ignore);
-
-            if (_debugRays)
-                Debug.DrawRay(origin, dir * dist, hit ? Color.green : Color.gray, 0.1f);
-
-            if (hit)
-            {
-                snappedNormal = SnapToAxis(hitInfo.normal);
-                float angle = Vector3.Angle(currentUp, snappedNormal);
-                if (angle > 30f)
-                    return true;
-            }
-            return false;
         }
 
         private void StartTransition(Vector3 newNormal, Vector3 moveDirection, string reason)
@@ -567,9 +543,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (newNormal == _currentNormal || newNormal == Vector3.zero)
                 return;
 
-            // Save position BEFORE transition
             _preTransitionPosition = _transform.position;
-            _frozenPosition = _transform.position; // Freeze at this position during transition
+            _frozenPosition = _transform.position;
             
             _lockedStartNormal = _currentNormal;
             _targetNormal = newNormal;
@@ -579,7 +554,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
             if (_debugLogs)
             {
-                Debug.Log($"[Surface] ▶ START: {V(_currentNormal)} → {V(_targetNormal)} | {reason} | frozenPos={V(_frozenPosition)}", _transform);
+                Debug.Log($"[Surface] ▶ START: {V(_currentNormal)} → {V(_targetNormal)} | {reason}", _transform);
             }
         }
 
@@ -688,16 +663,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _transform.rotation = Quaternion.LookRotation(projectedForward, normal);
         }
 
-        /// <summary>
-        /// Returns grounded position. During transition, returns the frozen position.
-        /// </summary>
         public Vector3 GroundPosition(Vector3 position)
         {
-            // During transition, don't try to ground - return frozen position
             if (_isTransitioning)
-            {
                 return _frozenPosition;
-            }
             
             Vector3 up = _currentNormal;
             Vector3 rayOrigin = position + up * _settings.StickDistance;
@@ -713,7 +682,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         public void EnsureGrounded()
         {
-            // Don't ground during transition
             if (_isTransitioning)
             {
                 _transform.position = _frozenPosition;
@@ -729,9 +697,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 float heightChange = Vector3.Distance(pos, newPos);
                 
                 if (heightChange > 0.3f && _debugLogs)
-                {
                     Debug.Log($"[Surface] Height corrected by {heightChange:F2}", _transform);
-                }
                 
                 _transform.position = newPos;
                 _isGrounded = true;
@@ -755,9 +721,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _consecutiveEdgeFailures = 0;
             
             if (_debugLogs)
-            {
                 Debug.Log($"[Surface] RESET: normal={V(_currentNormal)}", _transform);
-            }
         }
 
         private Vector3 SnapToAxis(Vector3 v)
