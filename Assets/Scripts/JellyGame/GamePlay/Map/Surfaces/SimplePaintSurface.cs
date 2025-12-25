@@ -4,53 +4,72 @@ using UnityEngine;
 namespace JellyGame.GamePlay.Map.Surfaces
 {
     /// <summary>
-    /// Simple per-object paint surface that owns a RenderTexture and plugs it into its material.
-    /// Also provides a mapping from world-space points on the surface to 0..1 paint UVs,
-    /// based on the mesh's local X/Z bounds (works well for planes / floor-like meshes).
-    /// Includes options to swap/flip axes if the orientation is mirrored.
+    /// Paint surface with TIME-BASED AGING support.
+    /// Uses RAW SECONDS for time (simpler, no normalization confusion).
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Renderer))]
     public class SimplePaintSurface : MonoBehaviour
     {
         [Header("Paint Texture")]
-        [Tooltip("Resolution of the paint RenderTexture.")]
         [SerializeField] private int textureSize = 1024;
-
-        [Tooltip("Clear color for the paint layer (usually transparent).")]
         [SerializeField] private Color clearColor = new Color(0, 0, 0, 0);
-
-        [Tooltip("Name of the texture property on the material (default: _PaintTex).")]
         [SerializeField] private string paintTexProperty = "_PaintTex";
+        
+        [Header("Time-Based Aging")]
+        [Tooltip("Enable time tracking for trail aging effect")]
+        [SerializeField] private bool enableTimeAging = true;
+        [SerializeField] private string paintTimeTexProperty = "_PaintTimeTex";
+        [SerializeField] private string currentTimeProperty = "_CurrentTime";
+        
+        [Tooltip("How many seconds until paint is fully 'old' (gray)")]
+        [SerializeField] private float maxAgeSeconds = 10f;
 
         [Header("World→Paint Mapping")]
-        [Tooltip("If true, use local Z as U and local X as V (instead of X→U, Z→V).")]
         [SerializeField] private bool swapXZ = false;
-
-        [Tooltip("Mirror the U axis (0↔1). Useful when paint moves opposite horizontally.")]
         [SerializeField] private bool invertU = false;
-
-        [Tooltip("Mirror the V axis (0↔1). Useful when paint moves opposite vertically.")]
         [SerializeField] private bool invertV = false;
+        
+        [Header("Debug")]
+        [SerializeField] private bool debugTime = false;
 
         private Renderer _renderer;
         private RenderTexture _paintRT;
+        private RenderTexture _paintTimeRT;
         private MeshFilter _mf;
 
-        // local 2D bounds (in X/Z or Z/X depending on swapXZ)
         private Vector2 _localMin;
         private Vector2 _localMax;
         private bool _hasBounds;
 
         public RenderTexture PaintRT => _paintRT;
+        public RenderTexture PaintTimeRT => _paintTimeRT;
+        public bool EnableTimeAging => enableTimeAging;
+        public float MaxAgeSeconds => maxAgeSeconds;
 
         void Awake()
         {
             _renderer = GetComponent<Renderer>();
             _mf = GetComponent<MeshFilter>();
 
-            InitRenderTexture();
+            InitRenderTextures();
             CacheLocalPlaneBounds();
+        }
+
+        void Update()
+        {
+            if (enableTimeAging && _renderer != null && _renderer.material != null)
+            {
+                // Send current time in RAW SECONDS (modulo a large number to prevent float precision issues)
+                // Using modulo 100000 gives us ~27 hours before wrap
+                float currentTime = Time.time % 100000f;
+                _renderer.material.SetFloat(currentTimeProperty, currentTime);
+                
+                if (debugTime && Time.frameCount % 60 == 0)
+                {
+                    Debug.Log($"[SimplePaintSurface] CurrentTime sent to shader: {currentTime:F2}");
+                }
+            }
         }
 
         void OnDestroy()
@@ -61,10 +80,18 @@ namespace JellyGame.GamePlay.Map.Surfaces
                 Destroy(_paintRT);
                 _paintRT = null;
             }
+            
+            if (_paintTimeRT != null)
+            {
+                _paintTimeRT.Release();
+                Destroy(_paintTimeRT);
+                _paintTimeRT = null;
+            }
         }
 
-        private void InitRenderTexture()
+        private void InitRenderTextures()
         {
+            // Paint color texture (existing)
             if (_paintRT != null)
             {
                 _paintRT.Release();
@@ -76,39 +103,76 @@ namespace JellyGame.GamePlay.Map.Surfaces
             _paintRT.filterMode = FilterMode.Bilinear;
             _paintRT.Create();
 
-            // Clear to transparent (or chosen clearColor)
-            var active = RenderTexture.active;
-            RenderTexture.active = _paintRT;
-            GL.Clear(true, true, clearColor);
-            RenderTexture.active = active;
+            ClearRT(_paintRT, clearColor);
+
+            // Paint TIME texture - using RFloat for single channel high precision
+            if (enableTimeAging)
+            {
+                if (_paintTimeRT != null)
+                {
+                    _paintTimeRT.Release();
+                    Destroy(_paintTimeRT);
+                }
+
+                // RFloat gives us full 32-bit float precision for time values
+                _paintTimeRT = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.RFloat);
+                _paintTimeRT.wrapMode = TextureWrapMode.Clamp;
+                _paintTimeRT.filterMode = FilterMode.Point;
+                _paintTimeRT.Create();
+
+                // Initialize with 0 (will be overwritten when painted)
+                ClearRT(_paintTimeRT, new Color(0, 0, 0, 0));
+            }
 
             // Assign to material
             if (_renderer && _renderer.material != null)
             {
                 _renderer.material.SetTexture(paintTexProperty, _paintRT);
+                
+                if (enableTimeAging && _paintTimeRT != null)
+                {
+                    _renderer.material.SetTexture(paintTimeTexProperty, _paintTimeRT);
+                }
             }
         }
 
+        private void ClearRT(RenderTexture rt, Color color)
+        {
+            var active = RenderTexture.active;
+            RenderTexture.active = rt;
+            GL.Clear(true, true, color);
+            RenderTexture.active = active;
+        }
+
         /// <summary>
-        /// Cache local 2D bounds from the mesh so we can map world positions to 0..1 paint UV.
-        /// Works well for plane-like meshes where local X/Z lie in the surface plane.
+        /// Get current time in seconds (for painting).
+        /// Uses same modulo as Update() to stay in sync.
         /// </summary>
+        public float GetCurrentTime()
+        {
+            return Time.time % 100000f;
+        }
+
+        // Keep this for compatibility but it now returns raw seconds
+        public float GetNormalizedTime()
+        {
+            return GetCurrentTime();
+        }
+
         private void CacheLocalPlaneBounds()
         {
             _hasBounds = false;
 
             if (_mf != null && _mf.sharedMesh != null)
             {
-                var b = _mf.sharedMesh.bounds; // local-space bounds
+                var b = _mf.sharedMesh.bounds;
                 if (!swapXZ)
                 {
-                    // X -> U, Z -> V
                     _localMin = new Vector2(b.min.x, b.min.z);
                     _localMax = new Vector2(b.max.x, b.max.z);
                 }
                 else
                 {
-                    // Z -> U, X -> V
                     _localMin = new Vector2(b.min.z, b.min.x);
                     _localMax = new Vector2(b.max.z, b.max.x);
                 }
@@ -121,10 +185,11 @@ namespace JellyGame.GamePlay.Map.Surfaces
             }
         }
 
-        /// <summary>
-        /// Convert a world-space point on the surface into 0..1 UV in paint texture space.
-        /// Uses local X/Z (or Z/X if swapXZ) and optional axis inversion.
-        /// </summary>
+        public void SetPaintTexture(RenderTexture rt)
+        {
+            GetComponent<Renderer>().material.SetTexture(paintTexProperty, rt);
+        }
+
         public bool TryWorldToPaintUV(Vector3 worldPos, out Vector2 uv)
         {
             if (!_hasBounds)
@@ -137,10 +202,6 @@ namespace JellyGame.GamePlay.Map.Surfaces
             return TryLocalToPaintUV(local, out uv);
         }
 
-        /// <summary>
-        /// Convert a LOCAL-space point (same space as mesh bounds) into 0..1 paint UV.
-        /// This avoids transform work and is ideal for polygon fills where you already have local XZ points.
-        /// </summary>
         public bool TryLocalToPaintUV(Vector3 localPos, out Vector2 uv)
         {
             if (!_hasBounds)
@@ -152,8 +213,8 @@ namespace JellyGame.GamePlay.Map.Surfaces
             float a, b;
             if (!swapXZ)
             {
-                a = localPos.x; // U source
-                b = localPos.z; // V source
+                a = localPos.x;
+                b = localPos.z;
             }
             else
             {
@@ -171,10 +232,6 @@ namespace JellyGame.GamePlay.Map.Surfaces
             return true;
         }
 
-        /// <summary>
-        /// Convert paint UV (0..1) back into a world-space point on the surface.
-        /// This is the inverse of TryWorldToPaintUV, using the same bounds & flags.
-        /// </summary>
         public bool TryPaintUVToWorld(Vector2 uv, out Vector3 worldPos)
         {
             worldPos = Vector3.zero;
@@ -197,6 +254,16 @@ namespace JellyGame.GamePlay.Map.Surfaces
 
             worldPos = transform.TransformPoint(local);
             return true;
+        }
+        
+        /// <summary>
+        /// Clear all paint.
+        /// </summary>
+        public void ClearAllPaint()
+        {
+            ClearRT(_paintRT, clearColor);
+            if (_paintTimeRT != null)
+                ClearRT(_paintTimeRT, new Color(0, 0, 0, 0));
         }
     }
 }

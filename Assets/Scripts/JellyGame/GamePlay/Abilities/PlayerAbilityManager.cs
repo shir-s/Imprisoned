@@ -116,5 +116,7 @@ namespace JellyGame.GamePlay.Abilities
             activeAbilityAsset = null;
             UpdateMaterial();
         }
+        
+        
     }
 }
