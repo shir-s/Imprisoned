@@ -10525,7 +10525,7 @@ PrefabInstance:
     - target: {fileID: -1461301805639508323, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: e8b4efc0850e840618233f5805cee29f, type: 2}
+      objectReference: {fileID: 2100000, guid: 4cd9373328d424eec9d4b4eb09869a28, type: 2}
     - target: {fileID: -1444313262520872918, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       propertyPath: m_Layer
       value: 20
@@ -28705,13 +28705,17 @@ PrefabInstance:
       value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: paintSurfaces.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: 'paintSurfaces.Array.data[0]'
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1029577483}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: 'paintSurfaces.Array.data[1]'
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1457333561}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: 'paintSurfaces.Array.data[2]'
       value: 
