@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: BrushBlit_Mat
-  m_Shader: {fileID: 4800000, guid: 4009c330e0d4e476d8dd014d250e4ce1, type: 3}
+  m_Name: spider web
+  m_Shader: {fileID: -6465566751694194690, guid: 09def7b16670e4e4585844200b310610, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -60,8 +60,28 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _PaintTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PaintTimeTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_00e6b618439442ceb8028011d4735cab_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 1002f9feeaa2e41798ab0bb60f03d8d7, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_11f14a782dc741449c2eb81a43c0eab6_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 4063d2cd199c04e4abfa56244ba6a935, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_43c5948485884aed829125b0df93d7ab_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 426227d042c654b03bd3ab291c03f55d, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
@@ -87,12 +107,11 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BrushHardness: 0.5
-    - _BrushOpacity: 0.010712786
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
+    - _CurrentTime: 0
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
@@ -102,10 +121,14 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _MaxAge: 10
     - _Metallic: 0
+    - _Normal_Bubble_Strength: 1
+    - _Normal_Slime_Strength: 1
     - _OcclusionStrength: 1
-    - _PaintTime: 0
+    - _PaintStrength: 1
     - _Parallax: 0.005
+    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
@@ -114,20 +137,22 @@ Material:
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
     - _Surface: 0
+    - _Surface_Noise_Scale: 22.41
+    - _Surface_Noise_Speed: 3.45
+    - _Surface_Noise_Strength: 1
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BrushCenter: {r: 0.9247236, g: 0.42863554, b: 0, a: 0}
-    - _BrushColor: {r: 0, g: 0.9407029, b: 1, a: 1}
-    - _BrushHalfSize: {r: 0.0034784079, g: 0.0036407113, b: 0, a: 0}
+    - _BaseColor: {r: 0.3647059, g: 0.5294118, b: 0.48235294, a: 1}
+    - _Base_Color: {r: 0.53511035, g: 0.6132076, b: 0.6053979, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _Splur_color: {r: 1, g: 1, b: 1, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &2775349503525705158
+--- !u!114 &2186579811080067318
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
