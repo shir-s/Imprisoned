@@ -2,10 +2,15 @@
 using System.Collections.Generic;
 using JellyGame.GamePlay.Abilities;
 using JellyGame.GamePlay.Map.Surfaces;
+using JellyGame.GamePlay.Painting.Trails.Visibility;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Painting.Trails.Visibility
 {
+    /// <summary>
+    /// Trail painter with TIME-BASED AGING support.
+    /// Paints to both color texture AND time texture.
+    /// </summary>
     [DisallowMultipleComponent]
     public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     {
@@ -23,20 +28,18 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         [SerializeField] private float opacityPerMeter = 5.0f;
         [SerializeField] private Color brushColor = Color.black;
 
+        [Header("Time Painting (for aging)")]
+        [Tooltip("Material using TimeBrushBlit.shader")]
+        [SerializeField] private Material timeBrushBlitMaterial;
+        
+        [Tooltip("Material using TimePolygonFill.shader")]
+        [SerializeField] private Material timePolygonFillMaterial;
+
         [Header("Polygon Fill (GPU)")]
-        [Tooltip("Material using Shader \"Custom/PaintPolygonFill\". Used for fast area fills.")]
         [SerializeField] private Material polygonFillMaterial;
-
-        [Tooltip("Opacity used when filling closed areas.")]
         [SerializeField, Range(0f, 1f)] private float polygonFillOpacity = 1f;
-
-        [Tooltip("Remove near-duplicate and collinear points before triangulation.")]
         [SerializeField] private bool sanitizeFillPolygon = true;
-
-        [Tooltip("How close UV points must be to be considered duplicates (0..1 UV space).")]
         [SerializeField] private float uvDuplicateEpsilon = 0.0005f;
-
-        [Tooltip("Collinear removal threshold. Bigger = removes more points. (UV-space area threshold)")]
         [SerializeField] private float uvCollinearEpsilon = 0.0000005f;
 
         [Header("Sampling")]
@@ -48,11 +51,15 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
         private SimplePaintSurface _currentSurface;
         private RenderTexture _tempRT;
+        private RenderTexture _tempTimeRT;
 
         private Color _currentPaintColor;
 
         private static readonly int FillColorId = Shader.PropertyToID("_FillColor");
         private static readonly int OpacityId = Shader.PropertyToID("_Opacity");
+        private static readonly int PaintTimeId = Shader.PropertyToID("_PaintTime");
+
+        public float DefaultHalfSizeUV => fallbackHalfSizeUV;
 
         private void Awake()
         {
@@ -111,7 +118,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             ClearSurface();
         }
 
-        // ========== Trail Painting (keeps scale-based sizing) ==========
+        // ========== Trail Painting ==========
 
         private void PaintAtWorldPoint(Vector3 worldPoint)
         {
@@ -131,17 +138,52 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             UpdatePaintColor();
 
+            // Paint COLOR
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
 
-            EnsureTemp(rt);
-
+            EnsureTemp(rt, ref _tempRT);
             brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
             Graphics.Blit(_tempRT, rt);
+
+            // Paint TIME (if enabled)
+            PaintTimeAtUV(_currentSurface, uvCenter, halfSizeUV.x, 1f);
         }
 
-        /*public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
+        /// <summary>
+        /// Paint time data to the time texture.
+        /// </summary>
+        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
+        {
+            if (!surface.EnableTimeAging || timeBrushBlitMaterial == null)
+                return;
+
+            var timeRT = surface.PaintTimeRT;
+            if (timeRT == null)
+                return;
+
+            float normalizedTime = surface.GetNormalizedTime();
+
+            timeBrushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+            timeBrushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
+            timeBrushBlitMaterial.SetFloat("_BrushOpacity", opacity);
+            timeBrushBlitMaterial.SetFloat("_PaintTime", normalizedTime);
+
+            EnsureTemp(timeRT, ref _tempTimeRT);
+            timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
+            Graphics.Blit(timeRT, _tempTimeRT, timeBrushBlitMaterial);
+            Graphics.Blit(_tempTimeRT, timeRT);
+        }
+
+        // ========== Public API for UV painting ==========
+
+        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
+        {
+            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f);
+        }
+
+        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
         {
             if (surface == null || brushBlitMaterial == null)
                 return;
@@ -152,32 +194,127 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             UpdatePaintColor();
 
+            halfSizeUV = Mathf.Max(0.00001f, halfSizeUV);
+            opacity = Mathf.Clamp01(opacity);
+
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
-            brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(fallbackHalfSizeUV, fallbackHalfSizeUV, 0, 0));
-            brushBlitMaterial.SetFloat("_BrushOpacity", 1f);
+            brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
+            brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
 
-            EnsureTemp(rt);
-
+            EnsureTemp(rt, ref _tempRT);
             brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
             Graphics.Blit(_tempRT, rt);
-        }*/
 
-        private void EnsureTemp(RenderTexture rt)
+            // Also paint time
+            PaintTimeAtUV(surface, uvCenter, halfSizeUV, opacity);
+        }
+
+        // ========== Polygon Fill ==========
+
+        public bool FillPolygonUV(SimplePaintSurface surface, List<Vector2> uvPolygon)
         {
-            if (_tempRT == null ||
-                _tempRT.width != rt.width ||
-                _tempRT.height != rt.height ||
-                _tempRT.format != rt.format)
+            if (surface == null || uvPolygon == null || uvPolygon.Count < 3)
+                return false;
+
+            var rt = surface.PaintRT;
+            if (rt == null)
+                return false;
+
+            if (polygonFillMaterial == null)
             {
-                if (_tempRT != null)
-                    _tempRT.Release();
-                _tempRT = new RenderTexture(rt.descriptor);
-                _tempRT.Create();
+                if (debugFillFailures)
+                    Debug.LogWarning("[PaintFill] polygonFillMaterial is not assigned.", this);
+                return false;
             }
 
-            _tempRT.wrapMode = rt.wrapMode;
-            _tempRT.filterMode = rt.filterMode;
+            List<Vector2> poly = uvPolygon;
+
+            if (sanitizeFillPolygon)
+            {
+                poly = new List<Vector2>(uvPolygon);
+                SanitizePolygonUV(poly, uvDuplicateEpsilon, uvCollinearEpsilon);
+            }
+
+            if (poly.Count < 3)
+            {
+                if (debugFillFailures)
+                    Debug.LogWarning("[PaintFill] Polygon collapsed after sanitization.", this);
+                return false;
+            }
+
+            if (!TriangulateEarClipping(poly, out var tris))
+            {
+                if (debugFillFailures)
+                    Debug.LogWarning($"[PaintFill] Triangulation failed. points={poly.Count}", this);
+                return false;
+            }
+
+            if (tris.Count < 3)
+            {
+                if (debugFillFailures)
+                    Debug.LogWarning("[PaintFill] Triangulation produced no triangles.", this);
+                return false;
+            }
+
+            UpdatePaintColor();
+            
+            // Fill COLOR texture
+            polygonFillMaterial.SetColor(FillColorId, _currentPaintColor);
+            polygonFillMaterial.SetFloat(OpacityId, polygonFillOpacity);
+            FillPolygonToRT(rt, poly, tris, polygonFillMaterial);
+
+            // Fill TIME texture
+            if (surface.EnableTimeAging && timePolygonFillMaterial != null && surface.PaintTimeRT != null)
+            {
+                float normalizedTime = surface.GetNormalizedTime();
+                timePolygonFillMaterial.SetFloat(PaintTimeId, normalizedTime);
+                FillPolygonToRT(surface.PaintTimeRT, poly, tris, timePolygonFillMaterial);
+            }
+
+            return true;
+        }
+
+        private void FillPolygonToRT(RenderTexture rt, List<Vector2> poly, List<int> tris, Material mat)
+        {
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+
+            GL.PushMatrix();
+            GL.LoadOrtho();
+
+            mat.SetPass(0);
+            GL.Begin(GL.TRIANGLES);
+
+            for (int i = 0; i < tris.Count; i++)
+            {
+                Vector2 uv = poly[tris[i]];
+                GL.Vertex3(uv.x, uv.y, 0f);
+            }
+
+            GL.End();
+            GL.PopMatrix();
+
+            RenderTexture.active = prev;
+        }
+
+        // ========== Helper Methods ==========
+
+        private void EnsureTemp(RenderTexture rt, ref RenderTexture tempRT)
+        {
+            if (tempRT == null ||
+                tempRT.width != rt.width ||
+                tempRT.height != rt.height ||
+                tempRT.format != rt.format)
+            {
+                if (tempRT != null)
+                    tempRT.Release();
+                tempRT = new RenderTexture(rt.descriptor);
+                tempRT.Create();
+            }
+
+            tempRT.wrapMode = rt.wrapMode;
+            tempRT.filterMode = rt.filterMode;
         }
 
         private Vector2 ComputeHalfSizeUV(Vector3 worldCenter, Vector2 uvCenter)
@@ -206,298 +343,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             return new Vector2(halfU, halfV);
         }
-        
-        // ========== NEW: for animated fills / liquid stamps ==========
 
-        public float DefaultHalfSizeUV => fallbackHalfSizeUV;
-
-        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
-        {
-            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f);
-        }
-
-        /// <summary>
-        /// Paint a single brush stamp in UV space with custom size/opacity.
-        /// halfSizeUV is the brush "radius" in UV units (0..1).
-        /// </summary>
-        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
-        {
-            if (surface == null || brushBlitMaterial == null)
-                return;
-
-            var rt = surface.PaintRT;
-            if (rt == null)
-                return;
-
-            UpdatePaintColor();
-
-            halfSizeUV = Mathf.Max(0.00001f, halfSizeUV);
-            opacity = Mathf.Clamp01(opacity);
-
-            brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
-            brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
-            brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
-
-            EnsureTemp(rt);
-
-            brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
-            Graphics.Blit(rt, _tempRT, brushBlitMaterial);
-            Graphics.Blit(_tempRT, rt);
-        }
-
-
-        // ========== NEW: GPU polygon fill with robustness + result ==========
-        public bool FillPolygonUV(SimplePaintSurface surface, List<Vector2> uvPolygon)
-        {
-            if (surface == null || uvPolygon == null || uvPolygon.Count < 3)
-                return false;
-
-            var rt = surface.PaintRT;
-            if (rt == null)
-                return false;
-
-            if (polygonFillMaterial == null)
-            {
-                if (debugFillFailures)
-                    Debug.LogWarning("[PaintFill] polygonFillMaterial is not assigned.", this);
-                return false;
-            }
-
-            // Work on a copy so caller can reuse list
-            List<Vector2> poly = uvPolygon;
-
-            if (sanitizeFillPolygon)
-            {
-                poly = new List<Vector2>(uvPolygon);
-                SanitizePolygonUV(poly, uvDuplicateEpsilon, uvCollinearEpsilon);
-            }
-
-            if (poly.Count < 3)
-            {
-                if (debugFillFailures)
-                    Debug.LogWarning("[PaintFill] Polygon collapsed after sanitization (too few points).", this);
-                return false;
-            }
-
-            if (!TriangulateEarClipping(poly, out var tris))
-            {
-                if (debugFillFailures)
-                    Debug.LogWarning($"[PaintFill] Triangulation failed. points={poly.Count} area={Mathf.Abs(SignedArea(poly)):F6}", this);
-                return false;
-            }
-
-            if (tris.Count < 3)
-            {
-                if (debugFillFailures)
-                    Debug.LogWarning("[PaintFill] Triangulation produced no triangles.", this);
-                return false;
-            }
-
-            UpdatePaintColor();
-            polygonFillMaterial.SetColor(FillColorId, _currentPaintColor);
-            polygonFillMaterial.SetFloat(OpacityId, polygonFillOpacity);
-
-            var prev = RenderTexture.active;
-            RenderTexture.active = rt;
-
-            GL.PushMatrix();
-            GL.LoadOrtho();
-
-            polygonFillMaterial.SetPass(0);
-            GL.Begin(GL.TRIANGLES);
-
-            for (int i = 0; i < tris.Count; i++)
-            {
-                Vector2 uv = poly[tris[i]];
-                GL.Vertex3(uv.x, uv.y, 0f);
-            }
-
-            GL.End();
-            GL.PopMatrix();
-
-            RenderTexture.active = prev;
-            return true;
-        }
-
-        private static void SanitizePolygonUV(List<Vector2> poly, float dupEps, float colEps)
-        {
-            // 1) Clamp to [0..1] (just in case)
-            for (int i = 0; i < poly.Count; i++)
-                poly[i] = new Vector2(Mathf.Clamp01(poly[i].x), Mathf.Clamp01(poly[i].y));
-
-            // 2) Remove near-duplicate consecutive points
-            float dupEpsSqr = dupEps * dupEps;
-            for (int i = poly.Count - 1; i >= 1; i--)
-            {
-                if ((poly[i] - poly[i - 1]).sqrMagnitude <= dupEpsSqr)
-                    poly.RemoveAt(i);
-            }
-            // Also handle wrap-around duplicate (last ~ first)
-            if (poly.Count >= 2 && (poly[0] - poly[poly.Count - 1]).sqrMagnitude <= dupEpsSqr)
-                poly.RemoveAt(poly.Count - 1);
-
-            if (poly.Count < 3)
-                return;
-
-            // 3) Remove collinear points (area of triangle near zero)
-            // Iterate until stable (because removals create new collinearities)
-            bool removed;
-            int guard = 0;
-            do
-            {
-                removed = false;
-                guard++;
-                if (guard > 10_000) break;
-
-                for (int i = 0; i < poly.Count; i++)
-                {
-                    int prev = (i - 1 + poly.Count) % poly.Count;
-                    int next = (i + 1) % poly.Count;
-
-                    Vector2 a = poly[prev];
-                    Vector2 b = poly[i];
-                    Vector2 c = poly[next];
-
-                    float twiceArea = Mathf.Abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
-                    if (twiceArea <= colEps)
-                    {
-                        poly.RemoveAt(i);
-                        removed = true;
-                        break;
-                    }
-                }
-            } while (removed && poly.Count >= 3);
-
-            // 4) If still duplicates after collinear removal, clean again quickly
-            for (int i = poly.Count - 1; i >= 1; i--)
-            {
-                if ((poly[i] - poly[i - 1]).sqrMagnitude <= dupEpsSqr)
-                    poly.RemoveAt(i);
-            }
-            if (poly.Count >= 2 && (poly[0] - poly[poly.Count - 1]).sqrMagnitude <= dupEpsSqr)
-                poly.RemoveAt(poly.Count - 1);
-        }
-
-        private static bool TriangulateEarClipping(List<Vector2> poly, out List<int> outTris)
-        {
-            outTris = new List<int>();
-            int n = poly.Count;
-            if (n < 3)
-                return false;
-
-            // Quick reject: very tiny area
-            float areaAbs = Mathf.Abs(SignedArea(poly));
-            if (areaAbs < 1e-8f)
-                return false;
-
-            List<int> indices = new List<int>(n);
-            for (int i = 0; i < n; i++)
-                indices.Add(i);
-
-            // Ensure CCW
-            if (SignedArea(poly) < 0f)
-                indices.Reverse();
-
-            int guard = 0;
-            while (indices.Count > 3 && guard < 20000)
-            {
-                guard++;
-                bool clipped = false;
-
-                for (int i = 0; i < indices.Count; i++)
-                {
-                    int iPrev = indices[(i - 1 + indices.Count) % indices.Count];
-                    int iCurr = indices[i];
-                    int iNext = indices[(i + 1) % indices.Count];
-
-                    Vector2 a = poly[iPrev];
-                    Vector2 b = poly[iCurr];
-                    Vector2 c = poly[iNext];
-
-                    // Accept slightly convex, reject near-collinear (handled earlier)
-                    if (!IsConvexCCW(a, b, c))
-                        continue;
-
-                    bool hasPointInside = false;
-                    for (int k = 0; k < indices.Count; k++)
-                    {
-                        int idx = indices[k];
-                        if (idx == iPrev || idx == iCurr || idx == iNext)
-                            continue;
-
-                        if (PointInTriangle(poly[idx], a, b, c))
-                        {
-                            hasPointInside = true;
-                            break;
-                        }
-                    }
-
-                    if (hasPointInside)
-                        continue;
-
-                    outTris.Add(iPrev);
-                    outTris.Add(iCurr);
-                    outTris.Add(iNext);
-
-                    indices.RemoveAt(i);
-                    clipped = true;
-                    break;
-                }
-
-                if (!clipped)
-                    return false; // likely self-intersection or remaining degeneracy
-            }
-
-            if (indices.Count == 3)
-            {
-                outTris.Add(indices[0]);
-                outTris.Add(indices[1]);
-                outTris.Add(indices[2]);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static float SignedArea(List<Vector2> poly)
-        {
-            float a = 0f;
-            for (int i = 0; i < poly.Count; i++)
-            {
-                Vector2 p = poly[i];
-                Vector2 q = poly[(i + 1) % poly.Count];
-                a += (p.x * q.y - q.x * p.y);
-            }
-            return 0.5f * a;
-        }
-
-        private static bool IsConvexCCW(Vector2 a, Vector2 b, Vector2 c)
-        {
-            Vector2 ab = b - a;
-            Vector2 ac = c - a;
-            float cross = ab.x * ac.y - ab.y * ac.x;
-            return cross > 1e-10f;
-        }
-
-        private static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
-        {
-            // Robust barycentric using signs
-            float d1 = Sign(p, a, b);
-            float d2 = Sign(p, b, c);
-            float d3 = Sign(p, c, a);
-
-            bool hasNeg = (d1 < 0f) || (d2 < 0f) || (d3 < 0f);
-            bool hasPos = (d1 > 0f) || (d2 > 0f) || (d3 > 0f);
-
-            return !(hasNeg && hasPos);
-        }
-
-        private static float Sign(Vector2 p1, Vector2 p2, Vector2 p3)
-        {
-            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
-        }
-
-        // ========== Surface picking / ability color ==========
         private void SetSurface(RaycastHit hit) => _currentSurface = hit.collider.GetComponentInParent<SimplePaintSurface>();
         private void ClearSurface() => _currentSurface = null;
 
@@ -546,6 +392,181 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
                 _tempRT.Release();
                 _tempRT = null;
             }
+            if (_tempTimeRT != null)
+            {
+                _tempTimeRT.Release();
+                _tempTimeRT = null;
+            }
+        }
+
+        // ========== Polygon Helpers (unchanged) ==========
+
+        private static void SanitizePolygonUV(List<Vector2> poly, float dupEps, float colEps)
+        {
+            for (int i = 0; i < poly.Count; i++)
+                poly[i] = new Vector2(Mathf.Clamp01(poly[i].x), Mathf.Clamp01(poly[i].y));
+
+            float dupEpsSqr = dupEps * dupEps;
+            for (int i = poly.Count - 1; i >= 1; i--)
+            {
+                if ((poly[i] - poly[i - 1]).sqrMagnitude <= dupEpsSqr)
+                    poly.RemoveAt(i);
+            }
+            if (poly.Count >= 2 && (poly[0] - poly[poly.Count - 1]).sqrMagnitude <= dupEpsSqr)
+                poly.RemoveAt(poly.Count - 1);
+
+            if (poly.Count < 3)
+                return;
+
+            bool removed;
+            int guard = 0;
+            do
+            {
+                removed = false;
+                guard++;
+                if (guard > 10_000) break;
+
+                for (int i = 0; i < poly.Count; i++)
+                {
+                    int prev = (i - 1 + poly.Count) % poly.Count;
+                    int next = (i + 1) % poly.Count;
+
+                    Vector2 a = poly[prev];
+                    Vector2 b = poly[i];
+                    Vector2 c = poly[next];
+
+                    float twiceArea = Mathf.Abs((b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x));
+                    if (twiceArea <= colEps)
+                    {
+                        poly.RemoveAt(i);
+                        removed = true;
+                        break;
+                    }
+                }
+            } while (removed && poly.Count >= 3);
+
+            for (int i = poly.Count - 1; i >= 1; i--)
+            {
+                if ((poly[i] - poly[i - 1]).sqrMagnitude <= dupEpsSqr)
+                    poly.RemoveAt(i);
+            }
+            if (poly.Count >= 2 && (poly[0] - poly[poly.Count - 1]).sqrMagnitude <= dupEpsSqr)
+                poly.RemoveAt(poly.Count - 1);
+        }
+
+        private static bool TriangulateEarClipping(List<Vector2> poly, out List<int> outTris)
+        {
+            outTris = new List<int>();
+            int n = poly.Count;
+            if (n < 3)
+                return false;
+
+            float areaAbs = Mathf.Abs(SignedArea(poly));
+            if (areaAbs < 1e-8f)
+                return false;
+
+            List<int> indices = new List<int>(n);
+            for (int i = 0; i < n; i++)
+                indices.Add(i);
+
+            if (SignedArea(poly) < 0f)
+                indices.Reverse();
+
+            int guard = 0;
+            while (indices.Count > 3 && guard < 20000)
+            {
+                guard++;
+                bool clipped = false;
+
+                for (int i = 0; i < indices.Count; i++)
+                {
+                    int iPrev = indices[(i - 1 + indices.Count) % indices.Count];
+                    int iCurr = indices[i];
+                    int iNext = indices[(i + 1) % indices.Count];
+
+                    Vector2 a = poly[iPrev];
+                    Vector2 b = poly[iCurr];
+                    Vector2 c = poly[iNext];
+
+                    if (!IsConvexCCW(a, b, c))
+                        continue;
+
+                    bool hasPointInside = false;
+                    for (int k = 0; k < indices.Count; k++)
+                    {
+                        int idx = indices[k];
+                        if (idx == iPrev || idx == iCurr || idx == iNext)
+                            continue;
+
+                        if (PointInTriangle(poly[idx], a, b, c))
+                        {
+                            hasPointInside = true;
+                            break;
+                        }
+                    }
+
+                    if (hasPointInside)
+                        continue;
+
+                    outTris.Add(iPrev);
+                    outTris.Add(iCurr);
+                    outTris.Add(iNext);
+
+                    indices.RemoveAt(i);
+                    clipped = true;
+                    break;
+                }
+
+                if (!clipped)
+                    return false;
+            }
+
+            if (indices.Count == 3)
+            {
+                outTris.Add(indices[0]);
+                outTris.Add(indices[1]);
+                outTris.Add(indices[2]);
+                return true;
+            }
+
+            return false;
+        }
+
+        private static float SignedArea(List<Vector2> poly)
+        {
+            float a = 0f;
+            for (int i = 0; i < poly.Count; i++)
+            {
+                Vector2 p = poly[i];
+                Vector2 q = poly[(i + 1) % poly.Count];
+                a += (p.x * q.y - q.x * p.y);
+            }
+            return 0.5f * a;
+        }
+
+        private static bool IsConvexCCW(Vector2 a, Vector2 b, Vector2 c)
+        {
+            Vector2 ab = b - a;
+            Vector2 ac = c - a;
+            float cross = ab.x * ac.y - ab.y * ac.x;
+            return cross > 1e-10f;
+        }
+
+        private static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+        {
+            float d1 = Sign(p, a, b);
+            float d2 = Sign(p, b, c);
+            float d3 = Sign(p, c, a);
+
+            bool hasNeg = (d1 < 0f) || (d2 < 0f) || (d3 < 0f);
+            bool hasPos = (d1 > 0f) || (d2 > 0f) || (d3 > 0f);
+
+            return !(hasNeg && hasPos);
+        }
+
+        private static float Sign(Vector2 p1, Vector2 p2, Vector2 p3)
+        {
+            return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
         }
     }
 }

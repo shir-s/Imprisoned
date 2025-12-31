@@ -25,6 +25,18 @@ namespace JellyGame.GamePlay.Player
         [Header("Death")]
         [SerializeField] private bool destroyOnDeath = true;
 
+        [Tooltip("How long to wait before firing death event + destroying (lets death SFX play).")]
+        [SerializeField] private float destroyDelaySeconds = 1f;
+
+        [Tooltip("If true, hide the character visuals immediately on death, while scripts can keep running.")]
+        [SerializeField] private bool hideVisualsOnDeath = true;
+
+        [Tooltip("If assigned, only these renderers will be hidden. If empty, we auto-hide ALL child renderers.")]
+        [SerializeField] private Renderer[] renderersToHide;
+
+        [Tooltip("Optional: hide the health UI image immediately on death.")]
+        [SerializeField] private bool hideHealthUiOnDeath = true;
+
         [Header("KinematicSurfaceSlider Integration")]
         [Tooltip("If assigned, we will update slider hoverHeight when size changes.")]
         [SerializeField] private KinematicSurfaceSlider surfaceSlider;
@@ -58,12 +70,16 @@ namespace JellyGame.GamePlay.Player
         private float _healthStartAnchoredY;
         private bool _hasHealthStartY;
 
+        // Cached visuals
+        private Renderer[] _cachedRenderersToHide;
+
         private void Awake()
         {
             if (surfaceSlider == null)
                 surfaceSlider = GetComponent<KinematicSurfaceSlider>();
 
             CacheHealthUiStartY();
+            CacheRenderersToHide();
 
             if (updateHealthUiOnAwake)
             {
@@ -79,6 +95,18 @@ namespace JellyGame.GamePlay.Player
 
             _healthStartAnchoredY = healthImageRect.anchoredPosition.y;
             _hasHealthStartY = true;
+        }
+
+        private void CacheRenderersToHide()
+        {
+            if (renderersToHide != null && renderersToHide.Length > 0)
+            {
+                _cachedRenderersToHide = renderersToHide;
+                return;
+            }
+
+            // Auto: hide everything visual under this object (including self)
+            _cachedRenderersToHide = GetComponentsInChildren<Renderer>(true);
         }
 
         public void ApplyDamage(float amount)
@@ -145,15 +173,51 @@ namespace JellyGame.GamePlay.Player
             if (logChanges)
                 Debug.Log($"[CubeScaler] Size {oldSize:F3} -> {size:F3}", this);
 
+            // Death check
             if (!_dead && size <= minSize + 1e-4f)
+            {
+                HandleDeathStarted();
+            }
+        }
+
+        private void HandleDeathStarted()
+        {
+            // Mark dead immediately so no more damage/heal/scale changes happen.
+            _dead = true;
+
+            // Hide visuals immediately so player won't see post-death movement
+            if (hideVisualsOnDeath)
+            {
+                HideAllVisuals();
+            }
+
+            if (SoundManager.Instance != null)
             {
                 SoundManager.Instance.StopAllSounds();
                 SoundManager.Instance.PlaySound("Lose", this.transform);
-                StartCoroutine(Die());
             }
+
+            StartCoroutine(Die());
         }
-        
-        
+
+        private void HideAllVisuals()
+        {
+            if (_cachedRenderersToHide == null || _cachedRenderersToHide.Length == 0)
+                CacheRenderersToHide();
+
+            if (_cachedRenderersToHide != null)
+            {
+                for (int i = 0; i < _cachedRenderersToHide.Length; i++)
+                {
+                    if (_cachedRenderersToHide[i] != null)
+                        _cachedRenderersToHide[i].enabled = false;
+                }
+            }
+
+            if (hideHealthUiOnDeath && healthImageRect != null)
+                healthImageRect.gameObject.SetActive(false);
+        }
+
         private void UpdateHoverHeight(float size)
         {
             if (surfaceSlider == null)
@@ -189,11 +253,10 @@ namespace JellyGame.GamePlay.Player
 
         private IEnumerator Die()
         {
-            if (_dead)
-                yield break;
-            _dead = true;
-            
-            yield return new WaitForSeconds(1);
+            // Wait so the lose sound can be heard while the object stays alive (but invisible).
+            float delay = Mathf.Max(0f, destroyDelaySeconds);
+            if (delay > 0f)
+                yield return new WaitForSeconds(delay);
 
             EventManager.TriggerEvent(
                 EventManager.GameEvent.EntityDied,

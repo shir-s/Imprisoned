@@ -1,0 +1,293 @@
+// FILEPATH: Assets/Scripts/AI/Movement/SteeringNavigator.cs
+//
+// SIMPLIFIED VERSION - uses SimplifiedSurfaceHandler instead of complex SurfaceAlignmentHandler
+
+using UnityEngine;
+
+namespace JellyGame.GamePlay.Enemy.AI.Movement
+{
+    /// <summary>
+    /// Orchestrates navigation for spider-like enemies.
+    /// Uses SimplifiedSurfaceHandler for clean, unified surface transitions.
+    /// </summary>
+    [DisallowMultipleComponent]
+    public class SteeringNavigator : MonoBehaviour, ISpeedMultiplierSink
+    {
+        public enum LocomotionType
+        {
+            Continuous,
+            Hopping
+        }
+
+        #region Serialized Fields
+
+        [Header("Locomotion")]
+        [SerializeField] private LocomotionType locomotionType = LocomotionType.Continuous;
+        [SerializeField] private LocomotionSettings locomotionSettings = new LocomotionSettings();
+
+        [Header("Obstacle Avoidance")]
+        [SerializeField] private ObstacleAvoidanceSettings avoidanceSettings = new ObstacleAvoidanceSettings();
+
+        [Header("Surface Alignment (Spider)")]
+        [Tooltip("Enable wall/ceiling adhesion for spider-like behavior.")]
+        [SerializeField] private bool enableSurfaceAlignment = false;
+        [SerializeField] private SurfaceSettings surfaceSettings = new SurfaceSettings();
+
+        [Header("Navigation")]
+        [SerializeField] private float directApproachDistance = 1.5f;
+        [SerializeField] private float steeringDisableDistance = 0.8f;
+        [SerializeField] private float maxSteeringAngle = 45f;
+
+        [Header("Debug")]
+        [SerializeField] private bool drawSensorRays = false;
+        [SerializeField] private bool drawBestDirection = true;
+        [SerializeField] private bool drawSurfaceRays = false;
+        [SerializeField] private bool debugLogs = false;
+
+        #endregion
+
+        #region Runtime Components
+
+        private ILocomotion _locomotion;
+        private IObstacleAvoidance _obstacleAvoidance;
+        private SimplifiedSurfaceHandler _surfaceHandler;
+
+        #endregion
+
+        #region State
+
+        private Vector3? _currentTarget;
+        private bool _isStopped = true;
+        private float _speedMultiplier = 1f;
+        private Vector3 _debugBestDir;
+
+        #endregion
+
+        #region Public Properties
+
+        public bool IsInClimbTransition => _surfaceHandler?.IsInTransition ?? false;
+        public bool IsSurfaceAlignmentEnabled => enableSurfaceAlignment;
+        public Vector3? CurrentTarget => _currentTarget;
+        public bool IsStopped => _isStopped;
+
+        #endregion
+
+        #region Unity Lifecycle
+
+        private void Awake()
+        {
+            InitializeComponents();
+        }
+
+        private void Update()
+        {
+            if (_isStopped || _currentTarget == null)
+                return;
+
+            float dt = Time.deltaTime;
+            Vector3 target = _currentTarget.Value;
+
+            // Update surface handler (handles transitions + grounding)
+            if (_surfaceHandler != null)
+            {
+                _surfaceHandler.UpdateSurface(target, dt);
+                
+                if (!_locomotion.IsInMotion)
+                {
+                    _surfaceHandler.EnsureGrounded();
+                }
+            }
+
+            // Compute and execute movement
+            Vector3 moveDirection = ComputeMoveDirection(target);
+            _debugBestDir = moveDirection;
+
+            if (moveDirection.sqrMagnitude > 0.0001f)
+            {
+                _locomotion.Move(moveDirection, dt, _speedMultiplier);
+            }
+        }
+
+        #endregion
+
+        #region Initialization
+
+        private void InitializeComponents()
+        {
+            ISurfaceProvider surfaceProvider = null;
+
+            if (enableSurfaceAlignment)
+            {
+                _surfaceHandler = new SimplifiedSurfaceHandler(transform, surfaceSettings, drawSurfaceRays, debugLogs);
+                surfaceProvider = _surfaceHandler;
+            }
+
+            _locomotion = locomotionType switch
+            {
+                LocomotionType.Hopping => new HoppingLocomotion(transform, locomotionSettings, surfaceProvider),
+                _ => new ContinuousLocomotion(transform, locomotionSettings, surfaceProvider)
+            };
+
+            _obstacleAvoidance = new ContextSteering(avoidanceSettings, surfaceProvider, drawSensorRays);
+        }
+
+        #endregion
+
+        #region Public API
+
+        public void SetDestination(Vector3 targetPoint)
+        {
+            _currentTarget = targetPoint;
+            _isStopped = false;
+        }
+
+        public void Stop()
+        {
+            _currentTarget = null;
+            _isStopped = true;
+            _locomotion?.Stop();
+            _surfaceHandler?.ResetTransition();
+        }
+
+        public bool HasReachedDestination(float threshold = 0.2f)
+        {
+            if (_currentTarget == null)
+                return true;
+
+            Vector3 diff = transform.position - _currentTarget.Value;
+            float distance = enableSurfaceAlignment ? diff.magnitude : Vector3.ProjectOnPlane(diff, GetUp()).magnitude;
+
+            return distance < threshold;
+        }
+
+        public float GetDistanceToDestination()
+        {
+            if (_currentTarget == null)
+                return 0f;
+
+            Vector3 diff = transform.position - _currentTarget.Value;
+            return enableSurfaceAlignment ? diff.magnitude : Vector3.ProjectOnPlane(diff, GetUp()).magnitude;
+        }
+
+        public void SetSpeedMultiplier(float multiplier)
+        {
+            _speedMultiplier = Mathf.Max(0f, multiplier);
+        }
+
+        public void SetObstacleMask(LayerMask newMask)
+        {
+            _obstacleAvoidance?.SetObstacleMask(newMask);
+        }
+
+        public void ResetObstacleMask()
+        {
+            _obstacleAvoidance?.ResetObstacleMask();
+        }
+
+        #endregion
+
+        #region Navigation Logic
+
+        private Vector3 ComputeMoveDirection(Vector3 target)
+        {
+            // If in a surface transition, use the transition direction
+            if (_surfaceHandler != null && _surfaceHandler.IsInTransition)
+            {
+                Vector3 transitionDir = _surfaceHandler.TransitionMoveDirection;
+                if (transitionDir.sqrMagnitude > 0.001f)
+                {
+                    if (debugLogs && Time.frameCount % 30 == 0)
+                        Debug.Log($"[Navigator] Using transition direction");
+                    return transitionDir;
+                }
+            }
+
+            // Standard navigation
+            return ComputeStandardDirection(target);
+        }
+
+        private Vector3 ComputeStandardDirection(Vector3 target)
+        {
+            Vector3 up = GetUp();
+            Vector3 toTarget = target - transform.position;
+            Vector3 toTargetPlanar = Vector3.ProjectOnPlane(toTarget, up);
+            float planarDist = toTargetPlanar.magnitude;
+
+            if (planarDist < 0.01f && toTarget.magnitude > 0.1f)
+            {
+                // Target directly above/below
+                return toTarget.normalized;
+            }
+
+            if (planarDist < 0.001f)
+                return Vector3.zero;
+
+            Vector3 idealDir = toTargetPlanar.normalized;
+            Vector3 finalDir = idealDir;
+
+            // Obstacle avoidance
+            if (planarDist > directApproachDistance)
+            {
+                if (_obstacleAvoidance.TryGetEmergencyRepulsion(transform.position, out Vector3 repulsion))
+                {
+                    finalDir = repulsion;
+                }
+                else
+                {
+                    finalDir = _obstacleAvoidance.ComputeSafeDirection(idealDir, transform.position, transform.forward);
+                }
+            }
+            else if (planarDist > steeringDisableDistance)
+            {
+                Vector3 steeringDir = _obstacleAvoidance.ComputeSafeDirection(idealDir, transform.position, transform.forward);
+                float steeringAngle = Vector3.Angle(idealDir, steeringDir);
+
+                if (steeringAngle < maxSteeringAngle)
+                {
+                    finalDir = steeringDir;
+                }
+                else
+                {
+                    finalDir = Vector3.Slerp(steeringDir, idealDir, 0.7f).normalized;
+                }
+            }
+
+            return finalDir;
+        }
+
+        private Vector3 GetUp()
+        {
+            return enableSurfaceAlignment ? transform.up : Vector3.up;
+        }
+
+        #endregion
+
+        #region Gizmos
+
+        private void OnDrawGizmos()
+        {
+            if (!Application.isPlaying)
+                return;
+
+            if (drawBestDirection)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawLine(transform.position, transform.position + _debugBestDir * 2f);
+            }
+
+            if (_currentTarget != null)
+            {
+                Gizmos.color = Color.yellow;
+                Gizmos.DrawWireSphere(_currentTarget.Value, 0.3f);
+            }
+
+            if (_surfaceHandler != null && _surfaceHandler.IsInTransition)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawRay(transform.position, _surfaceHandler.TransitionMoveDirection * 2f);
+            }
+        }
+
+        #endregion
+    }
+}

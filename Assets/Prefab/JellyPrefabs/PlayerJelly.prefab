@@ -521,6 +521,8 @@ MonoBehaviour:
   brushHardness: 0.5
   opacityPerMeter: 0.85
   brushColor: {r: 0, g: 0, b: 0, a: 1}
+  timeBrushBlitMaterial: {fileID: 0}
+  timePolygonFillMaterial: {fileID: 0}
   polygonFillMaterial: {fileID: 2100000, guid: da8a2fdbe722336499139597f601881a, type: 2}
   polygonFillOpacity: 1
   sanitizeFillPolygon: 1
@@ -792,6 +794,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAbilityManager
   activeAbilityAsset: {fileID: 11400000, guid: b53464417c3ea864a95e6eb72bfb4812, type: 2}
+  damageAbilityAsset: {fileID: 11400000, guid: b53464417c3ea864a95e6eb72bfb4812, type: 2}
+  stickyAbilityAsset: {fileID: 11400000, guid: 03964d403e96d374c92ba1e6e2715e6b, type: 2}
+  switchAbilityKey: 306
   areaFillSelfDamage: {fileID: 7176294800365090857}
   normalPaintColor: {r: 0.17254902, g: 0.68235296, b: 0.34117648, a: 1}
   cubeRenderer: {fileID: 5658954467003838405}
@@ -816,9 +821,16 @@ MonoBehaviour:
   sizeLossPerDamage: 1
   sizeGainPerHeal: 1
   destroyOnDeath: 1
+  destroyDelaySeconds: 1
+  hideVisualsOnDeath: 1
+  renderersToHide: []
+  hideHealthUiOnDeath: 1
   surfaceSlider: {fileID: 0}
   hoverHeightAtSize1: 0.5
   scaleHoverHeightWithSize: 1
+  healthImageRect: {fileID: 0}
+  healthImageDownAtMinSize: 30
+  updateHealthUiOnAwake: 1
   logChanges: 0
 --- !u!114 &3903073942102037414
 MonoBehaviour:

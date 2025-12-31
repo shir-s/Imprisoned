@@ -17,6 +17,14 @@ namespace JellyGame.GamePlay.Abilities
         [Header("Active Ability")]
         [SerializeField] private ScriptableObject activeAbilityAsset; // should implement IPlayerAbility
 
+        [Header("Available Abilities")]
+        [SerializeField] private ScriptableObject damageAbilityAsset; // Damage Zone Ability
+        [SerializeField] private ScriptableObject stickyAbilityAsset; // Sticky Zone Ability
+
+        [Header("Input")]
+        [Tooltip("Key to press to switch between abilities")]
+        [SerializeField] private KeyCode switchAbilityKey = KeyCode.LeftControl;
+
         [Header("Filled Area Cost (optional)")]
         [Tooltip("If assigned, the player will take self-damage based on the filled area size.")]
         [SerializeField] private AreaFillSelfDamage areaFillSelfDamage;
@@ -66,7 +74,22 @@ namespace JellyGame.GamePlay.Abilities
             if (areaFillSelfDamage == null)
                 areaFillSelfDamage = GetComponent<AreaFillSelfDamage>();
 
+            // Initialize with damage ability if activeAbilityAsset is not set
+            if (activeAbilityAsset == null && damageAbilityAsset != null)
+            {
+                activeAbilityAsset = damageAbilityAsset;
+            }
+
             UpdateMaterial();
+        }
+
+        private void Update()
+        {
+            // Check for ability switch input
+            if (Input.GetKeyDown(switchAbilityKey))
+            {
+                SwitchAbility();
+            }
         }
 
         private void OnValidate()
@@ -108,6 +131,45 @@ namespace JellyGame.GamePlay.Abilities
                 Debug.Log($"[PlayerAbilityManager] OnAreaFilled -> {activeAbilityAsset.name}", this);
 
             ability.SpawnZone(new AbilityZoneContext(surface, localPolyXZ, localBounds));
+        }
+
+        /// <summary>
+        /// Switches between damage and sticky abilities.
+        /// </summary>
+        private void SwitchAbility()
+        {
+            // Determine current ability
+            bool isCurrentlyDamage = activeAbilityAsset == damageAbilityAsset;
+            
+            // Switch to the other ability
+            if (isCurrentlyDamage)
+            {
+                // Switch to sticky
+                if (stickyAbilityAsset != null)
+                {
+                    activeAbilityAsset = stickyAbilityAsset;
+                    Debug.Log("[PlayerAbilityManager] Switched ability to Stickiness Zone", this);
+                }
+                else
+                {
+                    Debug.LogWarning("[PlayerAbilityManager] Sticky Ability not assigned!", this);
+                }
+            }
+            else
+            {
+                // Switch to damage (or default to damage if no ability is set)
+                if (damageAbilityAsset != null)
+                {
+                    activeAbilityAsset = damageAbilityAsset;
+                    Debug.Log("[PlayerAbilityManager] Switched ability to Damage Enemy Zone", this);
+                }
+                else
+                {
+                    Debug.LogWarning("[PlayerAbilityManager] Damage Ability not assigned!", this);
+                }
+            }
+            
+            UpdateMaterial();
         }
 
         [ContextMenu("Clear Ability")]
