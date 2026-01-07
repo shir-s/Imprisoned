@@ -79,31 +79,113 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [SerializeField] private int fallbackMaxTotalSamples = 220_000;
         [SerializeField] private float fallbackBaseUvStep = 0.0020f;
 
+        [Header("Multi-Surface")]
+        [Tooltip("If true, clip polygons to each surface's UV bounds. If false, use original polygon for all surfaces.")]
+        [SerializeField] private bool clipPolygonToSurfaceBounds = true;
+
         [Header("Debug")]
         [SerializeField] private bool debugPolygon = false;
         [SerializeField] private bool debugFillFailures = true;
+        [SerializeField] private bool debugMultiSurface = false;
 
         private Coroutine _fillRoutine;
+
+        // Data structure to hold per-surface fill information
+        private struct SurfaceFillData
+        {
+            public SimplePaintSurface surface;
+            public List<Vector2> uvPoly;
+            public List<Vector2> localPolyXZ;
+            public Bounds localBounds;
+        }
 
         public bool TryHandleShape(StrokeLoopSegment seg)
         {
             if (paintSurfaces == null || paintSurfaces.Count == 0 || painter == null || seg.history == null)
                 return false;
 
-            SimplePaintSurface referenceSurface = paintSurfaces[0];
-            if (referenceSurface == null)
+            // Build world-space polygon from stroke history
+            List<Vector3> worldPolyPoints = new List<Vector3>();
+            for (int i = seg.startIndex; i <= seg.endIndexInclusive; i++)
+            {
+                worldPolyPoints.Add(seg.history[i].WorldPos);
+            }
+
+            if (worldPolyPoints.Count < 3)
                 return false;
 
+            // Collect fill data for each surface that intersects with the polygon
+            List<SurfaceFillData> surfaceFillDatas = new List<SurfaceFillData>();
+
+            foreach (var surface in paintSurfaces)
+            {
+                if (surface == null)
+                    continue;
+
+                SurfaceFillData? fillData = BuildSurfaceFillData(surface, worldPolyPoints);
+                if (fillData.HasValue)
+                {
+                    surfaceFillDatas.Add(fillData.Value);
+                }
+            }
+
+            if (surfaceFillDatas.Count == 0)
+            {
+                if (debugFillFailures)
+                    Debug.LogWarning("[AreaFill] No surfaces had valid fill data from the closed shape.", this);
+                return false;
+            }
+
+            if (debugMultiSurface)
+                Debug.Log($"[AreaFill] Shape closed across {surfaceFillDatas.Count} surface(s).", this);
+
+            // Play sound once for the whole fill operation
+            if (SoundManager.Instance != null)
+                SoundManager.Instance.PlaySound("CloseArea", this.transform);
+
+            // Notify ability manager with the first surface's data (for zone spawning)
+            if (PlayerAbilityManager.Instance != null && surfaceFillDatas.Count > 0)
+            {
+                var firstData = surfaceFillDatas[0];
+                PlayerAbilityManager.Instance.OnAreaFilled(firstData.surface, firstData.localPolyXZ, firstData.localBounds);
+            }
+
+            // Stop any existing fill routine
+            if (_fillRoutine != null)
+            {
+                StopCoroutine(_fillRoutine);
+                _fillRoutine = null;
+            }
+
+            // Start filling all surfaces
+            if (fillMode == AreaFillMode.ProgressiveAnimated)
+            {
+                _fillRoutine = StartCoroutine(FillAllSurfacesProgressiveAsync(surfaceFillDatas));
+            }
+            else
+            {
+                _fillRoutine = StartCoroutine(FillAllSurfacesInstantAsync(surfaceFillDatas));
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Build fill data for a single surface from world-space polygon points.
+        /// Returns null if the polygon doesn't intersect this surface or is invalid.
+        /// </summary>
+        private SurfaceFillData? BuildSurfaceFillData(SimplePaintSurface surface, List<Vector3> worldPolyPoints)
+        {
             // Build polygon in surface LOCAL XZ
             List<Vector2> localPolyXZ = new List<Vector2>();
 
             float minX = float.MaxValue, maxX = float.MinValue;
             float minZ = float.MaxValue, maxZ = float.MinValue;
 
-            for (int i = seg.startIndex; i <= seg.endIndexInclusive; i++)
+            for (int i = 0; i < worldPolyPoints.Count; i++)
             {
-                Vector3 worldPos = seg.history[i].WorldPos;
-                Vector3 localPos = referenceSurface.transform.InverseTransformPoint(worldPos);
+                Vector3 worldPos = worldPolyPoints[i];
+                Vector3 localPos = surface.transform.InverseTransformPoint(worldPos);
 
                 localPolyXZ.Add(new Vector2(localPos.x, localPos.z));
 
@@ -114,28 +196,13 @@ namespace JellyGame.GamePlay.Painting.Shapes
             }
 
             if (localPolyXZ.Count < 3)
-                return false;
+                return null;
 
+            // Ensure CCW winding
             if (IsClockwise(localPolyXZ))
             {
                 localPolyXZ.Reverse();
-                if (debugPolygon) Debug.Log("[AreaFill] Reversed polygon winding to CCW.");
-            }
-
-            if (debugPolygon)
-                Debug.Log($"[AreaFill] Loop closed. Local bounds X:{minX:F2}->{maxX:F2} Z:{minZ:F2}->{maxZ:F2}", this);
-
-            // Ability/zone logic immediately
-            if (PlayerAbilityManager.Instance != null)
-            {
-                Bounds localBounds = new Bounds(
-                    new Vector3((minX + maxX) * 0.5f, 0f, (minZ + maxZ) * 0.5f),
-                    new Vector3(Mathf.Max(0.001f, maxX - minX), 0.5f, Mathf.Max(0.001f, maxZ - minZ))
-                );
-                
-                SoundManager.Instance.PlaySound("CloseArea", this.transform);
-
-                PlayerAbilityManager.Instance.OnAreaFilled(referenceSurface, localPolyXZ, localBounds);
+                if (debugPolygon) Debug.Log($"[AreaFill] Reversed polygon winding to CCW for surface {surface.name}.");
             }
 
             // Convert local XZ -> UV polygon
@@ -143,48 +210,337 @@ namespace JellyGame.GamePlay.Painting.Shapes
             for (int i = 0; i < localPolyXZ.Count; i++)
             {
                 Vector2 xz = localPolyXZ[i];
-                if (referenceSurface.TryLocalToPaintUV(new Vector3(xz.x, 0f, xz.y), out Vector2 uv))
+                if (surface.TryLocalToPaintUV(new Vector3(xz.x, 0f, xz.y), out Vector2 uv))
                     uvPoly.Add(uv);
             }
 
             if (uvPoly.Count < 3)
             {
                 if (debugFillFailures)
-                    Debug.LogWarning("[AreaFill] UV polygon too small (mapping failed / collapsed).", this);
-                return true;
+                    Debug.LogWarning($"[AreaFill] UV polygon too small for surface {surface.name}.", this);
+                return null;
             }
 
-            if (_fillRoutine != null)
+            // Optionally clip UV polygon to valid UV range [0,1]
+            List<Vector2> finalUvPoly = uvPoly;
+            
+            if (clipPolygonToSurfaceBounds)
             {
-                StopCoroutine(_fillRoutine);
-                _fillRoutine = null;
+                List<Vector2> clippedUvPoly = ClipPolygonToUnitSquare(uvPoly);
+
+                if (clippedUvPoly == null || clippedUvPoly.Count < 3)
+                {
+                    // Check if polygon completely outside or just clipping failed
+                    if (!PolygonIntersectsUnitSquare(uvPoly))
+                    {
+                        if (debugMultiSurface)
+                            Debug.Log($"[AreaFill] Polygon completely outside surface {surface.name} UV bounds.", this);
+                        return null;
+                    }
+                    // Clipping failed but polygon intersects - use original (will be clamped during fill)
+                    if (debugPolygon)
+                        Debug.Log($"[AreaFill] Clipping failed for surface {surface.name}, using original polygon.", this);
+                }
+                else
+                {
+                    finalUvPoly = clippedUvPoly;
+                }
             }
 
-            if (fillMode == AreaFillMode.ProgressiveAnimated)
+            if (debugPolygon)
+                Debug.Log($"[AreaFill] Surface {surface.name}: UV points={finalUvPoly.Count}", this);
+
+            Bounds localBounds = new Bounds(
+                new Vector3((minX + maxX) * 0.5f, 0f, (minZ + maxZ) * 0.5f),
+                new Vector3(Mathf.Max(0.001f, maxX - minX), 0.5f, Mathf.Max(0.001f, maxZ - minZ))
+            );
+
+            return new SurfaceFillData
             {
-                _fillRoutine = StartCoroutine(FillUvProgressiveOutsideIn_InterleavedAsync(referenceSurface, uvPoly));
-                return true;
-            }
-
-            if (useGpuPolygonFill)
-            {
-                bool ok = painter.FillPolygonUV(referenceSurface, uvPoly);
-                if (ok)
-                    return true;
-
-                if (debugFillFailures)
-                    Debug.LogWarning($"[AreaFill] GPU fill failed -> fallback={fallbackToCpuUvFill}. uvPoints={uvPoly.Count}", this);
-            }
-
-            if (fallbackToCpuUvFill)
-                _fillRoutine = StartCoroutine(FillUvScanlineAsync(referenceSurface, uvPoly));
-
-            return true;
+                surface = surface,
+                uvPoly = finalUvPoly,
+                localPolyXZ = localPolyXZ,
+                localBounds = localBounds
+            };
         }
 
-        // ================== NEW: Interleaved build + paint (so slow PCs see fill immediately) ==================
+        /// <summary>
+        /// Check if any part of the polygon intersects or is inside the unit square [0,1] x [0,1].
+        /// </summary>
+        private bool PolygonIntersectsUnitSquare(List<Vector2> polygon)
+        {
+            if (polygon == null || polygon.Count < 3)
+                return false;
 
-        private IEnumerator FillUvProgressiveOutsideIn_InterleavedAsync(SimplePaintSurface surface, List<Vector2> uvPoly)
+            // Check if any vertex is inside [0,1]
+            foreach (var p in polygon)
+            {
+                if (p.x >= 0f && p.x <= 1f && p.y >= 0f && p.y <= 1f)
+                    return true;
+            }
+
+            // Check if any edge intersects the unit square
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                Vector2 a = polygon[i];
+                Vector2 b = polygon[(i + 1) % polygon.Count];
+
+                if (LineIntersectsUnitSquare(a, b))
+                    return true;
+            }
+
+            // Check if unit square is completely inside the polygon
+            // (test center point of unit square)
+            if (PointInPolygon(new Vector2(0.5f, 0.5f), polygon))
+                return true;
+
+            return false;
+        }
+
+        private bool LineIntersectsUnitSquare(Vector2 a, Vector2 b)
+        {
+            // Check intersection with each edge of unit square
+            // Left edge
+            if (LinesIntersect(a, b, new Vector2(0, 0), new Vector2(0, 1))) return true;
+            // Right edge
+            if (LinesIntersect(a, b, new Vector2(1, 0), new Vector2(1, 1))) return true;
+            // Bottom edge
+            if (LinesIntersect(a, b, new Vector2(0, 0), new Vector2(1, 0))) return true;
+            // Top edge
+            if (LinesIntersect(a, b, new Vector2(0, 1), new Vector2(1, 1))) return true;
+
+            return false;
+        }
+
+        private bool LinesIntersect(Vector2 a1, Vector2 a2, Vector2 b1, Vector2 b2)
+        {
+            Vector2 d1 = a2 - a1;
+            Vector2 d2 = b2 - b1;
+
+            float cross = d1.x * d2.y - d1.y * d2.x;
+            if (Mathf.Abs(cross) < 1e-10f)
+                return false;
+
+            Vector2 d3 = b1 - a1;
+            float t = (d3.x * d2.y - d3.y * d2.x) / cross;
+            float u = (d3.x * d1.y - d3.y * d1.x) / cross;
+
+            return t >= 0f && t <= 1f && u >= 0f && u <= 1f;
+        }
+
+        private bool PointInPolygon(Vector2 point, List<Vector2> polygon)
+        {
+            bool inside = false;
+            int j = polygon.Count - 1;
+
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                if (((polygon[i].y > point.y) != (polygon[j].y > point.y)) &&
+                    (point.x < (polygon[j].x - polygon[i].x) * (point.y - polygon[i].y) / (polygon[j].y - polygon[i].y) + polygon[i].x))
+                {
+                    inside = !inside;
+                }
+                j = i;
+            }
+
+            return inside;
+        }
+
+        /// <summary>
+        /// Clip a polygon to the unit square [0,1] x [0,1] using Sutherland-Hodgman algorithm.
+        /// </summary>
+        private List<Vector2> ClipPolygonToUnitSquare(List<Vector2> polygon)
+        {
+            if (polygon == null || polygon.Count < 3)
+                return null;
+
+            List<Vector2> output = new List<Vector2>(polygon);
+
+            // Clip against each edge of the unit square
+            // Left edge (x = 0)
+            output = ClipPolygonAgainstEdge(output, new Vector2(0, 0), new Vector2(0, 1));
+            if (output == null || output.Count < 3) return null;
+
+            // Right edge (x = 1)
+            output = ClipPolygonAgainstEdge(output, new Vector2(1, 1), new Vector2(1, 0));
+            if (output == null || output.Count < 3) return null;
+
+            // Bottom edge (y = 0)
+            output = ClipPolygonAgainstEdge(output, new Vector2(1, 0), new Vector2(0, 0));
+            if (output == null || output.Count < 3) return null;
+
+            // Top edge (y = 1)
+            output = ClipPolygonAgainstEdge(output, new Vector2(0, 1), new Vector2(1, 1));
+            if (output == null || output.Count < 3) return null;
+
+            return output;
+        }
+
+        /// <summary>
+        /// Clip polygon against a single edge defined by two points (edge goes from p1 to p2, inside is to the left).
+        /// </summary>
+        private List<Vector2> ClipPolygonAgainstEdge(List<Vector2> polygon, Vector2 edgeP1, Vector2 edgeP2)
+        {
+            if (polygon == null || polygon.Count < 3)
+                return null;
+
+            List<Vector2> output = new List<Vector2>();
+            Vector2 edgeDir = edgeP2 - edgeP1;
+            Vector2 edgeNormal = new Vector2(-edgeDir.y, edgeDir.x); // Points inward (left of edge direction)
+
+            for (int i = 0; i < polygon.Count; i++)
+            {
+                Vector2 current = polygon[i];
+                Vector2 next = polygon[(i + 1) % polygon.Count];
+
+                float currentDot = Vector2.Dot(current - edgeP1, edgeNormal);
+                float nextDot = Vector2.Dot(next - edgeP1, edgeNormal);
+
+                bool currentInside = currentDot >= -1e-6f;
+                bool nextInside = nextDot >= -1e-6f;
+
+                if (currentInside)
+                {
+                    output.Add(current);
+
+                    if (!nextInside)
+                    {
+                        // Exiting: add intersection
+                        Vector2? intersection = LineEdgeIntersection(current, next, edgeP1, edgeP2);
+                        if (intersection.HasValue)
+                            output.Add(intersection.Value);
+                    }
+                }
+                else if (nextInside)
+                {
+                    // Entering: add intersection
+                    Vector2? intersection = LineEdgeIntersection(current, next, edgeP1, edgeP2);
+                    if (intersection.HasValue)
+                        output.Add(intersection.Value);
+                }
+            }
+
+            return output.Count >= 3 ? output : null;
+        }
+
+        /// <summary>
+        /// Find intersection point between line segment (p1, p2) and infinite line through (e1, e2).
+        /// </summary>
+        private Vector2? LineEdgeIntersection(Vector2 p1, Vector2 p2, Vector2 e1, Vector2 e2)
+        {
+            Vector2 d1 = p2 - p1;
+            Vector2 d2 = e2 - e1;
+
+            float cross = d1.x * d2.y - d1.y * d2.x;
+            if (Mathf.Abs(cross) < 1e-10f)
+                return null; // Parallel
+
+            Vector2 d3 = e1 - p1;
+            float t = (d3.x * d2.y - d3.y * d2.x) / cross;
+
+            if (t < 0f || t > 1f)
+                return null; // Intersection outside segment
+
+            return p1 + d1 * t;
+        }
+
+        // ================== Multi-surface fill routines ==================
+
+        private IEnumerator FillAllSurfacesInstantAsync(List<SurfaceFillData> surfaceFillDatas)
+        {
+            foreach (var fillData in surfaceFillDatas)
+            {
+                if (useGpuPolygonFill)
+                {
+                    bool ok = painter.FillPolygonUV(fillData.surface, fillData.uvPoly);
+                    if (ok)
+                    {
+                        if (debugMultiSurface)
+                            Debug.Log($"[AreaFill] GPU fill succeeded for surface {fillData.surface.name}.", this);
+                        continue;
+                    }
+
+                    if (debugFillFailures)
+                        Debug.LogWarning($"[AreaFill] GPU fill failed for surface {fillData.surface.name} -> fallback={fallbackToCpuUvFill}.", this);
+                }
+
+                if (fallbackToCpuUvFill)
+                {
+                    yield return StartCoroutine(FillUvScanlineAsync(fillData.surface, fillData.uvPoly));
+                }
+            }
+
+            _fillRoutine = null;
+        }
+
+        private IEnumerator FillAllSurfacesProgressiveAsync(List<SurfaceFillData> surfaceFillDatas)
+        {
+            // Create parallel fill coroutines for all surfaces
+            List<IEnumerator> fillEnumerators = new List<IEnumerator>();
+
+            foreach (var fillData in surfaceFillDatas)
+            {
+                fillEnumerators.Add(CreateProgressiveFillEnumerator(fillData.surface, fillData.uvPoly));
+            }
+
+            if (fillEnumerators.Count == 0)
+            {
+                _fillRoutine = null;
+                yield break;
+            }
+
+            // Run all fills in parallel by advancing each one per frame
+            // This distributes the time budget across all surfaces
+            float budgetPerSurface = progressiveTimeBudgetMsPerFrame / Mathf.Max(1, fillEnumerators.Count);
+            List<bool> completed = new List<bool>(fillEnumerators.Count);
+            for (int i = 0; i < fillEnumerators.Count; i++)
+                completed.Add(false);
+
+            while (true)
+            {
+                bool anyActive = false;
+
+                for (int i = 0; i < fillEnumerators.Count; i++)
+                {
+                    if (completed[i])
+                        continue;
+
+                    float frameStart = Time.realtimeSinceStartup;
+                    float budgetSec = budgetPerSurface / 1000f;
+
+                    // Advance this surface's fill until it yields or completes
+                    while ((Time.realtimeSinceStartup - frameStart) < budgetSec)
+                    {
+                        if (!fillEnumerators[i].MoveNext())
+                        {
+                            completed[i] = true;
+                            if (debugMultiSurface)
+                                Debug.Log($"[AreaFill] Progressive fill completed for surface {i}.", this);
+                            break;
+                        }
+                    }
+
+                    if (!completed[i])
+                        anyActive = true;
+                }
+
+                if (!anyActive)
+                    break;
+
+                yield return null;
+            }
+
+            _fillRoutine = null;
+        }
+
+        private IEnumerator CreateProgressiveFillEnumerator(SimplePaintSurface surface, List<Vector2> uvPoly)
+        {
+            return FillUvProgressiveOutsideIn_InterleavedAsync_ForSurface(surface, uvPoly);
+        }
+
+        // ================== Progressive fill for a single surface ==================
+
+        private IEnumerator FillUvProgressiveOutsideIn_InterleavedAsync_ForSurface(SimplePaintSurface surface, List<Vector2> uvPoly)
         {
             // UV bounds + centroid
             float minU = 1f, maxU = 0f, minV = 1f, maxV = 0f;
@@ -262,7 +618,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             {
                 float frameStart = Time.realtimeSinceStartup;
 
-                // Do build work until budget is about half used, then paint with the remainder (so we always show progress)
+                // Do build work until budget is about half used, then paint with the remainder
                 while (v <= maxV && (Time.realtimeSinceStartup - frameStart) < budgetSec * 0.55f)
                 {
                     intersections.Clear();
@@ -283,7 +639,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
                                 Vector2 uv = new Vector2(u, v);
 
                                 float r = Vector2.Distance(uv, centroid);
-                                float tNorm = Mathf.Clamp01(r / maxR); // 0 center, 1 outside-ish
+                                float tNorm = Mathf.Clamp01(r / maxR);
 
                                 float tWarped = tNorm;
 
@@ -312,7 +668,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                                 int bucket = Mathf.Clamp(Mathf.FloorToInt(tWarped * (rings - 1)), 0, rings - 1);
                                 buckets[bucket].Add(uv);
 
-                                // If we’re out of build time, break early so we can paint this frame.
                                 if ((Time.realtimeSinceStartup - frameStart) >= budgetSec * 0.55f)
                                     break;
                             }
@@ -341,8 +696,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 PaintAvailableOuterBucketsWithinBudget(surface, buckets, ref paintRing, frameStart, budgetSec);
                 yield return null;
             }
-
-            _fillRoutine = null;
         }
 
         private void PaintAvailableOuterBucketsWithinBudget(
@@ -352,7 +705,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
             float frameStart,
             float budgetSec)
         {
-            // Always try to paint at least one point if available (prevents "nothing until end" feeling).
             bool paintedOne = false;
 
             while (paintRing >= 0 && (Time.realtimeSinceStartup - frameStart) < budgetSec)
@@ -372,13 +724,10 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 PaintLiquidSolidAtUV(surface, uv);
                 paintedOne = true;
 
-                // If we painted one and we’re already over budget, stop.
                 if (paintedOne && (Time.realtimeSinceStartup - frameStart) >= budgetSec)
                     break;
             }
 
-            // If we didn’t paint anything because we're at a ring with no points yet,
-            // scan downward until we find a non-empty ring and paint one point immediately.
             if (!paintedOne)
             {
                 int r = paintRing;
@@ -399,7 +748,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             }
         }
 
-        // ----------------- Liquid stamping (unchanged) -----------------
+        // ----------------- Liquid stamping -----------------
 
         private void PaintLiquidSolidAtUV(SimplePaintSurface surface, Vector2 uv)
         {
@@ -494,7 +843,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             return s - Mathf.Floor(s);
         }
 
-        // ----------------- Fallback scanline (unchanged) -----------------
+        // ----------------- Fallback scanline -----------------
 
         private IEnumerator FillUvScanlineAsync(SimplePaintSurface surface, List<Vector2> uvPoly)
         {
@@ -552,8 +901,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     }
                 }
             }
-
-            _fillRoutine = null;
         }
 
         private void ComputeScanlineIntersections(float v, List<Vector2> poly, List<float> outUs)
