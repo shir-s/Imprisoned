@@ -1,8 +1,6 @@
 // FILEPATH: Assets/Scripts/Managers/GameSceneManager.cs
-
 using System;
 using System.Collections;
-
 using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -10,16 +8,30 @@ using UnityEngine.SceneManagement;
 namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
-    /// Manages scene transitions between Game, GameOver, and Win scenes.
+    /// Manages scene transitions between Levels, GameOver, and Win scenes.
     /// Also listens to EntityDied and triggers GameOver if the victim layer matches.
     /// Win is triggered by listening to GameWin or via a cheat key.
+    ///
+    /// v2:
+    /// - Supports multiple levels (tutorial, level 1, future levels).
+    /// - Win scene can have "Restart" (restart current level) and "Next Level" buttons.
+    /// - Current level is stored in PlayerPrefs so Win/GameOver scenes can load the right level.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
-        [Header("Scene Settings (Use Build Index)")]
-        [Tooltip("Build index of the game scene. Check Build Settings to see the index number.")]
-        [SerializeField] private int gameSceneBuildIndex = 0;
+        private const string PlayerPrefsLevelKey = "JellyGame.CurrentLevelIndex";
 
+        [Header("Levels (Ordered)")]
+        [Tooltip("Build indices of your playable levels in order: Tutorial, Level1, Level2, ...")]
+        [SerializeField] private int[] levelSceneBuildIndices = new int[] { 0 };
+
+        [Tooltip("If true, when NextLevel is pressed on the last level, it loops back to the first level.")]
+        [SerializeField] private bool loopToFirstLevelIfNoNext = false;
+
+        [Tooltip("If true, when a level scene is loaded, we detect its index in 'levelSceneBuildIndices' and store it as current.")]
+        [SerializeField] private bool autoDetectCurrentLevelFromActiveScene = true;
+
+        [Header("Non-Level Scenes (Use Build Index)")]
         [Tooltip("Build index of the game over scene. Check Build Settings to see the index number.")]
         [SerializeField] private int gameOverSceneBuildIndex = 1;
 
@@ -27,9 +39,6 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private int winSceneBuildIndex = 2;
 
         [Header("Scene Names (Fallback)")]
-        [Tooltip("Name of the game scene (used as fallback if build index fails)")]
-        [SerializeField] private string gameSceneName = "JellyWithArt";
-
         [Tooltip("Name of the game over scene (used as fallback if build index fails)")]
         [SerializeField] private string gameOverSceneName = "GameOver";
 
@@ -41,26 +50,23 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private LayerMask gameOverOnVictimLayers;
 
         [Header("Win Trigger")]
-        [Tooltip("If true, listens to EventManager.GameEvent.Win (you must add that enum value).")]
+        [Tooltip("If true, listens to EventManager.GameEvent.GameWin.")]
         [SerializeField] private bool listenToWinEvent = true;
 
         [Header("Win FX (optional)")]
         [Tooltip("Assign the ROOT GameObject that contains the win particles (can have multiple ParticleSystem children).")]
         [SerializeField] private GameObject winFxRoot;
 
-        [Tooltip("If true, the FX root is disabled on start so nothing can PlayOnAwake.\n" +
-                 "It will be enabled only when Win is triggered.")]
+        [Tooltip("If true, the FX root is disabled on start so nothing can PlayOnAwake.\nIt will be enabled only when Win is triggered.")]
         [SerializeField] private bool disableWinFxRootOnStart = true;
 
         [Tooltip("If true, we also force-stop and clear all ParticleSystems under winFxRoot on start.")]
         [SerializeField] private bool stopWinFxOnStart = true;
 
-        [Tooltip("Delay (seconds) after win is triggered before loading the Win scene.\n" +
-                 "If winFxRoot is assigned and this is <= 0, we will auto-compute a delay from the longest ParticleSystem.")]
+        [Tooltip("Delay (seconds) after win is triggered before loading the Win scene.\nIf winFxRoot is assigned and this is <= 0, we will auto-compute a delay from the longest ParticleSystem.")]
         [SerializeField] private float winSceneLoadDelay = 0f;
 
-        [Tooltip("If true, pause gameplay during win.\n" +
-                 "Note: ParticleSystem uses scaled time by default, so if you pause and your particles are scaled-time, they may freeze.")]
+        [Tooltip("If true, pause gameplay during win.\nNote: ParticleSystem uses scaled time by default, so if you pause and your particles are scaled-time, they may freeze.")]
         [SerializeField] private bool pauseGameplayOnWin = false;
 
         [Header("Cheat Codes")]
@@ -82,38 +88,13 @@ namespace JellyGame.GamePlay.Managers
 
         private void Start()
         {
+            // Background music (kept from your original)
             SoundManager.Instance.StopAllSounds();
             if (SoundManager.Instance.FindAudioConfig("Background") != null)
-                SoundManager.Instance.PlaySound("Background", this.transform);        
-        }
+                SoundManager.Instance.PlaySound("Background", this.transform);
 
-        private void PrepareWinFxForStart()
-        {
-            if (winFxRoot == null)
-                return;
-
-            // If your teammate's particles are set to Play On Awake, the only guaranteed way
-            // to prevent them from playing at game start is to disable the whole root.
-            if (disableWinFxRootOnStart && winFxRoot.activeSelf)
-                winFxRoot.SetActive(false);
-
-            // Optional extra safety: stop & clear them so even if root is enabled later,
-            // we restart from a clean state when Win happens.
-            if (stopWinFxOnStart)
-                StopAndClearAllWinFx(includeInactive: true);
-        }
-
-        private void StopAndClearAllWinFx(bool includeInactive)
-        {
-            if (winFxRoot == null)
-                return;
-
-            var systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(includeInactive);
-            for (int i = 0; i < systems.Length; i++)
-            {
-                if (systems[i] == null) continue;
-                systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            }
+            if (autoDetectCurrentLevelFromActiveScene)
+                TryDetectAndStoreCurrentLevelFromActiveScene();
         }
 
         private void OnEnable()
@@ -139,7 +120,6 @@ namespace JellyGame.GamePlay.Managers
 
         private void Update()
         {
-            // Cheat code: trigger GameOver
             if (Input.GetKeyDown(gameOverKey))
             {
                 if (debugLogs)
@@ -148,13 +128,49 @@ namespace JellyGame.GamePlay.Managers
                 EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
             }
 
-            // Cheat code: trigger Win
             if (Input.GetKeyDown(winKey))
             {
                 if (debugLogs)
                     Debug.Log($"[GameSceneManager] Cheat code pressed ({winKey})! Triggering Win", this);
 
                 EventManager.TriggerEvent(EventManager.GameEvent.GameWin);
+            }
+        }
+
+        private void PrepareWinFxForStart()
+        {
+            if (winFxRoot == null)
+                return;
+
+            if (disableWinFxRootOnStart && winFxRoot.activeSelf)
+                winFxRoot.SetActive(false);
+
+            if (stopWinFxOnStart)
+                StopAndClearAllWinFx(includeInactive: true);
+        }
+
+        private void StopAndClearAllWinFx(bool includeInactive)
+        {
+            if (winFxRoot == null)
+                return;
+
+            var systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(includeInactive);
+            for (int i = 0; i < systems.Length; i++)
+            {
+                if (systems[i] == null) continue;
+                systems[i].Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+        }
+
+        private void TryDetectAndStoreCurrentLevelFromActiveScene()
+        {
+            int activeBuildIndex = SceneManager.GetActiveScene().buildIndex;
+            int idx = FindLevelListIndexByBuildIndex(activeBuildIndex);
+            if (idx >= 0)
+            {
+                SetCurrentLevelIndex(idx);
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Detected current level: listIndex={idx}, buildIndex={activeBuildIndex}", this);
             }
         }
 
@@ -167,7 +183,6 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // layer mask match
             bool match = (gameOverOnVictimLayers.value & (1 << died.VictimLayer)) != 0;
             if (!match)
                 return;
@@ -202,10 +217,8 @@ namespace JellyGame.GamePlay.Managers
 
             float delay = winSceneLoadDelay;
 
-            // Play ALL particle systems under the root (your teammate's prefab style)
             if (winFxRoot != null)
             {
-                // Enable only now (so they don't show at start)
                 if (!winFxRoot.activeInHierarchy)
                     winFxRoot.SetActive(true);
 
@@ -213,7 +226,6 @@ namespace JellyGame.GamePlay.Managers
 
                 if (systems != null && systems.Length > 0)
                 {
-                    // Restart clean
                     for (int i = 0; i < systems.Length; i++)
                     {
                         if (systems[i] == null) continue;
@@ -226,7 +238,6 @@ namespace JellyGame.GamePlay.Managers
                         systems[i].Play(true);
                     }
 
-                    // Auto delay if user didn't set one
                     if (delay <= 0f)
                         delay = ComputeLongestFxDurationSeconds(systems);
                 }
@@ -237,9 +248,7 @@ namespace JellyGame.GamePlay.Managers
             }
 
             if (pauseGameplayOnWin)
-            {
                 Time.timeScale = 0f;
-            }
 
             if (delay > 0f)
             {
@@ -270,7 +279,6 @@ namespace JellyGame.GamePlay.Managers
                 float startDelayMax = main.startDelay.constantMax;
 
                 float total = Mathf.Max(0f, startDelayMax + main.duration + lifetimeMax);
-
                 if (total > max)
                     max = total;
             }
@@ -278,12 +286,74 @@ namespace JellyGame.GamePlay.Managers
             return max;
         }
 
+        // ===================== Level API (UI Buttons) =====================
+
         /// <summary>
-        /// Loads the GameOver scene
+        /// Restart button (Win/GameOver): restarts the CURRENT level (tutorial/level1/level2...).
         /// </summary>
+        public void RestartGame()
+        {
+            int levelBuildIndex = GetCurrentLevelBuildIndexSafe();
+            if (levelBuildIndex >= 0)
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] RestartGame() -> Loading current level buildIndex={levelBuildIndex}", this);
+
+                SceneManager.LoadScene(levelBuildIndex);
+                return;
+            }
+
+            Debug.LogError("[GameSceneManager] RestartGame failed: no valid current level. Check levelSceneBuildIndices.", this);
+        }
+
+        /// <summary>
+        /// NEXT LEVEL button (Win scene): loads the next level in levelSceneBuildIndices.
+        /// </summary>
+        public void LoadNextLevel()
+        {
+            int current = GetCurrentLevelIndex();
+            if (current < 0) current = 0;
+
+            int next = current + 1;
+
+            if (levelSceneBuildIndices == null || levelSceneBuildIndices.Length == 0)
+            {
+                Debug.LogError("[GameSceneManager] LoadNextLevel failed: levelSceneBuildIndices is empty.", this);
+                return;
+            }
+
+            if (next >= levelSceneBuildIndices.Length)
+            {
+                if (!loopToFirstLevelIfNoNext)
+                {
+                    if (debugLogs)
+                        Debug.Log("[GameSceneManager] No next level. Staying on Win scene.", this);
+                    return;
+                }
+
+                next = 0;
+            }
+
+            int nextBuildIndex = levelSceneBuildIndices[next];
+            if (!IsValidBuildIndex(nextBuildIndex))
+            {
+                Debug.LogError($"[GameSceneManager] LoadNextLevel failed: next buildIndex={nextBuildIndex} is not valid. Check Build Settings.", this);
+                return;
+            }
+
+            SetCurrentLevelIndex(next);
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] LoadNextLevel -> listIndex={next}, buildIndex={nextBuildIndex}", this);
+
+            SceneManager.LoadScene(nextBuildIndex);
+        }
+
+        // ===================== Scene Loads =====================
+
         public void LoadGameOverScene()
         {
-            if (gameOverSceneBuildIndex >= 0 && gameOverSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
+            if (IsValidBuildIndex(gameOverSceneBuildIndex))
             {
                 if (debugLogs)
                     Debug.Log($"[GameSceneManager] Loading GameOver scene by index: {gameOverSceneBuildIndex}", this);
@@ -302,12 +372,9 @@ namespace JellyGame.GamePlay.Managers
             Debug.LogError("[GameSceneManager] GameOver scene build index and name are not set correctly!", this);
         }
 
-        /// <summary>
-        /// Loads the Win scene
-        /// </summary>
         public void LoadWinScene()
         {
-            if (winSceneBuildIndex >= 0 && winSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
+            if (IsValidBuildIndex(winSceneBuildIndex))
             {
                 if (debugLogs)
                     Debug.Log($"[GameSceneManager] Loading Win scene by index: {winSceneBuildIndex}", this);
@@ -326,35 +393,50 @@ namespace JellyGame.GamePlay.Managers
             Debug.LogError("[GameSceneManager] Win scene build index and name are not set correctly!", this);
         }
 
-        /// <summary>
-        /// Restarts the game by loading the game scene
-        /// Call this from the restart button in GameOver/Win scenes
-        /// </summary>
-        public void RestartGame()
+        // ===================== Internal helpers =====================
+
+        private int GetCurrentLevelBuildIndexSafe()
         {
-            if (debugLogs)
-                Debug.Log($"[GameSceneManager] RestartGame() called! Loading game scene index: {gameSceneBuildIndex}", this);
+            if (levelSceneBuildIndices == null || levelSceneBuildIndices.Length == 0)
+                return -1;
 
-            if (gameSceneBuildIndex >= 0 && gameSceneBuildIndex < SceneManager.sceneCountInBuildSettings)
+            int idx = Mathf.Clamp(GetCurrentLevelIndex(), 0, levelSceneBuildIndices.Length - 1);
+            int buildIndex = levelSceneBuildIndices[idx];
+
+            if (!IsValidBuildIndex(buildIndex))
+                return -1;
+
+            return buildIndex;
+        }
+
+        private int FindLevelListIndexByBuildIndex(int buildIndex)
+        {
+            if (levelSceneBuildIndices == null)
+                return -1;
+
+            for (int i = 0; i < levelSceneBuildIndices.Length; i++)
             {
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Loading game scene by index: {gameSceneBuildIndex}", this);
-                SceneManager.LoadScene(gameSceneBuildIndex);
-                return;
+                if (levelSceneBuildIndices[i] == buildIndex)
+                    return i;
             }
 
-            if (!string.IsNullOrEmpty(gameSceneName))
-            {
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Loading game scene by name: {gameSceneName}", this);
-                SceneManager.LoadScene(gameSceneName);
-                return;
-            }
-            
-            SoundManager.Instance.StopAllSounds();
-            SoundManager.Instance.PlaySound("Background", this.transform);
+            return -1;
+        }
 
-            Debug.LogError("[GameSceneManager] Game scene build index and name are not set correctly!", this);
+        private static bool IsValidBuildIndex(int buildIndex)
+        {
+            return buildIndex >= 0 && buildIndex < SceneManager.sceneCountInBuildSettings;
+        }
+
+        private static int GetCurrentLevelIndex()
+        {
+            return PlayerPrefs.GetInt(PlayerPrefsLevelKey, 0);
+        }
+
+        private static void SetCurrentLevelIndex(int idx)
+        {
+            PlayerPrefs.SetInt(PlayerPrefsLevelKey, Mathf.Max(0, idx));
+            PlayerPrefs.Save();
         }
     }
 }
