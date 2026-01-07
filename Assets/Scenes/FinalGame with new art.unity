@@ -11271,6 +11271,14 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemyRangedThenMelee
       objectReference: {fileID: 0}
+    - target: {fileID: 8482994998386503142, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
+      propertyPath: damageCooldown
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8482994998386503142, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
+      propertyPath: percentToRemovePerHit
+      value: 20.4
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -28003,6 +28011,14 @@ PrefabInstance:
       propertyPath: tray
       value: 
       objectReference: {fileID: 3793594676184193298}
+    - target: {fileID: 6461456153330537084, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: damageCooldown
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6461456153330537084, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: percentToRemovePerHit
+      value: 22.2
+      objectReference: {fileID: 0}
     - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
       propertyPath: m_LocalPosition.x
       value: -18.3
@@ -28232,10 +28248,6 @@ PrefabInstance:
       propertyPath: 'waypoints.Array.data[1]'
       value: 
       objectReference: {fileID: 6520605667437447760}
-    - target: {fileID: 7824525759487245556, guid: 887481c17cdfb471d974bc7d35cf2985, type: 3}
-      propertyPath: detectionRadius
-      value: 8
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -28624,7 +28636,7 @@ PrefabInstance:
       objectReference: {fileID: 1953021156}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: sizeLossPerDamage
-      value: 0.5
+      value: 0.15
       objectReference: {fileID: 0}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: healthImageDownAtMinSize
@@ -28676,7 +28688,11 @@ PrefabInstance:
       objectReference: {fileID: 3793594676184193298}
     - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: maxDamagePerFill
-      value: 1
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: damagePerSquareMeter
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: onlyWhenAbilityActive
@@ -29214,13 +29230,14 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  inputForward: {x: 0, y: 0, z: 1}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
   recenterDegPerSec: 40
   followDegPerSec: 360
   physicsDriven: 1
   inputCamera: {fileID: 1410603021}
-  flipModelPhysicsX: 1
+  flipModelPhysicsX: 0
   flipModelPhysicsZ: 0
 --- !u!4 &7841247787599675597
 Transform:
