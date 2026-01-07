@@ -15625,12 +15625,14 @@ MonoBehaviour:
   autoStart: 1
   endImmediatelyIfNoWindows: 1
   disableOnTutorialStart:
-  - {fileID: 1210166133803371560}
+  - {fileID: 5032915102478349644}
+  - {fileID: 2478737630829881642}
   restoreDisabledScriptsOnFinish: 1
   windowScriptActions:
   - windowIndex: 3
     enableOnShow:
-    - {fileID: 1210166133803371560}
+    - {fileID: 2478737630829881642}
+    - {fileID: 5032915102478349644}
     disableOnShow: []
     enableOnComplete: []
     disableOnComplete: []
@@ -52600,7 +52602,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a145ec368715b354ebe1e56ef7d3982a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.WearOnMovementDamage
-  damagePerMeter: 0.01
+  damagePerMeter: 0.0001
   tickInterval: 0.1
   minProjectedMoveDelta: 0.0005
   surfaceMask:
