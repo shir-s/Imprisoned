@@ -24,6 +24,10 @@ namespace JellyGame.GamePlay.Map
         [SerializeField] private KeyCode downKey = KeyCode.DownArrow;
         [SerializeField] private KeyCode leftKey = KeyCode.LeftArrow;
         [SerializeField] private KeyCode rightKey = KeyCode.RightArrow;
+        
+        [Header("Input Basis (Fixed Forward)")]
+        [Tooltip("World-space forward direction used for tilt input (camera independent). Example: (0,0,1).")]
+        [SerializeField] private Vector3 inputForward = Vector3.forward;
 
         [Header("Tilt Settings")]
         [SerializeField] private float maxTiltDeg = 20f;
@@ -44,6 +48,7 @@ namespace JellyGame.GamePlay.Map
         
         [Tooltip("Only check this if the tray moves down when it should move up even on the Follow Camera.")]
         [SerializeField] private bool flipModelPhysicsZ = false;
+        
 
         private Rigidbody _rb;
         private Quaternion _baseRot;
@@ -84,44 +89,35 @@ namespace JellyGame.GamePlay.Map
                 DriveRotation(Time.fixedDeltaTime);
         }
 
-private void HandleInput(float dt)
+        private void HandleInput(float dt)
         {
             // 1. Get Arrow Key Input
             float rawV = (Input.GetKey(upKey) ? 1 : 0) - (Input.GetKey(downKey) ? 1 : 0);
             float rawH = (Input.GetKey(rightKey) ? 1 : 0) - (Input.GetKey(leftKey) ? 1 : 0);
 
-            // 2. Determine which Camera to respect
-            Transform camT = inputCamera;
-            
-            // --- FIX IS HERE: Use 'UnityEngine.Camera.main' to avoid conflicts ---
-            if (camT == null && UnityEngine.Camera.main != null) 
-                camT = UnityEngine.Camera.main.transform;
+            // 2. Build a stable basis using a FIXED forward vector (camera-independent)
+            Vector3 trayUp = transform.up;
 
-            Vector3 desiredMoveDir = Vector3.zero;
+            Vector3 forward = Vector3.ProjectOnPlane(inputForward, trayUp);
+            if (forward.sqrMagnitude < 0.0001f)
+                forward = Vector3.ProjectOnPlane(transform.forward, trayUp);
 
-            if (camT != null)
-            {
-                // 3. "Screen Space" Calculation
-                Vector3 trayUp = transform.up;
-                
-                // Project camera vectors onto the tray
-                Vector3 camRight = Vector3.ProjectOnPlane(camT.right, trayUp).normalized;
-                Vector3 camForward = Vector3.ProjectOnPlane(camT.forward, trayUp).normalized;
+            forward.Normalize();
 
-                // Create the movement vector relative to the camera view
-                desiredMoveDir = (camForward * rawV) + (camRight * rawH);
-            }
-            else
-            {
-                // Fallback (World Space)
-                desiredMoveDir = (Vector3.forward * rawV) + (Vector3.right * rawH);
-            }
+            // IMPORTANT FIX:
+            // Right should be computed as Cross(forward, up) (not Cross(up, forward)).
+            Vector3 right = Vector3.Cross(forward, trayUp).normalized;
 
+            // 3. Desired move direction in world space (on tray plane)
+            Vector3 desiredMoveDir = (forward * rawV) + (right * rawH);
             if (desiredMoveDir.sqrMagnitude > 1f) desiredMoveDir.Normalize();
 
-            // 4. Convert World Movement -> Local Tray Tilt
-            float moveLocalZ = Vector3.Dot(desiredMoveDir, transform.forward);
-            float moveLocalX = Vector3.Dot(desiredMoveDir, transform.right);
+            // 4. Convert World Movement -> Local Tray Tilt (use BASE axes, not current tilted axes)
+            Vector3 baseForward = _baseRot * Vector3.forward;
+            Vector3 baseRight = _baseRot * Vector3.right;
+
+            float moveLocalZ = Vector3.Dot(desiredMoveDir, baseForward);
+            float moveLocalX = Vector3.Dot(desiredMoveDir, baseRight);
 
             // 5. Calculate Goal Angles
             float goalPitch = -moveLocalZ * maxTiltDeg;
@@ -134,17 +130,24 @@ private void HandleInput(float dt)
             _targetTiltXZ = Vector2.MoveTowards(_targetTiltXZ, new Vector2(goalPitch, goalRoll), tiltAccelDegPerSec * dt);
         }
 
+
+
         private void DriveRotation(float dt)
         {
             _currentTiltXZ.x = Mathf.MoveTowards(_currentTiltXZ.x, _targetTiltXZ.x, followDegPerSec * dt);
             _currentTiltXZ.y = Mathf.MoveTowards(_currentTiltXZ.y, _targetTiltXZ.y, followDegPerSec * dt);
 
-            Quaternion qx = Quaternion.AngleAxis(_currentTiltXZ.x, transform.right);
-            Quaternion qz = Quaternion.AngleAxis(_currentTiltXZ.y, transform.forward);
-            
+            // Use stable base axes so "pitch" always means the same thing.
+            Vector3 baseRight = _baseRot * Vector3.right;
+            Vector3 baseForward = _baseRot * Vector3.forward;
+
+            Quaternion qx = Quaternion.AngleAxis(_currentTiltXZ.x, baseRight);
+            Quaternion qz = Quaternion.AngleAxis(_currentTiltXZ.y, baseForward);
+
             if (_rb && _rb.isKinematic) _rb.MoveRotation(_baseRot * qx * qz);
             else transform.rotation = _baseRot * qx * qz;
         }
+
 
         // Maintains compatibility with your Follow Camera script
         public void SetInputCamera(Transform cam, bool enableCameraRelativeInput)
