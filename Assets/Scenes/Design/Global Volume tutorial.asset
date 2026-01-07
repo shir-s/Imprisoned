@@ -57,7 +57,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
-  m_Name: Global Volume Profile
+  m_Name: Global Volume tutorial
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
   components:
   - {fileID: 572934616050205330}
@@ -77,13 +77,13 @@ MonoBehaviour:
   active: 1
   postExposure:
     m_OverrideState: 1
-    m_Value: -0.51
+    m_Value: -1.25
   contrast:
     m_OverrideState: 1
-    m_Value: -6
+    m_Value: 19
   colorFilter:
     m_OverrideState: 1
-    m_Value: {r: 0.86714095, g: 1, b: 0.8537736, a: 1}
+    m_Value: {r: 0.65396935, g: 0.83018863, b: 0.7797659, a: 1}
   hueShift:
     m_OverrideState: 0
     m_Value: 0
