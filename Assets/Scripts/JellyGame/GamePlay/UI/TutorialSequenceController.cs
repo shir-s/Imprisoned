@@ -31,6 +31,39 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private bool autoStart = false;
         [SerializeField] private bool endImmediatelyIfNoWindows = true;
 
+        // ===================== NEW: Script enabling/disabling =====================
+        [Header("Script Locks (Disabled During Tutorial)")]
+        [Tooltip("These scripts will be DISABLED when the tutorial starts. Useful to prevent early actions during intro/movement/tutorial windows.")]
+        [SerializeField] private List<Component> disableOnTutorialStart = new List<Component>();
+
+        [Tooltip("If true, scripts disabled by 'disableOnTutorialStart' will be restored to their previous enabled state when the tutorial finishes.")]
+        [SerializeField] private bool restoreDisabledScriptsOnFinish = true;
+
+        [Serializable]
+        private class WindowScriptActions
+        {
+            [Tooltip("Index of the window in the 'windows' list.")]
+            public int windowIndex = 0;
+
+            [Header("When this window is SHOWN")]
+            [Tooltip("Scripts to enable when this window becomes active.")]
+            public List<Component> enableOnShow = new List<Component>();
+
+            [Tooltip("Scripts to disable when this window becomes active.")]
+            public List<Component> disableOnShow = new List<Component>();
+
+            [Header("When this window is COMPLETED (skipped/closed)")]
+            [Tooltip("Scripts to enable right after this window is closed (before gates resume gameplay).")]
+            public List<Component> enableOnComplete = new List<Component>();
+
+            [Tooltip("Scripts to disable right after this window is closed (before gates resume gameplay).")]
+            public List<Component> disableOnComplete = new List<Component>();
+        }
+
+        [Header("Per-Window Script Actions")]
+        [Tooltip("Lets you enable/disable scripts when a specific window is shown or completed. Scripts can be on other objects.")]
+        [SerializeField] private List<WindowScriptActions> windowScriptActions = new List<WindowScriptActions>();
+
         // ===================== Intro Move (kept as-is) =====================
         [Header("Intro Move (Before Tutorial)")]
         [SerializeField] private bool playIntroMoveBeforeTutorial = true;
@@ -74,7 +107,7 @@ namespace JellyGame.UI.Tutorial
             PressAllArrowKeysOnce,
             AreaClosedOnce,
             PickupCollectedOnce,
-            EnemyKilledOnce // NEW
+            EnemyKilledOnce
         }
 
         [Serializable]
@@ -105,7 +138,6 @@ namespace JellyGame.UI.Tutorial
         }
 
         [Header("Window Gates (optional, per index)")]
-        [Tooltip("Optional gates. Index in this list matches the windows index. If list is shorter, missing entries = no gate.")]
         [SerializeField] private List<WindowGate> windowGates = new List<WindowGate>();
 
         [Header("Gate Input (for requirements)")]
@@ -134,6 +166,20 @@ namespace JellyGame.UI.Tutorial
 
         private Coroutine _flowRoutine;
         private Coroutine _gateRoutine;
+
+        private struct BehaviourState
+        {
+            public Behaviour b;
+            public bool wasEnabled;
+
+            public BehaviourState(Behaviour b, bool wasEnabled)
+            {
+                this.b = b;
+                this.wasEnabled = wasEnabled;
+            }
+        }
+
+        private readonly List<BehaviourState> _startDisabledSnapshot = new List<BehaviourState>();
 
         private void Start()
         {
@@ -181,6 +227,9 @@ namespace JellyGame.UI.Tutorial
             _currentIndex = -1;
             HideAllWindows();
 
+            // NEW: lock scripts at tutorial start
+            CaptureAndDisableStartScripts();
+
             if (WindowCount == 0)
             {
                 if (debugLogs)
@@ -221,6 +270,9 @@ namespace JellyGame.UI.Tutorial
             if (_currentIndex < 0 || _currentIndex >= WindowCount)
                 return;
 
+            // NEW: window completed actions happen when the window is closed (regardless of gate/no gate).
+            ApplyWindowCompleteScriptActions(_currentIndex);
+
             if (TryStartGateForCurrentWindow())
                 return;
 
@@ -235,7 +287,6 @@ namespace JellyGame.UI.Tutorial
 
             HideWindowAtIndex(_currentIndex);
 
-            // Activate target object (enemy/pickup/etc.) when this gate begins
             if (gate.activateObjectOnGateStart != null)
                 gate.activateObjectOnGateStart.SetActive(true);
 
@@ -320,7 +371,6 @@ namespace JellyGame.UI.Tutorial
         private IEnumerator WaitForAreaClosedOnce()
         {
             bool done = false;
-
             void OnAreaClosed(object data) => done = true;
 
             EventManager.StartListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
@@ -338,7 +388,6 @@ namespace JellyGame.UI.Tutorial
         private IEnumerator WaitForPickupCollectedOnce()
         {
             bool done = false;
-
             void OnPickupCollected(object data) => done = true;
 
             EventManager.StartListening(EventManager.GameEvent.PickupCollected, OnPickupCollected);
@@ -353,7 +402,6 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
-        // NEW: listens to EntityDied and checks victim layer == LayerMask.NameToLayer("Enemy")
         private IEnumerator WaitForEnemyKilledOnce(string enemyLayerName)
         {
             bool done = false;
@@ -372,14 +420,10 @@ namespace JellyGame.UI.Tutorial
                     if (died.VictimLayer == enemyLayer)
                         done = true;
                 }
-                else
+                else if (data is GameObject go)
                 {
-                    // Fail-safe: if some code sends a GameObject instead, try to interpret it.
-                    if (data is GameObject go)
-                    {
-                        if (go.layer == enemyLayer)
-                            done = true;
-                    }
+                    if (go.layer == enemyLayer)
+                        done = true;
                 }
             }
 
@@ -425,6 +469,9 @@ namespace JellyGame.UI.Tutorial
 
             if (pauseGameWhileActive && restorePreviousTimeScaleOnFinish)
                 ResumeGame();
+
+            // NEW: restore scripts we disabled at tutorial start
+            RestoreStartScriptsIfNeeded();
         }
 
         private void ShowWindowAtIndex(int index)
@@ -434,6 +481,9 @@ namespace JellyGame.UI.Tutorial
 
             index = Mathf.Clamp(index, 0, windows.Count - 1);
             _currentIndex = index;
+
+            // NEW: per-window "on show" script actions
+            ApplyWindowShowScriptActions(_currentIndex);
 
             GameObject go = windows[_currentIndex];
             if (go != null)
@@ -477,6 +527,110 @@ namespace JellyGame.UI.Tutorial
 
             return windowGates[windowIndex];
         }
+
+        // ===================== NEW: Script action helpers =====================
+
+        private void CaptureAndDisableStartScripts()
+        {
+            _startDisabledSnapshot.Clear();
+
+            if (disableOnTutorialStart == null || disableOnTutorialStart.Count == 0)
+                return;
+
+            for (int i = 0; i < disableOnTutorialStart.Count; i++)
+            {
+                Component c = disableOnTutorialStart[i];
+                if (c == null)
+                    continue;
+
+                // Only Behaviours can be enabled/disabled
+                if (c is Behaviour b)
+                {
+                    _startDisabledSnapshot.Add(new BehaviourState(b, b.enabled));
+                    b.enabled = false;
+                }
+                else
+                {
+                    if (debugLogs)
+                        Debug.LogWarning($"[Tutorial] disableOnTutorialStart entry '{c.name}' is not a Behaviour (type={c.GetType().Name}). Ignored.", this);
+                }
+            }
+        }
+
+
+        private void RestoreStartScriptsIfNeeded()
+        {
+            if (!restoreDisabledScriptsOnFinish)
+            {
+                _startDisabledSnapshot.Clear();
+                return;
+            }
+
+            for (int i = 0; i < _startDisabledSnapshot.Count; i++)
+            {
+                var s = _startDisabledSnapshot[i];
+                if (s.b == null)
+                    continue;
+
+                s.b.enabled = s.wasEnabled;
+            }
+
+            _startDisabledSnapshot.Clear();
+        }
+
+        private void ApplyWindowShowScriptActions(int windowIndex)
+        {
+            WindowScriptActions a = GetWindowScriptActions(windowIndex);
+            if (a == null)
+                return;
+
+            SetEnabled(a.disableOnShow, false);
+            SetEnabled(a.enableOnShow, true);
+        }
+
+
+        private void ApplyWindowCompleteScriptActions(int windowIndex)
+        {
+            WindowScriptActions a = GetWindowScriptActions(windowIndex);
+            if (a == null)
+                return;
+
+            SetEnabled(a.disableOnComplete, false);
+            SetEnabled(a.enableOnComplete, true);
+        }
+
+
+        private WindowScriptActions GetWindowScriptActions(int windowIndex)
+        {
+            if (windowScriptActions == null)
+                return null;
+
+            for (int i = 0; i < windowScriptActions.Count; i++)
+            {
+                var a = windowScriptActions[i];
+                if (a != null && a.windowIndex == windowIndex)
+                    return a;
+            }
+
+            return null;
+        }
+
+        private static void SetEnabled(List<Component> list, bool enabled)
+        {
+            if (list == null)
+                return;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Component c = list[i];
+                if (c == null)
+                    continue;
+
+                if (c is Behaviour b)
+                    b.enabled = enabled;
+            }
+        }
+
 
         // ===================== Pause/Resume =====================
 
@@ -534,8 +688,12 @@ namespace JellyGame.UI.Tutorial
             {
                 prevKinematic = rb.isKinematic;
                 rb.isKinematic = true;
-                rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
+#if UNITY_6000_0_OR_NEWER
+                rb.linearVelocity = Vector3.zero;
+#else
+                rb.velocity = Vector3.zero;
+#endif
             }
 
             float startSpeed = Mathf.Max(0f, introStartSpeed);

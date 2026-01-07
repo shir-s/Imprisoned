@@ -2,8 +2,9 @@
 using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Enemy.AI.Movement;
 using UnityEngine;
+using System.Collections;
 
-public class KinematicSurfaceSlider : MonoBehaviour, ISpeedMultiplierSink
+public class KinematicSurfaceSlider : MonoBehaviour, ISpeedMultiplierSink, IMovementSpeedEffectReceiver
 {
     [Header("Configuration")]
     [Tooltip("Distance from the floor to the object's pivot/center.")]
@@ -26,6 +27,8 @@ public class KinematicSurfaceSlider : MonoBehaviour, ISpeedMultiplierSink
     private bool _isGrounded;
     private bool _isMoving = false;
     private AudioSourceWrapper _movementSound;
+    
+    private Coroutine _speedEffectRoutine;
 
     // Speed multiplier from slow/haste effects:
     // 1 = normal, 0.5 = half, 2 = double.
@@ -196,4 +199,26 @@ public class KinematicSurfaceSlider : MonoBehaviour, ISpeedMultiplierSink
         Gizmos.DrawWireSphere(transform.position, 0.2f);
         Gizmos.DrawLine(transform.position, transform.position + _velocity);
     }
+
+    public void ApplySpeedMultiplier(float multiplier, float durationSeconds)
+    {
+        // Stop previous slow/haste timer so new hit refreshes duration
+        if (_speedEffectRoutine != null)
+            StopCoroutine(_speedEffectRoutine);
+
+        SetSpeedMultiplier(multiplier);
+
+        if (durationSeconds > 0f)
+            _speedEffectRoutine = StartCoroutine(ResetSpeedMultiplierAfter(durationSeconds));
+    }
+
+    private IEnumerator ResetSpeedMultiplierAfter(float durationSeconds)
+    {
+        // Use scaled time so "pause game (Time.timeScale=0)" also pauses the slow timer
+        yield return new WaitForSeconds(durationSeconds);
+
+        _speedMultiplier = 1f;
+        _speedEffectRoutine = null;
+    }
+
 }
