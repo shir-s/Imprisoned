@@ -32,7 +32,7 @@ namespace JellyGame.GamePlay.World.Finish
         [SerializeField] private bool triggerOnce = true;
 
         [Header("Win Condition")]
-        [Tooltip("Reference to EnemyDeathCounter. Will be auto-found in scene if not assigned.")]
+        [Tooltip("Reference to EnemyDeathCounter. Will be auto-found in scene if not assigned. If null, trigger will activate without checking enemy deaths.")]
         [SerializeField] private EnemyDeathCounter enemyDeathCounter;
 
         [Header("Debug")]
@@ -74,7 +74,12 @@ namespace JellyGame.GamePlay.World.Finish
 
             if (enemyDeathCounter == null)
             {
-                Debug.LogError($"[FinishTrigger] EnemyDeathCounter not found in scene! {gameObject.name} needs EnemyDeathCounter to work. Please add EnemyDeathCounter component to a GameObject in the scene.", this);
+                // No EnemyDeathCounter found - this is OK for scenes without enemies
+                // The trigger will work, just without the enemy death check
+                if (debugLogs)
+                {
+                    Debug.Log($"[FinishTrigger] No EnemyDeathCounter found in scene. {gameObject.name} will trigger GameWin when player enters (no enemy death requirement).", this);
+                }
             }
             else if (debugLogs)
             {
@@ -84,10 +89,10 @@ namespace JellyGame.GamePlay.World.Finish
 
         private bool AreAllEnemiesDead()
         {
+            // If no EnemyDeathCounter, assume all enemies are dead (for scenes without enemies)
             if (enemyDeathCounter == null)
             {
-                Debug.LogWarning("[FinishTrigger] Cannot check if all enemies are dead - EnemyDeathCounter is null!", this);
-                return false;
+                return true; // No enemy requirement - trigger works immediately
             }
 
             // Use EnemyDeathCounter - single source of truth!
