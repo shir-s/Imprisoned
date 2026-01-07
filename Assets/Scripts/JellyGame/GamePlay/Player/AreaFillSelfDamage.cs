@@ -27,7 +27,7 @@ namespace JellyGame.GamePlay.Player
 
         [Header("Behavior")]
         [Tooltip("If true, only apply damage when there is an active ability that can spawn zones.")]
-        [SerializeField] private bool onlyWhenAbilityActive = true;
+        [SerializeField] private bool onlyWhenAbilityActive = false;
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
@@ -47,17 +47,29 @@ namespace JellyGame.GamePlay.Player
         public void HandleAreaFilled(SimplePaintSurface surface, IReadOnlyList<Vector2> localPolyXZ, bool abilityIsActive)
         {
             if (_self == null)
+            {
+                Debug.LogWarning("[AreaFillSelfDamage] _self (IDamageable) is null! Cannot apply damage.", this);
                 return;
+            }
 
             if (onlyWhenAbilityActive && !abilityIsActive)
+            {
+                Debug.Log($"[AreaFillSelfDamage] Skipping damage: onlyWhenAbilityActive={onlyWhenAbilityActive}, abilityIsActive={abilityIsActive}", this);
                 return;
+            }
 
             if (surface == null || localPolyXZ == null || localPolyXZ.Count < 3)
+            {
+                Debug.LogWarning($"[AreaFillSelfDamage] Invalid parameters: surface={surface}, polyCount={localPolyXZ?.Count ?? 0}", this);
                 return;
+            }
 
             float areaWorld = ComputeWorldAreaXZ(surface.transform, localPolyXZ);
             if (!float.IsFinite(areaWorld) || areaWorld <= 0f)
+            {
+                Debug.LogWarning($"[AreaFillSelfDamage] Invalid area: {areaWorld}", this);
                 return;
+            }
 
             float damage = areaWorld * Mathf.Max(0f, damagePerSquareMeter);
 
@@ -65,10 +77,12 @@ namespace JellyGame.GamePlay.Player
             if (maxDamagePerFill > 0f) damage = Mathf.Min(maxDamagePerFill, damage);
 
             if (damage <= 0f)
+            {
+                Debug.LogWarning($"[AreaFillSelfDamage] Calculated damage is 0 or negative! area={areaWorld}, damagePerSquareMeter={damagePerSquareMeter}, min={minDamagePerFill}, max={maxDamagePerFill}", this);
                 return;
+            }
 
-            if (debugLogs)
-                Debug.Log($"[AreaFillSelfDamage] area={areaWorld:F3} m^2, damage={damage:F3}", this);
+            Debug.Log($"[AreaFillSelfDamage] Applying damage: area={areaWorld:F3} m^2, damage={damage:F3}, damagePerSquareMeter={damagePerSquareMeter}", this);
 
             _self.ApplyDamage(damage);
         }
