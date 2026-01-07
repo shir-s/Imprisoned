@@ -332,6 +332,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (hit.transform == _target || hit.transform.IsChildOf(_target))
             {
+                // NEW: allow "ranged-only" mode.
+                // If set to 0, we NEVER enter the melee/chase phase.
+                if (Mathf.Approximately(slowDurationSecondsOverride, 0f))
+                    return;
+
                 float dur = slowDurationSecondsOverride > 0f ? slowDurationSecondsOverride : projectilePrefab.SlowDurationSeconds;
                 dur = Mathf.Max(0.01f, dur);
 
