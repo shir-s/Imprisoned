@@ -1,70 +1,142 @@
 // FILEPATH: Assets/Scripts/UI/Tutorial/TutorialSequenceController.cs
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
+using JellyGame.GamePlay.Managers;
 
 namespace JellyGame.UI.Tutorial
 {
-    /// <summary>
-    /// Shows a sequence of tutorial "windows" (usually Canvas roots) one after another.
-    /// While active, the game time is paused (Time.timeScale = 0).
-    ///
-    /// - Each window can be skipped only after a cooldown (uses unscaled time).
-    /// - Default skip key is 'E' (configurable).
-    /// - Windows are provided via Inspector and shown in order.
-    ///
-    /// Usage:
-    /// - Create each tutorial window as a GameObject (Canvas root / panel).
-    /// - Put them in "windows" list in order.
-    /// - Optionally call StartTutorial() manually, or enable autoStart.
-    /// </summary>
     [DisallowMultipleComponent]
     public class TutorialSequenceController : MonoBehaviour
     {
+        // ===================== Windows =====================
         [Header("Windows (in order)")]
-        [Tooltip("GameObjects that represent tutorial windows (Canvas roots/panels). They will be activated/deactivated by this controller.")]
         [SerializeField] private List<GameObject> windows = new List<GameObject>();
 
+        // ===================== Pause =====================
         [Header("Pause")]
-        [Tooltip("If true, pauses the game while any tutorial window is shown (Time.timeScale = 0).")]
         [SerializeField] private bool pauseGameWhileActive = true;
-
-        [Tooltip("If true, restores the previous timeScale after the tutorial finishes.")]
         [SerializeField] private bool restorePreviousTimeScaleOnFinish = true;
 
+        // ===================== Skip =====================
         [Header("Skip")]
-        [Tooltip("How many seconds the user must wait before they are allowed to skip the current window.")]
         [SerializeField] private float skipCooldownSeconds = 0.75f;
-
-        [Tooltip("Key used to skip the current window.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
-
-        [Tooltip("If true, holding the key will only skip once per window (recommended).")]
         [SerializeField] private bool requireKeyDown = true;
 
+        // ===================== Flow =====================
         [Header("Flow")]
-        [Tooltip("Start tutorial automatically on Start().")]
         [SerializeField] private bool autoStart = false;
-
-        [Tooltip("If true, the tutorial ends automatically if windows list is empty.")]
         [SerializeField] private bool endImmediatelyIfNoWindows = true;
+
+        // ===================== Intro Move (kept as-is) =====================
+        [Header("Intro Move (Before Tutorial)")]
+        [SerializeField] private bool playIntroMoveBeforeTutorial = true;
+        [SerializeField] private Transform introMoveTarget;
+
+        public enum IntroMoveDirectionMode
+        {
+            WorldVector,
+            TargetForward,
+            TargetRight,
+            TargetUp,
+            ReferenceTransformForward,
+            ReferenceTransformRight
+        }
+
+        [SerializeField] private IntroMoveDirectionMode introDirectionMode = IntroMoveDirectionMode.WorldVector;
+        [SerializeField] private Vector3 introWorldDirection = Vector3.forward;
+        [SerializeField] private Transform introDirectionReference;
+
+        [SerializeField] private float introDistance = 2.0f;
+        [SerializeField] private float introDuration = 0.35f;
+
+        [SerializeField] private float introStartSpeed = 0.0f;
+        [SerializeField] private float introMaxSpeed = 12.0f;
+
+        [SerializeField] private AnimationCurve introSpeedProfile = new AnimationCurve(
+            new Keyframe(0f, 0f, 0f, 0f),
+            new Keyframe(0.35f, 1f, 0f, 0f),
+            new Keyframe(1f, 0f, 0f, 0f)
+        );
+
+        [SerializeField] private float introWobbleAmplitude = 0.08f;
+        [SerializeField] private float introWobbleCycles = 2.0f;
+
+        [SerializeField] private bool introMoveTransformDirectly = true;
+        [SerializeField] private bool introForceKinematicIfRigidBody = true;
+
+        // ===================== Gates =====================
+        private enum RequirementType
+        {
+            PressAllArrowKeysOnce,
+            AreaClosedOnce,
+            PickupCollectedOnce,
+            EnemyKilledOnce // NEW
+        }
+
+        [Serializable]
+        private class WindowGate
+        {
+            [Tooltip("If enabled, skipping this window will resume the game and wait for a requirement before continuing.")]
+            public bool enabled = false;
+
+            public RequirementType requirement = RequirementType.PressAllArrowKeysOnce;
+
+            [Tooltip("After the requirement is satisfied, wait this many seconds (unscaled) before pausing and showing next window.")]
+            public float afterCompleteCountdownSeconds = 0.5f;
+
+            [Header("Spawn/Enable for this gate (optional)")]
+            [Tooltip("If set, this GameObject will be activated when the gate starts (e.g., enable a pickup/enemy so the player can interact now).")]
+            public GameObject activateObjectOnGateStart;
+
+            [Tooltip("If true, deactivate 'activateObjectOnGateStart' after the gate is completed.")]
+            public bool deactivateObjectOnGateComplete = false;
+
+            [Header("EnemyKilled Gate Settings")]
+            [Tooltip("Layer name to treat as 'enemy' for the EnemyKilledOnce requirement.")]
+            public string enemyLayerName = "Enemy";
+
+            [Header("Events (optional)")]
+            public UnityEvent onGateStart;
+            public UnityEvent onGateComplete;
+        }
+
+        [Header("Window Gates (optional, per index)")]
+        [Tooltip("Optional gates. Index in this list matches the windows index. If list is shorter, missing entries = no gate.")]
+        [SerializeField] private List<WindowGate> windowGates = new List<WindowGate>();
+
+        [Header("Gate Input (for requirements)")]
+        [SerializeField] private KeyCode gateUpKey = KeyCode.UpArrow;
+        [SerializeField] private KeyCode gateDownKey = KeyCode.DownArrow;
+        [SerializeField] private KeyCode gateLeftKey = KeyCode.LeftArrow;
+        [SerializeField] private KeyCode gateRightKey = KeyCode.RightArrow;
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
+        // ===================== Runtime =====================
+        private enum FlowState
+        {
+            Idle,
+            ShowingWindow,
+            WaitingForGate
+        }
+
+        private FlowState _state = FlowState.Idle;
         private int _currentIndex = -1;
         private float _canSkipAtUnscaledTime = 0f;
-        private bool _isRunning = false;
 
         private float _prevTimeScale = 1f;
         private bool _prevTimeScaleCaptured = false;
 
-        public bool IsRunning => _isRunning;
-        public int CurrentIndex => _currentIndex;
-        public int WindowCount => windows != null ? windows.Count : 0;
+        private Coroutine _flowRoutine;
+        private Coroutine _gateRoutine;
 
         private void Start()
         {
-            // Make sure everything is hidden initially
             HideAllWindows();
 
             if (autoStart)
@@ -73,13 +145,12 @@ namespace JellyGame.UI.Tutorial
 
         private void Update()
         {
-            if (!_isRunning)
+            if (_state != FlowState.ShowingWindow)
                 return;
 
             if (_currentIndex < 0 || _currentIndex >= WindowCount)
                 return;
 
-            // Allow skip only after cooldown (unscaled time so it works while paused)
             if (Time.unscaledTime < _canSkipAtUnscaledTime)
                 return;
 
@@ -88,13 +159,27 @@ namespace JellyGame.UI.Tutorial
                 SkipCurrentWindow();
         }
 
-        /// <summary>
-        /// Start the tutorial sequence from the beginning.
-        /// </summary>
+        public int WindowCount => windows != null ? windows.Count : 0;
+
         public void StartTutorial()
         {
-            if (_isRunning)
-                return;
+            if (_flowRoutine != null)
+                StopCoroutine(_flowRoutine);
+
+            if (_gateRoutine != null)
+            {
+                StopCoroutine(_gateRoutine);
+                _gateRoutine = null;
+            }
+
+            _flowRoutine = StartCoroutine(BeginFlow());
+        }
+
+        private IEnumerator BeginFlow()
+        {
+            _state = FlowState.Idle;
+            _currentIndex = -1;
+            HideAllWindows();
 
             if (WindowCount == 0)
             {
@@ -104,31 +189,216 @@ namespace JellyGame.UI.Tutorial
                 if (endImmediatelyIfNoWindows)
                     FinishTutorial();
 
-                return;
+                yield break;
             }
 
-            _isRunning = true;
+            if (playIntroMoveBeforeTutorial)
+                yield return PlayIntroMove();
+
+            StartTutorialSequenceOnly();
+        }
+
+        private void StartTutorialSequenceOnly()
+        {
+            if (_state != FlowState.Idle)
+                return;
+
+            _state = FlowState.ShowingWindow;
 
             if (pauseGameWhileActive)
                 PauseGame();
 
             ShowWindowAtIndex(0);
-
-            if (debugLogs)
-                Debug.Log("[Tutorial] Started.", this);
         }
 
-        /// <summary>
-        /// Skips the current window and shows the next one. If there is no next, finishes.
-        /// </summary>
+        // ===================== Skip / Advance =====================
+
         public void SkipCurrentWindow()
         {
-            if (!_isRunning)
+            if (_state != FlowState.ShowingWindow)
                 return;
 
             if (_currentIndex < 0 || _currentIndex >= WindowCount)
                 return;
 
+            if (TryStartGateForCurrentWindow())
+                return;
+
+            AdvanceToNextWindowOrFinish();
+        }
+
+        private bool TryStartGateForCurrentWindow()
+        {
+            WindowGate gate = GetGate(_currentIndex);
+            if (gate == null || !gate.enabled)
+                return false;
+
+            HideWindowAtIndex(_currentIndex);
+
+            // Activate target object (enemy/pickup/etc.) when this gate begins
+            if (gate.activateObjectOnGateStart != null)
+                gate.activateObjectOnGateStart.SetActive(true);
+
+            if (pauseGameWhileActive)
+                ResumeGame();
+
+            _state = FlowState.WaitingForGate;
+
+            gate.onGateStart?.Invoke();
+
+            if (_gateRoutine != null)
+                StopCoroutine(_gateRoutine);
+
+            _gateRoutine = StartCoroutine(RunGateThenContinue(_currentIndex, gate));
+            return true;
+        }
+
+        private IEnumerator RunGateThenContinue(int gateWindowIndex, WindowGate gate)
+        {
+            switch (gate.requirement)
+            {
+                case RequirementType.PressAllArrowKeysOnce:
+                    yield return WaitForPressAllArrowKeysOnce();
+                    break;
+
+                case RequirementType.AreaClosedOnce:
+                    yield return WaitForAreaClosedOnce();
+                    break;
+
+                case RequirementType.PickupCollectedOnce:
+                    yield return WaitForPickupCollectedOnce();
+                    break;
+
+                case RequirementType.EnemyKilledOnce:
+                    yield return WaitForEnemyKilledOnce(gate.enemyLayerName);
+                    break;
+            }
+
+            gate.onGateComplete?.Invoke();
+
+            if (gate.deactivateObjectOnGateComplete && gate.activateObjectOnGateStart != null)
+                gate.activateObjectOnGateStart.SetActive(false);
+
+            float cd = Mathf.Max(0f, gate.afterCompleteCountdownSeconds);
+            if (cd > 0f)
+            {
+                float t = 0f;
+                while (t < cd)
+                {
+                    t += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+
+            if (pauseGameWhileActive)
+                PauseGame();
+
+            _currentIndex = gateWindowIndex;
+            _state = FlowState.ShowingWindow;
+
+            AdvanceToNextWindowOrFinish();
+            _gateRoutine = null;
+        }
+
+        // ===================== Gate requirements =====================
+
+        private IEnumerator WaitForPressAllArrowKeysOnce()
+        {
+            bool up = false, down = false, left = false, right = false;
+
+            while (!(up && down && left && right))
+            {
+                if (!up && Input.GetKeyDown(gateUpKey)) up = true;
+                if (!down && Input.GetKeyDown(gateDownKey)) down = true;
+                if (!left && Input.GetKeyDown(gateLeftKey)) left = true;
+                if (!right && Input.GetKeyDown(gateRightKey)) right = true;
+
+                yield return null;
+            }
+        }
+
+        private IEnumerator WaitForAreaClosedOnce()
+        {
+            bool done = false;
+
+            void OnAreaClosed(object data) => done = true;
+
+            EventManager.StartListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
+            try
+            {
+                while (!done)
+                    yield return null;
+            }
+            finally
+            {
+                EventManager.StopListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
+            }
+        }
+
+        private IEnumerator WaitForPickupCollectedOnce()
+        {
+            bool done = false;
+
+            void OnPickupCollected(object data) => done = true;
+
+            EventManager.StartListening(EventManager.GameEvent.PickupCollected, OnPickupCollected);
+            try
+            {
+                while (!done)
+                    yield return null;
+            }
+            finally
+            {
+                EventManager.StopListening(EventManager.GameEvent.PickupCollected, OnPickupCollected);
+            }
+        }
+
+        // NEW: listens to EntityDied and checks victim layer == LayerMask.NameToLayer("Enemy")
+        private IEnumerator WaitForEnemyKilledOnce(string enemyLayerName)
+        {
+            bool done = false;
+
+            int enemyLayer = LayerMask.NameToLayer(enemyLayerName);
+            if (enemyLayer < 0)
+            {
+                Debug.LogError($"[Tutorial] EnemyKilledOnce gate: Layer '{enemyLayerName}' does not exist. Gate will never complete.", this);
+                yield break;
+            }
+
+            void OnEntityDied(object data)
+            {
+                if (data is EntityDiedEventData died)
+                {
+                    if (died.VictimLayer == enemyLayer)
+                        done = true;
+                }
+                else
+                {
+                    // Fail-safe: if some code sends a GameObject instead, try to interpret it.
+                    if (data is GameObject go)
+                    {
+                        if (go.layer == enemyLayer)
+                            done = true;
+                    }
+                }
+            }
+
+            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+            try
+            {
+                while (!done)
+                    yield return null;
+            }
+            finally
+            {
+                EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+            }
+        }
+
+        // ===================== Window sequence helpers =====================
+
+        private void AdvanceToNextWindowOrFinish()
+        {
             HideWindowAtIndex(_currentIndex);
 
             int next = _currentIndex + 1;
@@ -141,23 +411,21 @@ namespace JellyGame.UI.Tutorial
             ShowWindowAtIndex(next);
         }
 
-        /// <summary>
-        /// Immediately finish the tutorial and restore game time (if configured).
-        /// </summary>
         public void FinishTutorial()
         {
             HideAllWindows();
-            _isRunning = false;
+            _state = FlowState.Idle;
             _currentIndex = -1;
+
+            if (_gateRoutine != null)
+            {
+                StopCoroutine(_gateRoutine);
+                _gateRoutine = null;
+            }
 
             if (pauseGameWhileActive && restorePreviousTimeScaleOnFinish)
                 ResumeGame();
-
-            if (debugLogs)
-                Debug.Log("[Tutorial] Finished.", this);
         }
-
-        // -------------------- Internals --------------------
 
         private void ShowWindowAtIndex(int index)
         {
@@ -165,7 +433,6 @@ namespace JellyGame.UI.Tutorial
                 return;
 
             index = Mathf.Clamp(index, 0, windows.Count - 1);
-
             _currentIndex = index;
 
             GameObject go = windows[_currentIndex];
@@ -173,9 +440,6 @@ namespace JellyGame.UI.Tutorial
                 go.SetActive(true);
 
             _canSkipAtUnscaledTime = Time.unscaledTime + Mathf.Max(0f, skipCooldownSeconds);
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Showing window {_currentIndex + 1}/{WindowCount}. CanSkipAt={_canSkipAtUnscaledTime:F2} (unscaled).", this);
         }
 
         private void HideWindowAtIndex(int index)
@@ -189,9 +453,6 @@ namespace JellyGame.UI.Tutorial
             GameObject go = windows[index];
             if (go != null)
                 go.SetActive(false);
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Hiding window {index + 1}/{WindowCount}.", this);
         }
 
         private void HideAllWindows()
@@ -206,6 +467,19 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
+        private WindowGate GetGate(int windowIndex)
+        {
+            if (windowGates == null)
+                return null;
+
+            if (windowIndex < 0 || windowIndex >= windowGates.Count)
+                return null;
+
+            return windowGates[windowIndex];
+        }
+
+        // ===================== Pause/Resume =====================
+
         private void PauseGame()
         {
             if (!_prevTimeScaleCaptured)
@@ -215,21 +489,158 @@ namespace JellyGame.UI.Tutorial
             }
 
             Time.timeScale = 0f;
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Paused game. prevTimeScale={_prevTimeScale}", this);
         }
 
         private void ResumeGame()
         {
-            // If we never captured it (shouldn't happen), default to 1
             float restore = _prevTimeScaleCaptured ? _prevTimeScale : 1f;
 
             Time.timeScale = restore;
             _prevTimeScaleCaptured = false;
+        }
 
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Resumed game. timeScale={Time.timeScale}", this);
+        // ===================== Intro Move (velocity-driven) =====================
+
+        private IEnumerator PlayIntroMove()
+        {
+            if (introMoveTarget == null)
+                yield break;
+
+            Vector3 dir = ResolveIntroDirection(introMoveTarget);
+            if (dir.sqrMagnitude < 0.0001f)
+                yield break;
+
+            dir.Normalize();
+
+            Vector3 up = Vector3.up;
+            Vector3 side = Vector3.Cross(up, dir);
+            if (side.sqrMagnitude < 0.0001f)
+            {
+                up = Vector3.forward;
+                side = Vector3.Cross(up, dir);
+            }
+            side.Normalize();
+
+            float duration = Mathf.Max(0.01f, introDuration);
+            float distance = Mathf.Max(0f, introDistance);
+
+            Vector3 startPos = introMoveTarget.position;
+
+            Rigidbody rb = introMoveTarget.GetComponent<Rigidbody>();
+            bool hadRb = rb != null;
+            bool prevKinematic = false;
+
+            if (introMoveTransformDirectly && hadRb && introForceKinematicIfRigidBody)
+            {
+                prevKinematic = rb.isKinematic;
+                rb.isKinematic = true;
+                rb.linearVelocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            float startSpeed = Mathf.Max(0f, introStartSpeed);
+            float maxSpeed = Mathf.Max(startSpeed, introMaxSpeed);
+
+            float curveArea = ComputeCurveArea01(introSpeedProfile, 200);
+            float curveAvg = Mathf.Max(0.0001f, curveArea);
+
+            float unscaledDistancePerK = duration * (startSpeed + (maxSpeed - startSpeed) * curveAvg);
+            float k = (unscaledDistancePerK > 0.0001f) ? (distance / unscaledDistancePerK) : 0f;
+
+            float traveled = 0f;
+            float t = 0f;
+
+            while (t < duration && traveled < distance - 1e-4f)
+            {
+                float u01 = Mathf.Clamp01(t / duration);
+
+                float profile = introSpeedProfile != null ? introSpeedProfile.Evaluate(u01) : u01;
+                profile = Mathf.Clamp01(profile);
+
+                float speed = (startSpeed + (maxSpeed - startSpeed) * profile) * k;
+                float dt = Time.unscaledDeltaTime;
+
+                float step = speed * dt;
+                if (traveled + step > distance)
+                    step = distance - traveled;
+
+                traveled += step;
+
+                Vector3 basePos = startPos + dir * traveled;
+
+                float wob = 0f;
+                if (introWobbleAmplitude > 0f && introWobbleCycles > 0f)
+                {
+                    float wobPhase = u01 * Mathf.PI * 2f * introWobbleCycles;
+                    wob = Mathf.Sin(wobPhase) * introWobbleAmplitude;
+
+                    float taper = 1f - Mathf.SmoothStep(0.6f, 1f, u01);
+                    wob *= taper;
+                }
+
+                Vector3 finalPos = basePos + side * wob;
+                ApplyIntroPosition(introMoveTarget, rb, finalPos);
+
+                t += dt;
+                yield return null;
+            }
+
+            ApplyIntroPosition(introMoveTarget, rb, startPos + dir * distance);
+
+            if (introMoveTransformDirectly && hadRb && introForceKinematicIfRigidBody)
+                rb.isKinematic = prevKinematic;
+        }
+
+        private Vector3 ResolveIntroDirection(Transform target)
+        {
+            switch (introDirectionMode)
+            {
+                case IntroMoveDirectionMode.TargetForward: return target.forward;
+                case IntroMoveDirectionMode.TargetRight: return target.right;
+                case IntroMoveDirectionMode.TargetUp: return target.up;
+
+                case IntroMoveDirectionMode.ReferenceTransformForward:
+                    return introDirectionReference != null ? introDirectionReference.forward : Vector3.zero;
+
+                case IntroMoveDirectionMode.ReferenceTransformRight:
+                    return introDirectionReference != null ? introDirectionReference.right : Vector3.zero;
+
+                default:
+                case IntroMoveDirectionMode.WorldVector:
+                    return introWorldDirection;
+            }
+        }
+
+        private void ApplyIntroPosition(Transform target, Rigidbody rb, Vector3 pos)
+        {
+            if (!introMoveTransformDirectly && rb != null && !rb.isKinematic)
+                rb.MovePosition(pos);
+            else
+                target.position = pos;
+        }
+
+        private static float ComputeCurveArea01(AnimationCurve curve, int samples)
+        {
+            if (curve == null || samples < 2)
+                return 1f;
+
+            float area = 0f;
+            float prevT = 0f;
+            float prevV = Mathf.Clamp01(curve.Evaluate(0f));
+
+            for (int i = 1; i <= samples; i++)
+            {
+                float t = (float)i / samples;
+                float v = Mathf.Clamp01(curve.Evaluate(t));
+
+                float dt = t - prevT;
+                area += (prevV + v) * 0.5f * dt;
+
+                prevT = t;
+                prevV = v;
+            }
+
+            return area;
         }
     }
 }

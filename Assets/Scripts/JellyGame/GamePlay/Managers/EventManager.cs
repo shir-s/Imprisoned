@@ -26,6 +26,9 @@ namespace JellyGame.GamePlay.Managers
             // Stroke / drawing
             StrokeCrossingDetected, // data: StrokeCrossingEventData
 
+            // NEW: fired once when a closed area is detected (even if fill is progressive)
+            AreaClosed,          // data: AreaClosedEventData
+
             KeyCollected,        // data: Transform or GameObject (the key that was collected)
 
             // NPC / allies
@@ -49,6 +52,14 @@ namespace JellyGame.GamePlay.Managers
             FirstEnemyDied,      // data: null
             AllEnemiesDied,      // data: null
             EnemyDied            // data: Vector3 (enemy position)
+        }
+
+        // NEW: event payload (optional but useful)
+        public struct AreaClosedEventData
+        {
+            public Object source;              // detector / sender (UnityEngine.Object)
+            public Transform surfaceTransform; // surface transform (if known)
+            public Bounds localBounds;         // bounds in surface local space (if known)
         }
 
         public static void StartListening(GameEvent eventType, EventAction listener)
