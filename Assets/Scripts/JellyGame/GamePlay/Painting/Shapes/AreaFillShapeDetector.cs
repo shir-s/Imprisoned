@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using JellyGame.GamePlay.Abilities;
 using JellyGame.GamePlay.Audio.Core;
+using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Map.Surfaces;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
 using UnityEngine;
@@ -150,6 +151,18 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 PlayerAbilityManager.Instance.OnAreaFilled(firstData.surface, firstData.localPolyXZ, firstData.localBounds);
             }
 
+            // NEW: Trigger a single "AreaClosed" event (once per closure)
+            {
+                var firstData = surfaceFillDatas[0];
+                var evt = new EventManager.AreaClosedEventData
+                {
+                    source = this,
+                    surfaceTransform = firstData.surface != null ? firstData.surface.transform : null,
+                    localBounds = firstData.localBounds
+                };
+                EventManager.TriggerEvent(EventManager.GameEvent.AreaClosed, evt);
+            }
+
             // Stop any existing fill routine
             if (_fillRoutine != null)
             {
@@ -169,6 +182,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             return true;
         }
+
 
         /// <summary>
         /// Build fill data for a single surface from world-space polygon points.

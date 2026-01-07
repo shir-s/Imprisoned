@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using JellyGame.GamePlay.Utils;
+using JellyGame.GamePlay.Managers;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -53,8 +54,13 @@ namespace JellyGame.GamePlay.Enemy
             // Capture position BEFORE destroying (critical!)
             Vector3 deathPosition = transform.position;
             
-            // Trigger EventManager event with position data immediately
-            //EventManager.TriggerEvent(EventManager.GameEvent.EnemyKilled, deathPosition);
+            // Trigger EventManager event (like SimpleHealth does, for DoorByDeaths compatibility)
+            EventManager.TriggerEvent(
+                EventManager.GameEvent.EntityDied,
+                new EntityDiedEventData(gameObject, gameObject.layer)
+            );
+            
+            // Trigger JellyGameEvents
             JellyGameEvents.EnemyDied?.Invoke(deathPosition);
             
             // Start coroutine to destroy after 2 seconds
