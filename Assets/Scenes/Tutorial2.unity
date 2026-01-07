@@ -439,6 +439,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 28017796}
+  - component: {fileID: 28017798}
+  - component: {fileID: 28017797}
   m_Layer: 0
   m_Name: MapRoot
   m_TagString: Untagged
@@ -454,8 +456,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 28017795}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0.72036946, z: 0, w: 0.6935905}
-  m_LocalPosition: {x: 0.22, y: -4.1, z: -0.7}
+  m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -464,7 +466,62 @@ Transform:
   - {fileID: 1269885975}
   - {fileID: 663472628}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 92.17, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
+--- !u!114 &28017797
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 28017795}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a39d89d97259ed4bbf8d80ded1e54e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.TiltTray
+  tintWhenSelected: 1
+  selectedTint: {r: 1, g: 0.9, b: 0.25, a: 1}
+  requireSelectionForInput: 0
+  upKey: 273
+  downKey: 274
+  leftKey: 276
+  rightKey: 275
+  inputForward: {x: -1, y: 0, z: 0}
+  maxTiltDeg: 10
+  tiltAccelDegPerSec: 20
+  recenterDegPerSec: 40
+  followDegPerSec: 360
+  physicsDriven: 1
+  inputCamera: {fileID: 601042314}
+  flipModelPhysicsX: 0
+  flipModelPhysicsZ: 0
+--- !u!54 &28017798
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 28017795}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
 --- !u!1 &28837738
 GameObject:
   m_ObjectHideFlags: 0
@@ -50013,6 +50070,7 @@ GameObject:
   - component: {fileID: 7922495814923368075}
   - component: {fileID: 2122285913544219675}
   - component: {fileID: 7922495814923368076}
+  - component: {fileID: 7922495814923368077}
   m_Layer: 6
   m_Name: floor
   m_TagString: Untagged
@@ -50129,6 +50187,7 @@ GameObject:
   - component: {fileID: 180576648858185959}
   - component: {fileID: 7391263446224577626}
   - component: {fileID: 7391263446224577627}
+  - component: {fileID: 7391263446224577628}
   m_Layer: 6
   m_Name: floor_prime
   m_TagString: Untagged
@@ -52470,6 +52529,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 11.187708, y: 13.3101635, z: 16.120913}
   m_Center: {x: -0.00000095367426, y: -6.538121, z: -6.4331814e-16}
+--- !u!114 &7391263446224577628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 788931151733036244}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
+  textureSize: 1024
+  clearColor: {r: 0, g: 0, b: 0, a: 0}
+  paintTexProperty: _PaintTex
+  enableTimeAging: 1
+  paintTimeTexProperty: _PaintTimeTex
+  currentTimeProperty: _CurrentTime
+  maxAgeSeconds: 10
+  swapXZ: 0
+  invertU: 1
+  invertV: 1
+  debugTime: 0
 --- !u!1 &7504956811414746770
 GameObject:
   m_ObjectHideFlags: 0
@@ -52809,6 +52891,29 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 29.071081, y: 21.75166, z: 35.60738}
   m_Center: {x: 0, y: -10.758869, z: 0}
+--- !u!114 &7922495814923368077
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 209193086373685057}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
+  textureSize: 1024
+  clearColor: {r: 0, g: 0, b: 0, a: 0}
+  paintTexProperty: _PaintTex
+  enableTimeAging: 1
+  paintTimeTexProperty: _PaintTimeTex
+  currentTimeProperty: _CurrentTime
+  maxAgeSeconds: 10
+  swapXZ: 0
+  invertU: 1
+  invertV: 1
+  debugTime: 0
 --- !u!23 &7934114193368253094
 MeshRenderer:
   m_ObjectHideFlags: 0
