@@ -29214,6 +29214,7 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  inputForward: {x: 0, y: 0, z: -1}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
   recenterDegPerSec: 40
@@ -29221,7 +29222,7 @@ MonoBehaviour:
   physicsDriven: 1
   inputCamera: {fileID: 1410603021}
   flipModelPhysicsX: 1
-  flipModelPhysicsZ: 0
+  flipModelPhysicsZ: 1
 --- !u!4 &7841247787599675597
 Transform:
   m_ObjectHideFlags: 0
