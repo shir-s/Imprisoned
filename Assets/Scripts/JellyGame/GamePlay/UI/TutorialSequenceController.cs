@@ -34,7 +34,7 @@ namespace JellyGame.UI.Tutorial
         // ===================== NEW: Script enabling/disabling =====================
         [Header("Script Locks (Disabled During Tutorial)")]
         [Tooltip("These scripts will be DISABLED when the tutorial starts. Useful to prevent early actions during intro/movement/tutorial windows.")]
-        [SerializeField] private List<Behaviour> disableOnTutorialStart = new List<Behaviour>();
+        [SerializeField] private List<Component> disableOnTutorialStart = new List<Component>();
 
         [Tooltip("If true, scripts disabled by 'disableOnTutorialStart' will be restored to their previous enabled state when the tutorial finishes.")]
         [SerializeField] private bool restoreDisabledScriptsOnFinish = true;
@@ -47,17 +47,17 @@ namespace JellyGame.UI.Tutorial
 
             [Header("When this window is SHOWN")]
             [Tooltip("Scripts to enable when this window becomes active.")]
-            public List<Behaviour> enableOnShow = new List<Behaviour>();
+            public List<Component> enableOnShow = new List<Component>();
 
             [Tooltip("Scripts to disable when this window becomes active.")]
-            public List<Behaviour> disableOnShow = new List<Behaviour>();
+            public List<Component> disableOnShow = new List<Component>();
 
             [Header("When this window is COMPLETED (skipped/closed)")]
             [Tooltip("Scripts to enable right after this window is closed (before gates resume gameplay).")]
-            public List<Behaviour> enableOnComplete = new List<Behaviour>();
+            public List<Component> enableOnComplete = new List<Component>();
 
             [Tooltip("Scripts to disable right after this window is closed (before gates resume gameplay).")]
-            public List<Behaviour> disableOnComplete = new List<Behaviour>();
+            public List<Component> disableOnComplete = new List<Component>();
         }
 
         [Header("Per-Window Script Actions")]
@@ -539,14 +539,24 @@ namespace JellyGame.UI.Tutorial
 
             for (int i = 0; i < disableOnTutorialStart.Count; i++)
             {
-                Behaviour b = disableOnTutorialStart[i];
-                if (b == null)
+                Component c = disableOnTutorialStart[i];
+                if (c == null)
                     continue;
 
-                _startDisabledSnapshot.Add(new BehaviourState(b, b.enabled));
-                b.enabled = false;
+                // Only Behaviours can be enabled/disabled
+                if (c is Behaviour b)
+                {
+                    _startDisabledSnapshot.Add(new BehaviourState(b, b.enabled));
+                    b.enabled = false;
+                }
+                else
+                {
+                    if (debugLogs)
+                        Debug.LogWarning($"[Tutorial] disableOnTutorialStart entry '{c.name}' is not a Behaviour (type={c.GetType().Name}). Ignored.", this);
+                }
             }
         }
+
 
         private void RestoreStartScriptsIfNeeded()
         {
@@ -578,6 +588,7 @@ namespace JellyGame.UI.Tutorial
             SetEnabled(a.enableOnShow, true);
         }
 
+
         private void ApplyWindowCompleteScriptActions(int windowIndex)
         {
             WindowScriptActions a = GetWindowScriptActions(windowIndex);
@@ -587,6 +598,7 @@ namespace JellyGame.UI.Tutorial
             SetEnabled(a.disableOnComplete, false);
             SetEnabled(a.enableOnComplete, true);
         }
+
 
         private WindowScriptActions GetWindowScriptActions(int windowIndex)
         {
@@ -603,18 +615,22 @@ namespace JellyGame.UI.Tutorial
             return null;
         }
 
-        private static void SetEnabled(List<Behaviour> list, bool enabled)
+        private static void SetEnabled(List<Component> list, bool enabled)
         {
             if (list == null)
                 return;
 
             for (int i = 0; i < list.Count; i++)
             {
-                Behaviour b = list[i];
-                if (b != null)
+                Component c = list[i];
+                if (c == null)
+                    continue;
+
+                if (c is Behaviour b)
                     b.enabled = enabled;
             }
         }
+
 
         // ===================== Pause/Resume =====================
 
