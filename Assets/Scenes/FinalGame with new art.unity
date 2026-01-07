@@ -12949,8 +12949,63 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1473102173}
+  - {fileID: 847929133}
   m_Father: {fileID: 3793594676184193298}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &847929132
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 847929133}
+  - component: {fileID: 847929134}
+  m_Layer: 0
+  m_Name: EnemyDeathCounter
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &847929133
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847929132}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 763609275}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &847929134
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 847929132}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d19173af70aac254c81fea53381326cc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Utils.EnemyDeathCounter
+  requiredDeaths: 5
+  countLayers:
+    serializedVersion: 2
+    m_Bits: 2048
+  activateGameObject: {fileID: 956151077223206974}
+  deactivateAtStart: 1
+  onAllEnemiesDied:
+    m_PersistentCalls:
+      m_Calls: []
+  debugLogs: 0
 --- !u!1 &868908495 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -4678184110835538188, guid: 7c30029b5151a4461a1593f296c3bba3, type: 3}
@@ -21851,6 +21906,10 @@ PrefabInstance:
       propertyPath: detectionRadius
       value: 8
       objectReference: {fileID: 0}
+    - target: {fileID: 4298942477161803468, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
+      propertyPath: destroyOnDeath
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5186025473858150525, guid: 597b7c40a2d624e5daad8ed33d8eb84d, type: 3}
       propertyPath: m_LocalPosition.x
       value: -20.2
@@ -27783,10 +27842,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   triggerOnce: 1
-  countLayers:
-    serializedVersion: 2
-    m_Bits: 2048
-  requiredDeaths: 6
+  enemyDeathCounter: {fileID: 847929134}
   debugLogs: 1
 --- !u!4 &436636933008870020
 Transform:
