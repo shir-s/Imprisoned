@@ -62,6 +62,7 @@ namespace JellyGame.GamePlay.Combat
             
             SoundManager.Instance.PlaySound("EnemyDeath", transform);
 
+            Debug.Log("Should be Dead");
             // Trigger universal event BEFORE destruction.
             EventManager.TriggerEvent(
                 EventManager.GameEvent.EntityDied,
