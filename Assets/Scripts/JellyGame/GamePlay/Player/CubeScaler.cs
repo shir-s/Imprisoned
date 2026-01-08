@@ -47,6 +47,13 @@ namespace JellyGame.GamePlay.Player
         [Tooltip("If true: hoverHeight scales linearly with size (size=2 => hoverHeight*2).")]
         [SerializeField] private bool scaleHoverHeightWithSize = true;
 
+        [Header("Particles Integration")]
+        [Tooltip("Optional: ParticleSystem GameObject (child of player) that should scale with the player.")]
+        [SerializeField] private GameObject particlesObject;
+
+        [Tooltip("If true, particles will scale with player size. If false, particles stay at original size.")]
+        [SerializeField] private bool scaleParticlesWithSize = true;
+
         [Header("UI Health Indicator (optional)")]
         [Tooltip("Optional UI element (Image/RectTransform) that moves DOWN as the cube shrinks.\n" +
                  "Assumes its current anchoredPosition.y is the 'full health' position (at maxSize).")]
@@ -85,6 +92,7 @@ namespace JellyGame.GamePlay.Player
             {
                 float current = GetCurrentSize();
                 UpdateHealthUiY(current);
+                UpdateParticlesScale(current);
             }
         }
 
@@ -168,6 +176,9 @@ namespace JellyGame.GamePlay.Player
             // Update UI health position (optional)
             UpdateHealthUiY(size);
 
+            // Update particles scale (optional)
+            UpdateParticlesScale(size);
+
             OnSizeChanged?.Invoke(oldSize, size);
 
             if (logChanges)
@@ -249,6 +260,31 @@ namespace JellyGame.GamePlay.Player
             Vector2 p = healthImageRect.anchoredPosition;
             p.y = _healthStartAnchoredY - offsetDown;
             healthImageRect.anchoredPosition = p;
+        }
+
+        private void UpdateParticlesScale(float size)
+        {
+            if (!scaleParticlesWithSize || particlesObject == null)
+                return;
+
+            // Scale particles GameObject transform to match player size
+            if (uniformScale)
+            {
+                particlesObject.transform.localScale = new Vector3(size, size, size);
+            }
+            else
+            {
+                Vector3 currentScale = particlesObject.transform.localScale;
+                particlesObject.transform.localScale = new Vector3(currentScale.x, size, currentScale.z);
+            }
+
+            // Also scale ParticleSystem if it exists
+            ParticleSystem ps = particlesObject.GetComponent<ParticleSystem>();
+            if (ps != null)
+            {
+                var main = ps.main;
+                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+            }
         }
 
         private IEnumerator Die()
