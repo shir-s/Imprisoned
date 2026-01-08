@@ -1,4 +1,5 @@
-// Fills polygons in the TIME texture with current time
+// Writes to time texture for FILLED AREAS
+// R = Paint Time, G = 1 (fill marker)
 Shader "Custom/TimePolygonFill"
 {
     Properties
@@ -9,7 +10,6 @@ Shader "Custom/TimePolygonFill"
     SubShader
     {
         Tags { "Queue"="Overlay" "RenderType"="Opaque" }
-
         Cull Off
         ZWrite Off
         ZTest Always
@@ -35,7 +35,8 @@ Shader "Custom/TimePolygonFill"
 
             float4 frag(v2f i) : SV_Target
             {
-                return float4(_PaintTime, 0, 0, 1);
+                // R = time, G = 1 (this is a FILLED area, not trail)
+                return float4(_PaintTime, 1.0, 0, 1);
             }
             ENDCG
         }

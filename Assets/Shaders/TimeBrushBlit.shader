@@ -1,5 +1,5 @@
-// This shader writes ONLY to the time texture (_PaintTimeTex)
-// Stores WHEN each pixel was painted in RAW SECONDS
+// Writes to time texture for TRAILS and FILLS
+// R = Paint Time, G = IsFill (0 = trail, 1 = fill)
 Shader "Custom/TimeBrushBlit"
 {
     Properties
@@ -10,12 +10,12 @@ Shader "Custom/TimeBrushBlit"
         _BrushHardness ("Brush Hardness",   Range(0,1)) = 0.5
         _BrushOpacity  ("Brush Opacity",    Range(0,1)) = 1.0
         _PaintTime     ("Paint Time (seconds)", Float) = 0.0
+        _IsFill        ("Is Fill (0=trail, 1=fill)", Float) = 0.0
     }
 
     SubShader
     {
         Tags { "RenderType"="Opaque" }
-
         Cull Off
         ZWrite Off
         ZTest Always
@@ -45,6 +45,7 @@ Shader "Custom/TimeBrushBlit"
             float     _BrushHardness;
             float     _BrushOpacity;
             float     _PaintTime;
+            float     _IsFill;
 
             v2f vert (appdata v)
             {
@@ -53,7 +54,8 @@ Shader "Custom/TimeBrushBlit"
                 o.uv = v.uv;
                 return o;
             }
-
+            
+            
             float4 frag (v2f i) : SV_Target
             {
                 float4 existing = tex2D(_MainTex, i.uv);
@@ -76,11 +78,12 @@ Shader "Custom/TimeBrushBlit"
                 mask = pow(mask, power);
                 mask *= saturate(_BrushOpacity);
 
-                // If we're painting here (mask > threshold), use new time
-                // Otherwise keep existing time
-                float finalTime = (mask > 0.01) ? _PaintTime : existing.r;
+                float finalTime = lerp(existing.r, _PaintTime, step(0.01, mask));
+                
+                // DEBUG: Always write _IsFill directly, ignore lerp
+                float fillFlag = _IsFill;
 
-                return float4(finalTime, 0, 0, 1);
+                return float4(finalTime, fillFlag, 0, 1);
             }
             ENDCG
         }
