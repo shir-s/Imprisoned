@@ -93,6 +93,11 @@ namespace JellyGame.GamePlay.Managers
             if (SoundManager.Instance.FindAudioConfig("Background") != null)
                 SoundManager.Instance.PlaySound("Background", this.transform);
 
+            // IMPORTANT: never auto-detect current level from Win/GameOver scenes
+            int activeBuildIndex = SceneManager.GetActiveScene().buildIndex;
+            if (activeBuildIndex == winSceneBuildIndex || activeBuildIndex == gameOverSceneBuildIndex)
+                return;
+
             if (autoDetectCurrentLevelFromActiveScene)
                 TryDetectAndStoreCurrentLevelFromActiveScene();
         }
@@ -165,14 +170,22 @@ namespace JellyGame.GamePlay.Managers
         private void TryDetectAndStoreCurrentLevelFromActiveScene()
         {
             int activeBuildIndex = SceneManager.GetActiveScene().buildIndex;
+
+            // Hard block: if the active scene is not one of the playable levels, don't touch the stored level index.
             int idx = FindLevelListIndexByBuildIndex(activeBuildIndex);
-            if (idx >= 0)
+            if (idx < 0)
             {
-                SetCurrentLevelIndex(idx);
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Detected current level: listIndex={idx}, buildIndex={activeBuildIndex}", this);
+                    Debug.Log($"[GameSceneManager] Active scene buildIndex={activeBuildIndex} is not a playable level (not in Levels list). Not updating CurrentLevelIndex.", this);
+                return;
             }
+
+            SetCurrentLevelIndex(idx);
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] Detected current level: listIndex={idx}, buildIndex={activeBuildIndex}", this);
         }
+
 
         private void OnEntityDiedEvent(object eventData)
         {
@@ -214,6 +227,10 @@ namespace JellyGame.GamePlay.Managers
         {
             if (debugLogs)
                 Debug.Log("[GameSceneManager] Win sequence started.", this);
+
+            // Store current level from the WINNING scene (this object still exists there).
+            if (autoDetectCurrentLevelFromActiveScene)
+                TryDetectAndStoreCurrentLevelFromActiveScene();
 
             float delay = winSceneLoadDelay;
 
@@ -263,6 +280,8 @@ namespace JellyGame.GamePlay.Managers
 
             LoadWinScene();
         }
+
+
 
         private static float ComputeLongestFxDurationSeconds(ParticleSystem[] systems)
         {

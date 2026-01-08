@@ -223,11 +223,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  gameSceneBuildIndex: 0
-  gameOverSceneBuildIndex: 1
-  gameSceneName: Game
+  levelSceneBuildIndices: 0200000003000000
+  loopToFirstLevelIfNoNext: 0
+  autoDetectCurrentLevelFromActiveScene: 1
+  gameOverSceneBuildIndex: 0
+  winSceneBuildIndex: 1
   gameOverSceneName: GameOver
+  winSceneName: Win
+  gameOverOnVictimLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  listenToWinEvent: 1
+  winFxRoot: {fileID: 0}
+  disableWinFxRootOnStart: 1
+  stopWinFxOnStart: 1
+  winSceneLoadDelay: 2
+  pauseGameplayOnWin: 0
   gameOverKey: 114
+  winKey: 116
   debugLogs: 0
 --- !u!4 &86667956
 Transform:
