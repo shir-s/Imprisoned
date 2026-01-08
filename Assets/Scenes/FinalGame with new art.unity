@@ -20817,6 +20817,19 @@ MonoBehaviour:
     m_Bits: 2048
   spawnHeightOffset: 0.5
   respawnDelaySeconds: 0
+  center: {x: 0, y: 0}
+  halfSize: {x: 20, y: 20}
+  spawnHeight: 15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  minClearance: 0.5
+  forbiddenOverlapLayers:
+    serializedVersion: 2
+    m_Bits: 1048576
+  maxTries: 20
+  enableBackupSpawn: 1
+  backupSpawnDelaySeconds: 12
   debugLogs: 1
 --- !u!4 &1473102173
 Transform:
@@ -27850,7 +27863,7 @@ MonoBehaviour:
   triggerOnce: 1
   countLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 2048
   requiredDeaths: 5
   meshOnThisObject: {fileID: 1604427324014506475}
   meshOnChildObject: {fileID: 8978657641268886434}
