@@ -54,6 +54,9 @@ namespace JellyGame.GamePlay.Player
         [Tooltip("If true, particles will scale with player size. If false, particles stay at original size.")]
         [SerializeField] private bool scaleParticlesWithSize = true;
 
+        [Tooltip("Multiplier for particles scale relative to player size. Example: 0.5 = particles will be half the size of player.")]
+        [SerializeField] private float particlesScaleMultiplier = 1f;
+
         [Header("UI Health Indicator (optional)")]
         [Tooltip("Optional UI element (Image/RectTransform) that moves DOWN as the cube shrinks.\n" +
                  "Assumes its current anchoredPosition.y is the 'full health' position (at maxSize).")]
@@ -80,6 +83,10 @@ namespace JellyGame.GamePlay.Player
         // Cached visuals
         private Renderer[] _cachedRenderersToHide;
 
+        // Particles original scale (saved at start)
+        private Vector3 _particlesOriginalScale;
+        private bool _hasParticlesOriginalScale;
+
         private void Awake()
         {
             if (surfaceSlider == null)
@@ -87,6 +94,7 @@ namespace JellyGame.GamePlay.Player
 
             CacheHealthUiStartY();
             CacheRenderersToHide();
+            CacheParticlesOriginalScale();
 
             if (updateHealthUiOnAwake)
             {
@@ -115,6 +123,15 @@ namespace JellyGame.GamePlay.Player
 
             // Auto: hide everything visual under this object (including self)
             _cachedRenderersToHide = GetComponentsInChildren<Renderer>(true);
+        }
+
+        private void CacheParticlesOriginalScale()
+        {
+            if (particlesObject == null)
+                return;
+
+            _particlesOriginalScale = particlesObject.transform.localScale;
+            _hasParticlesOriginalScale = true;
         }
 
         public void ApplyDamage(float amount)
@@ -267,15 +284,24 @@ namespace JellyGame.GamePlay.Player
             if (!scaleParticlesWithSize || particlesObject == null)
                 return;
 
-            // Scale particles GameObject transform to match player size
+            // Ensure we have the original scale cached
+            if (!_hasParticlesOriginalScale)
+                CacheParticlesOriginalScale();
+
+            // Calculate new scale: original scale * player size * multiplier
+            float scaleFactor = size * particlesScaleMultiplier;
+
             if (uniformScale)
             {
-                particlesObject.transform.localScale = new Vector3(size, size, size);
+                // Use original scale as base, multiply by player size and multiplier
+                particlesObject.transform.localScale = _particlesOriginalScale * scaleFactor;
             }
             else
             {
-                Vector3 currentScale = particlesObject.transform.localScale;
-                particlesObject.transform.localScale = new Vector3(currentScale.x, size, currentScale.z);
+                // Only scale Y axis (like player)
+                Vector3 newScale = _particlesOriginalScale;
+                newScale.y = _particlesOriginalScale.y * scaleFactor;
+                particlesObject.transform.localScale = newScale;
             }
 
             // Also scale ParticleSystem if it exists
@@ -283,7 +309,8 @@ namespace JellyGame.GamePlay.Player
             if (ps != null)
             {
                 var main = ps.main;
-                main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                //main.scalingMode = ParticleSystemScalingMode.Hierarchy;
+                main.scalingMode = ParticleSystemScalingMode.Local;
             }
         }
 
