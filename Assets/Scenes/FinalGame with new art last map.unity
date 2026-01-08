@@ -11893,7 +11893,7 @@ PrefabInstance:
   serializedVersion: 2
   m_Modification:
     serializedVersion: 3
-    m_TransformParent: {fileID: 0}
+    m_TransformParent: {fileID: 3793594676184193298}
     m_Modifications:
     - target: {fileID: 577908248117500114, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
       propertyPath: detectionRadius
@@ -11960,6 +11960,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
+--- !u!4 &383995568 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2675175106423644974, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
+  m_PrefabInstance: {fileID: 383995567}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &393653362
 GameObject:
   m_ObjectHideFlags: 0
@@ -12343,10 +12348,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  gameSceneBuildIndex: 0
+  levelSceneBuildIndices: 00000000
+  loopToFirstLevelIfNoNext: 0
+  autoDetectCurrentLevelFromActiveScene: 1
   gameOverSceneBuildIndex: 1
   winSceneBuildIndex: 2
-  gameSceneName: FinalGame
   gameOverSceneName: GameOver
   winSceneName: Win
   gameOverOnVictimLayers:
@@ -30015,7 +30021,9 @@ MonoBehaviour:
   countLayers:
     serializedVersion: 2
     m_Bits: 2048
-  requiredDeaths: 6
+  requiredDeaths: 5
+  meshOnThisObject: {fileID: 1604427324014506475}
+  meshOnChildObject: {fileID: 8978657641268886434}
   debugLogs: 1
 --- !u!4 &436636933008870020
 Transform:
@@ -30796,6 +30804,7 @@ Transform:
   - {fileID: 2371616634264554836}
   - {fileID: 7312965223188416423}
   - {fileID: 2083739846}
+  - {fileID: 383995568}
   - {fileID: 5834608069522025225}
   - {fileID: 812675308877119518}
   - {fileID: 687182803540434593}
@@ -31968,4 +31977,3 @@ SceneRoots:
   - {fileID: 299743018}
   - {fileID: 67787693}
   - {fileID: 289349773874169644}
-  - {fileID: 383995567}
