@@ -115,7 +115,7 @@ namespace JellyGame.GamePlay.Map.Surfaces
                 }
 
                 // RFloat gives us full 32-bit float precision for time values
-                _paintTimeRT = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.RFloat);
+                _paintTimeRT = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.RGFloat);
                 _paintTimeRT.wrapMode = TextureWrapMode.Clamp;
                 _paintTimeRT.filterMode = FilterMode.Point;
                 _paintTimeRT.Create();

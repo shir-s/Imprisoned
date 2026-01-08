@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using JellyGame.GamePlay.Abilities;
 using JellyGame.GamePlay.Map.Surfaces;
-using JellyGame.GamePlay.Painting.Trails.Visibility;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Painting.Trails.Visibility
@@ -10,6 +9,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
     /// <summary>
     /// Trail painter with TIME-BASED AGING support.
     /// Paints to both color texture AND time texture.
+    /// Supports different aging for trails vs filled areas.
     /// </summary>
     [DisallowMultipleComponent]
     public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
@@ -58,6 +58,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         private static readonly int FillColorId = Shader.PropertyToID("_FillColor");
         private static readonly int OpacityId = Shader.PropertyToID("_Opacity");
         private static readonly int PaintTimeId = Shader.PropertyToID("_PaintTime");
+        private static readonly int IsFillId = Shader.PropertyToID("_IsFill");
 
         public float DefaultHalfSizeUV => fallbackHalfSizeUV;
 
@@ -147,14 +148,15 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
             Graphics.Blit(_tempRT, rt);
 
-            // Paint TIME (if enabled)
-            PaintTimeAtUV(_currentSurface, uvCenter, halfSizeUV.x, 1f);
+            // Paint TIME (trail = isFill false)
+            PaintTimeAtUV(_currentSurface, uvCenter, halfSizeUV.x, 1f, false);
         }
 
         /// <summary>
         /// Paint time data to the time texture.
+        /// isFill = true writes G=1 (fill), isFill = false writes G=0 (trail)
         /// </summary>
-        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
+        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity, bool isFill)
         {
             if (!surface.EnableTimeAging || timeBrushBlitMaterial == null)
                 return;
@@ -163,12 +165,13 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             if (timeRT == null)
                 return;
 
-            float normalizedTime = surface.GetNormalizedTime();
+            float currentTime = surface.GetCurrentTime();
 
             timeBrushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             timeBrushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
             timeBrushBlitMaterial.SetFloat("_BrushOpacity", opacity);
-            timeBrushBlitMaterial.SetFloat("_PaintTime", normalizedTime);
+            timeBrushBlitMaterial.SetFloat("_PaintTime", currentTime);
+            timeBrushBlitMaterial.SetFloat("_IsFill", isFill ? 1f : 0f);
 
             EnsureTemp(timeRT, ref _tempTimeRT);
             timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
@@ -178,12 +181,28 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
         // ========== Public API for UV painting ==========
 
+        /// <summary>
+        /// Paint at UV (for trails - G=0)
+        /// </summary>
         public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
         {
-            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f);
+            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f, false);
         }
 
+        /// <summary>
+        /// Paint at UV with size and opacity (for trails - G=0)
+        /// </summary>
         public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
+        {
+            PaintAtUV(surface, uvCenter, halfSizeUV, opacity, false);
+        }
+
+        /// <summary>
+        /// Paint at UV with full control including isFill flag.
+        /// isFill = true: writes G=1 (for filled areas, uses MaxAgeFill)
+        /// isFill = false: writes G=0 (for trails, uses MaxAge)
+        /// </summary>
+        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity, bool isFill)
         {
             if (surface == null || brushBlitMaterial == null)
                 return;
@@ -206,8 +225,24 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
             Graphics.Blit(_tempRT, rt);
 
-            // Also paint time
-            PaintTimeAtUV(surface, uvCenter, halfSizeUV, opacity);
+            // Paint time with fill flag
+            PaintTimeAtUV(surface, uvCenter, halfSizeUV, opacity, isFill);
+        }
+
+        /// <summary>
+        /// Convenience method for fill operations - paints with isFill=true
+        /// </summary>
+        public void PaintFillAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
+        {
+            PaintAtUV(surface, uvCenter, halfSizeUV, opacity, true);
+        }
+
+        /// <summary>
+        /// Convenience method for fill operations - paints with isFill=true
+        /// </summary>
+        public void PaintFillAtUV(SimplePaintSurface surface, Vector2 uvCenter)
+        {
+            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f, true);
         }
 
         // ========== Polygon Fill ==========
@@ -264,11 +299,11 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             polygonFillMaterial.SetFloat(OpacityId, polygonFillOpacity);
             FillPolygonToRT(rt, poly, tris, polygonFillMaterial);
 
-            // Fill TIME texture
+            // Fill TIME texture (with G=1 for fill)
             if (surface.EnableTimeAging && timePolygonFillMaterial != null && surface.PaintTimeRT != null)
             {
-                float normalizedTime = surface.GetNormalizedTime();
-                timePolygonFillMaterial.SetFloat(PaintTimeId, normalizedTime);
+                float currentTime = surface.GetCurrentTime();
+                timePolygonFillMaterial.SetFloat(PaintTimeId, currentTime);
                 FillPolygonToRT(surface.PaintTimeRT, poly, tris, timePolygonFillMaterial);
             }
 
