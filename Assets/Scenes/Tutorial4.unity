@@ -15535,10 +15535,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  gameSceneBuildIndex: 0
+  levelSceneBuildIndices: 00000000
+  loopToFirstLevelIfNoNext: 0
+  autoDetectCurrentLevelFromActiveScene: 1
   gameOverSceneBuildIndex: 1
   winSceneBuildIndex: 2
-  gameSceneName: FinalGame
   gameOverSceneName: GameOver
   winSceneName: Win
   gameOverOnVictimLayers:
@@ -15596,6 +15597,9 @@ MonoBehaviour:
   requireKeyDown: 1
   autoStart: 1
   endImmediatelyIfNoWindows: 1
+  disableOnTutorialStart: []
+  restoreDisabledScriptsOnFinish: 1
+  windowScriptActions: []
   playIntroMoveBeforeTutorial: 1
   introMoveTarget: {fileID: 663472628}
   introDirectionMode: 0
@@ -30787,6 +30791,8 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   requiredDeaths: 4
+  meshOnThisObject: {fileID: 0}
+  meshOnChildObject: {fileID: 0}
   debugLogs: 1
 --- !u!135 &1087490802
 SphereCollider:
@@ -37308,7 +37314,7 @@ Animator:
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 1a7672a74330f4ed7a70d95bbe928aa0, type: 2}
   m_CullingMode: 0
-  m_UpdateMode: 0
+  m_UpdateMode: 2
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
