@@ -11554,10 +11554,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  gameSceneBuildIndex: 0
+  levelSceneBuildIndices: 00000000
+  loopToFirstLevelIfNoNext: 0
+  autoDetectCurrentLevelFromActiveScene: 1
   gameOverSceneBuildIndex: 1
   winSceneBuildIndex: 2
-  gameSceneName: FinalGame
   gameOverSceneName: GameOver
   winSceneName: Win
   gameOverOnVictimLayers:
@@ -20811,6 +20812,19 @@ MonoBehaviour:
     m_Bits: 2048
   spawnHeightOffset: 0.5
   respawnDelaySeconds: 0
+  center: {x: 0, y: 0}
+  halfSize: {x: 20, y: 20}
+  spawnHeight: 15
+  groundLayer:
+    serializedVersion: 2
+    m_Bits: 64
+  minClearance: 0.5
+  forbiddenOverlapLayers:
+    serializedVersion: 2
+    m_Bits: 1048576
+  maxTries: 20
+  enableBackupSpawn: 1
+  backupSpawnDelaySeconds: 12
   debugLogs: 1
 --- !u!4 &1473102173
 Transform:
@@ -27842,7 +27856,12 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   triggerOnce: 1
-  enemyDeathCounter: {fileID: 847929134}
+  countLayers:
+    serializedVersion: 2
+    m_Bits: 2048
+  requiredDeaths: 5
+  meshOnThisObject: {fileID: 0}
+  meshOnChildObject: {fileID: 0}
   debugLogs: 1
 --- !u!4 &436636933008870020
 Transform:
