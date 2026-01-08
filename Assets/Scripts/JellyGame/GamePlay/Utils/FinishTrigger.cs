@@ -3,22 +3,19 @@
 using System.Collections;
 using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
-using JellyGame.GamePlay.Utils;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.World.Finish
 {
     /// <summary>
     /// Triggers GameWin when player enters the trigger AND all enemies are dead.
-    /// 
-    /// Smart design: Uses EnemyDeathCounter to check if all enemies are dead.
-    /// EnemyDeathCounter is the single source of truth for counting enemy deaths.
+    /// Uses the same logic as DoorByDeaths - listens to EventManager.GameEvent.EntityDied.
     ///
     /// Usage:
     /// - Attach to a GameObject with a Collider set as Trigger.
     /// - Set Allowed Layers to the player layer.
-    /// - (Optional) Assign EnemyDeathCounter reference, or it will be auto-found in scene.
-    /// - Make sure EnemyDeathCounter exists in scene and is configured correctly.
+    /// - Set Count Layers to the enemy layers you want to track.
+    /// - Set Required Deaths to the number of enemies that must die.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -32,13 +29,21 @@ namespace JellyGame.GamePlay.World.Finish
         [SerializeField] private bool triggerOnce = true;
 
         [Header("Win Condition")]
-        [Tooltip("Reference to EnemyDeathCounter. Will be auto-found in scene if not assigned. If null, trigger will activate without checking enemy deaths.")]
-        [SerializeField] private EnemyDeathCounter enemyDeathCounter;
+        [Tooltip("Only deaths on these layers will be counted (like DoorByDeaths).")]
+        [SerializeField] private LayerMask countLayers = ~0;
 
+        [Tooltip("Number of enemy deaths required before trigger can activate GameWin.")]
+        [SerializeField] private int requiredDeaths = 4;
+
+        [Header("Finish Visuals")]
+        [SerializeField] private Renderer meshOnThisObject;
+        [SerializeField] private Renderer meshOnChildObject;
+        
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
         private bool _triggered;
+        private int _deathCount = 0;
 
         private void Reset()
         {
@@ -46,57 +51,74 @@ namespace JellyGame.GamePlay.World.Finish
             if (c != null)
                 c.isTrigger = true;
         }
+        
+        private void UpdateFinishMeshes(bool enabled)
+        {
+            if (meshOnThisObject != null)
+                meshOnThisObject.enabled = enabled;
+
+            if (meshOnChildObject != null)
+                meshOnChildObject.enabled = enabled;
+        }
+
 
         private void Awake()
         {
             EnsureKinematicRigidbody();
-        }
 
-        private void Start()
-        {
-            // Auto-find EnemyDeathCounter in scene (in Start to ensure all objects are initialized)
-            EnsureEnemyDeathCounter();
+            if (requiredDeaths < 1)
+                requiredDeaths = 1;
+
+            // NEW: hide meshes until win condition is met
+            UpdateFinishMeshes(_deathCount >= requiredDeaths);
+
+            if (debugLogs)
+            {
+                Debug.Log(
+                    $"[FinishTrigger] Initialized. Required Deaths: {requiredDeaths}, Count Layers: {countLayers.value}, Allowed Layers: {allowedLayers.value}",
+                    this
+                );
+            }
         }
 
         private void OnEnable()
         {
-            // Also try to find in OnEnable (in case EnemyDeathCounter was activated after this)
-            EnsureEnemyDeathCounter();
+            // Listen to EntityDied event (same as DoorByDeaths)
+            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+
+            // NEW: ensure correct visual state if object was disabled/enabled
+            UpdateFinishMeshes(_deathCount >= requiredDeaths);
+        }
+        
+        
+        private void OnDisable()
+        {
+            // Unsubscribe to prevent memory leaks
+            EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDied);
         }
 
-        private void EnsureEnemyDeathCounter()
+        private void OnEntityDied(object eventData)
         {
-            if (enemyDeathCounter != null)
-                return; // Already found
+            if (_triggered)
+                return;
 
-            // Auto-find EnemyDeathCounter in scene
-            enemyDeathCounter = FindObjectOfType<EnemyDeathCounter>();
+            if (eventData is not EntityDiedEventData e)
+                return;
 
-            if (enemyDeathCounter == null)
-            {
-                // No EnemyDeathCounter found - this is OK for scenes without enemies
-                // The trigger will work, just without the enemy death check
-                if (debugLogs)
-                {
-                    Debug.Log($"[FinishTrigger] No EnemyDeathCounter found in scene. {gameObject.name} will trigger GameWin when player enters (no enemy death requirement).", this);
-                }
-            }
-            else if (debugLogs)
-            {
-                Debug.Log($"[FinishTrigger] Auto-found EnemyDeathCounter: {enemyDeathCounter.name}. Required: {enemyDeathCounter.GetRequiredDeaths()}", this);
-            }
-        }
+            int layer = e.VictimLayer;
 
-        private bool AreAllEnemiesDead()
-        {
-            // If no EnemyDeathCounter, assume all enemies are dead (for scenes without enemies)
-            if (enemyDeathCounter == null)
-            {
-                return true; // No enemy requirement - trigger works immediately
-            }
+            // Only count deaths on specified layers
+            if ((countLayers.value & (1 << layer)) == 0)
+                return;
 
-            // Use EnemyDeathCounter - single source of truth!
-            return enemyDeathCounter.AreAllEnemiesDead();
+            _deathCount++;
+
+            if (debugLogs)
+                Debug.Log($"[FinishTrigger] Counted death {_deathCount}/{requiredDeaths} (layer={layer})", this);
+
+            // NEW: when condition met, show meshes (and keep them shown)
+            if (_deathCount >= requiredDeaths)
+                UpdateFinishMeshes(true);
         }
 
         private void OnTriggerEnter(Collider other)
@@ -120,30 +142,18 @@ namespace JellyGame.GamePlay.World.Finish
                 return;
             }
 
-            // Check if all required enemies are dead (using EnemyDeathCounter)
-            if (!AreAllEnemiesDead())
+            // Check if all required enemies are dead
+            if (_deathCount < requiredDeaths)
             {
-                if (enemyDeathCounter != null)
-                {
-                    int currentCount = enemyDeathCounter.GetDeathCount();
-                    int requiredCount = enemyDeathCounter.GetRequiredDeaths();
-                    
-                    if (debugLogs)
-                        Debug.Log($"[FinishTrigger] Player entered trigger, but only {currentCount}/{requiredCount} enemies are dead. Waiting...", this);
-                }
+                if (debugLogs)
+                    Debug.Log($"[FinishTrigger] Player entered trigger, but only {_deathCount}/{requiredDeaths} enemies are dead. Waiting...", this);
                 return;
             }
 
             _triggered = true;
 
-            if (enemyDeathCounter != null)
-            {
-                int deadCount = enemyDeathCounter.GetDeathCount();
-                int reqCount = enemyDeathCounter.GetRequiredDeaths();
-                
-                if (debugLogs)
-                    Debug.Log($"[FinishTrigger] ✓ GameWin triggered by {other.name} ({deadCount}/{reqCount} enemies dead)", this);
-            }
+            if (debugLogs)
+                Debug.Log($"[FinishTrigger] ✓ GameWin triggered by {other.name} ({_deathCount}/{requiredDeaths} enemies dead)", this);
             
             SoundManager.Instance.StopAllSounds();
             SoundManager.Instance.PlaySound("Win", this.transform);
