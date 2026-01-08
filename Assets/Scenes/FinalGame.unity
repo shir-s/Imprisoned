@@ -6114,10 +6114,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  gameSceneBuildIndex: 0
+  levelSceneBuildIndices: 00000000
+  loopToFirstLevelIfNoNext: 0
+  autoDetectCurrentLevelFromActiveScene: 1
   gameOverSceneBuildIndex: 1
   winSceneBuildIndex: 2
-  gameSceneName: FinalGame
   gameOverSceneName: GameOver
   winSceneName: Win
   gameOverOnVictimLayers:
@@ -13106,18 +13107,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PickupRespawner
   pickupPrefab: {fileID: 2929676164190397839, guid: 00464dde3a4f7a14c95f72c80530c08f, type: 3}
   parentToSpawner: 1
-  center: {x: 0, y: 0}
-  halfSize: {x: 20, y: 20}
-  spawnHeight: 10
-  groundLayer:
+  spawnOnEnemyDeath: 1
+  enemyLayers:
     serializedVersion: 2
-    m_Bits: 64
-  minClearance: 0.2
-  forbiddenOverlapLayers:
-    serializedVersion: 2
-    m_Bits: 1048576
-  maxTries: 10
+    m_Bits: 4294967295
+  spawnHeightOffset: 0.5
   respawnDelaySeconds: 5
+  debugLogs: 0
 --- !u!4 &1473102173
 Transform:
   m_ObjectHideFlags: 0
@@ -20063,6 +20059,12 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   triggerOnce: 1
+  countLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  requiredDeaths: 4
+  meshOnThisObject: {fileID: 0}
+  meshOnChildObject: {fileID: 0}
   debugLogs: 1
 --- !u!4 &436636933008870020
 Transform:
@@ -23212,6 +23214,7 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  inputForward: {x: 0, y: 0, z: 1}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
   recenterDegPerSec: 40
