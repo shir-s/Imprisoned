@@ -462,6 +462,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
         private IEnumerator FillAllSurfacesInstantAsync(List<SurfaceFillData> surfaceFillDatas)
         {
+            Debug.Log("FillAllSurfacesInstantAsync");
             foreach (var fillData in surfaceFillDatas)
             {
                 if (useGpuPolygonFill)
@@ -489,6 +490,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
         private IEnumerator FillAllSurfacesProgressiveAsync(List<SurfaceFillData> surfaceFillDatas)
         {
+            Debug.Log("FillAllSurfacesProgressiveAsync");
             // Create parallel fill coroutines for all surfaces
             List<IEnumerator> fillEnumerators = new List<IEnumerator>();
 
@@ -768,7 +770,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
         {
             if (!liquidEnabled)
             {
-                painter.PaintAtUV(surface, uv);
+                painter.PaintFillAtUV(surface, uv);
                 return;
             }
 
@@ -787,7 +789,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
             float angle = (nA * 2f - 1f) * Mathf.PI * liquidFlowStrength + (r1 * 2f - 1f) * 0.55f;
             Vector2 flowDir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)).normalized;
 
-            painter.PaintAtUV(surface, uv, half0, 1f);
+            painter.PaintFillAtUV(surface, uv, half0, 1f);
 
             int extraMin = Mathf.Max(0, liquidExtraSplatsMin);
             int extraMax = Mathf.Max(extraMin, liquidExtraSplatsMax);
@@ -809,7 +811,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 float h = baseHalf * Mathf.Lerp(0.55f, 0.95f, ri);
                 float op = Mathf.Lerp(0.25f, 0.65f, ri);
 
-                painter.PaintAtUV(surface, uv2, h, op);
+                painter.PaintFillAtUV(surface, uv2, h, op);
             }
 
             int smearMin = Mathf.Max(0, liquidSmearStepsMin);
@@ -838,7 +840,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 float size = Mathf.Lerp(half0 * 0.95f, baseHalf * 0.35f, t);
                 float op = Mathf.Lerp(0.55f, 0.08f, t);
 
-                painter.PaintAtUV(surface, uvS, size, op);
+                painter.PaintFillAtUV(surface, uvS, size, op);
             }
         }
 
@@ -904,7 +906,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
                     for (float u = u0; u <= u1; u += step)
                     {
-                        painter.PaintAtUV(surface, new Vector2(u, v));
+                        painter.PaintFillAtUV(surface, new Vector2(u, v));
 
                         paintsThisFrame++;
                         if (paintsThisFrame >= fallbackMaxPaintsPerFrame)

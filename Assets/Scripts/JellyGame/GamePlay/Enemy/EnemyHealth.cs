@@ -46,6 +46,7 @@ namespace JellyGame.GamePlay.Enemy
         void Die()
         {
             print("EnemyHealth.Die()");
+            Debug.Log($"[EnemyHealth] Die() called on {gameObject.name} (Layer: {gameObject.layer})", this);
             
             // Trigger events immediately (before delay)
             onEnemyDeath?.Invoke();       
@@ -55,10 +56,12 @@ namespace JellyGame.GamePlay.Enemy
             Vector3 deathPosition = transform.position;
             
             // Trigger EventManager event (like SimpleHealth does, for DoorByDeaths compatibility)
+            Debug.Log($"[EnemyHealth] Triggering EntityDied event for {gameObject.name}...", this);
             EventManager.TriggerEvent(
                 EventManager.GameEvent.EntityDied,
                 new EntityDiedEventData(gameObject, gameObject.layer)
             );
+            Debug.Log($"[EnemyHealth] ✓ EntityDied event triggered for {gameObject.name}", this);
             
             // Trigger JellyGameEvents
             JellyGameEvents.EnemyDied?.Invoke(deathPosition);

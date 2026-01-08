@@ -2,66 +2,71 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using JellyGame.GamePlay.Managers;
 using UnityEngine;
 using UnityEngine.Events;
+using JellyGame.GamePlay.Managers;
 
 namespace JellyGame.UI.Tutorial
 {
-    /// <summary>
-    /// Shows a sequence of tutorial windows one after another.
-    /// While a window is active, the game time is paused (Time.timeScale = 0).
-    ///
-    /// Features:
-    /// - Skip button/key (default E) with cooldown per window (unscaled time).
-    /// - Optional "intro move" before the sequence starts (unscaled time).
-    /// - NEW: Optional "gates" per window: when you skip a window, instead of showing the next one,
-    ///        the game resumes until the gate requirement is satisfied, then after a small countdown,
-    ///        the game pauses and the next window appears.
-    ///
-    /// Gate example: "Press all arrow keys at least once" -> wait countdown -> pause -> show next window.
-    /// </summary>
     [DisallowMultipleComponent]
     public class TutorialSequenceController : MonoBehaviour
     {
         // ===================== Windows =====================
         [Header("Windows (in order)")]
-        [Tooltip("GameObjects that represent tutorial windows (Canvas roots/panels). They will be activated/deactivated by this controller.")]
         [SerializeField] private List<GameObject> windows = new List<GameObject>();
 
         // ===================== Pause =====================
         [Header("Pause")]
-        [Tooltip("If true, pauses the game while any tutorial window is shown (Time.timeScale = 0).")]
         [SerializeField] private bool pauseGameWhileActive = true;
-
-        [Tooltip("If true, restores the previous timeScale after the tutorial finishes.")]
         [SerializeField] private bool restorePreviousTimeScaleOnFinish = true;
 
         // ===================== Skip =====================
         [Header("Skip")]
-        [Tooltip("How many seconds the user must wait before they are allowed to skip the current window.")]
         [SerializeField] private float skipCooldownSeconds = 0.75f;
-
-        [Tooltip("Key used to skip the current window.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
-
-        [Tooltip("If true, holding the key will only skip once per window (recommended).")]
         [SerializeField] private bool requireKeyDown = true;
 
         // ===================== Flow =====================
         [Header("Flow")]
-        [Tooltip("Start tutorial automatically on Start().")]
         [SerializeField] private bool autoStart = false;
-
-        [Tooltip("If true, the tutorial ends automatically if windows list is empty.")]
         [SerializeField] private bool endImmediatelyIfNoWindows = true;
 
-        // ===================== Intro Move =====================
-        [Header("Intro Move (Before Tutorial)")]
-        [Tooltip("If true, moves the target first, then starts the tutorial sequence.")]
-        [SerializeField] private bool playIntroMoveBeforeTutorial = true;
+        // ===================== NEW: Script enabling/disabling =====================
+        [Header("Script Locks (Disabled During Tutorial)")]
+        [Tooltip("These scripts will be DISABLED when the tutorial starts. Useful to prevent early actions during intro/movement/tutorial windows.")]
+        [SerializeField] private List<Component> disableOnTutorialStart = new List<Component>();
 
-        [Tooltip("The thing you want to move (your slime root transform).")]
+        [Tooltip("If true, scripts disabled by 'disableOnTutorialStart' will be restored to their previous enabled state when the tutorial finishes.")]
+        [SerializeField] private bool restoreDisabledScriptsOnFinish = true;
+
+        [Serializable]
+        private class WindowScriptActions
+        {
+            [Tooltip("Index of the window in the 'windows' list.")]
+            public int windowIndex = 0;
+
+            [Header("When this window is SHOWN")]
+            [Tooltip("Scripts to enable when this window becomes active.")]
+            public List<Component> enableOnShow = new List<Component>();
+
+            [Tooltip("Scripts to disable when this window becomes active.")]
+            public List<Component> disableOnShow = new List<Component>();
+
+            [Header("When this window is COMPLETED (skipped/closed)")]
+            [Tooltip("Scripts to enable right after this window is closed (before gates resume gameplay).")]
+            public List<Component> enableOnComplete = new List<Component>();
+
+            [Tooltip("Scripts to disable right after this window is closed (before gates resume gameplay).")]
+            public List<Component> disableOnComplete = new List<Component>();
+        }
+
+        [Header("Per-Window Script Actions")]
+        [Tooltip("Lets you enable/disable scripts when a specific window is shown or completed. Scripts can be on other objects.")]
+        [SerializeField] private List<WindowScriptActions> windowScriptActions = new List<WindowScriptActions>();
+
+        // ===================== Intro Move (kept as-is) =====================
+        [Header("Intro Move (Before Tutorial)")]
+        [SerializeField] private bool playIntroMoveBeforeTutorial = true;
         [SerializeField] private Transform introMoveTarget;
 
         public enum IntroMoveDirectionMode
@@ -74,81 +79,73 @@ namespace JellyGame.UI.Tutorial
             ReferenceTransformRight
         }
 
-        [Tooltip("How to interpret the intro move direction.")]
         [SerializeField] private IntroMoveDirectionMode introDirectionMode = IntroMoveDirectionMode.WorldVector;
-
-        [Tooltip("Used if direction mode is WorldVector.")]
         [SerializeField] private Vector3 introWorldDirection = Vector3.forward;
-
-        [Tooltip("Used if direction mode uses a reference transform.")]
         [SerializeField] private Transform introDirectionReference;
 
-        [Tooltip("How far to move in that direction (world units).")]
         [SerializeField] private float introDistance = 2.0f;
-
-        [Tooltip("How long the move takes (seconds).")]
         [SerializeField] private float introDuration = 0.35f;
 
-        [Tooltip("Speed at the start of the intro move (units/sec).")]
         [SerializeField] private float introStartSpeed = 0.0f;
-
-        [Tooltip("Peak speed during the intro move (units/sec).")]
         [SerializeField] private float introMaxSpeed = 12.0f;
 
-        [Tooltip("Shapes speed over normalized time (0..1). Y is a multiplier between startSpeed and maxSpeed.\n" +
-                 "Recommended: starts low, ramps up smoothly, then eases out.\n" +
-                 "Example points: (0,0) (0.35,1) (1,0)")]
         [SerializeField] private AnimationCurve introSpeedProfile = new AnimationCurve(
             new Keyframe(0f, 0f, 0f, 0f),
             new Keyframe(0.35f, 1f, 0f, 0f),
             new Keyframe(1f, 0f, 0f, 0f)
         );
 
-        [Tooltip("Optional sideways wobble amount (units). Makes it feel 'cartoon zippy'.")]
         [SerializeField] private float introWobbleAmplitude = 0.08f;
-
-        [Tooltip("How many wobble cycles over the move.")]
         [SerializeField] private float introWobbleCycles = 2.0f;
 
-        [Tooltip("If true, this script will temporarily disable Rigidbody movement and move the transform directly.")]
         [SerializeField] private bool introMoveTransformDirectly = true;
-
-        [Tooltip("If moving directly and target has a Rigidbody, we can set it kinematic for the intro.")]
         [SerializeField] private bool introForceKinematicIfRigidBody = true;
 
-        // ===================== NEW: Window Gates =====================
+        // ===================== Gates =====================
+        private enum RequirementType
+        {
+            PressAllArrowKeysOnce,
+            AreaClosedOnce,
+            PickupCollectedOnce,
+            EnemyKilledOnce
+        }
+
         [Serializable]
         private class WindowGate
         {
+            [Tooltip("If enabled, skipping this window will resume the game and wait for a requirement before continuing.")]
             public bool enabled = false;
+
             public RequirementType requirement = RequirementType.PressAllArrowKeysOnce;
 
             [Tooltip("After the requirement is satisfied, wait this many seconds (unscaled) before pausing and showing next window.")]
             public float afterCompleteCountdownSeconds = 0.5f;
+
+            [Header("Spawn/Enable for this gate (optional)")]
+            [Tooltip("If set, this GameObject will be activated when the gate starts (e.g., enable a pickup/enemy so the player can interact now).")]
+            public GameObject activateObjectOnGateStart;
+
+            [Tooltip("If true, deactivate 'activateObjectOnGateStart' after the gate is completed.")]
+            public bool deactivateObjectOnGateComplete = false;
+
+            [Header("EnemyKilled Gate Settings")]
+            [Tooltip("Layer name to treat as 'enemy' for the EnemyKilledOnce requirement.")]
+            public string enemyLayerName = "Enemy";
 
             [Header("Events (optional)")]
             public UnityEvent onGateStart;
             public UnityEvent onGateComplete;
         }
 
-        private enum RequirementType
-        {
-            PressAllArrowKeysOnce,
-            AreaClosedOnce // NEW
-        }
-
         [Header("Window Gates (optional, per index)")]
-        [Tooltip("Optional gates. Index in this list matches the windows index. If list is shorter, missing entries = no gate.")]
         [SerializeField] private List<WindowGate> windowGates = new List<WindowGate>();
 
         [Header("Gate Input (for requirements)")]
-        [Tooltip("Movement keys used for 'PressAllArrowKeysOnce' gate.")]
         [SerializeField] private KeyCode gateUpKey = KeyCode.UpArrow;
         [SerializeField] private KeyCode gateDownKey = KeyCode.DownArrow;
         [SerializeField] private KeyCode gateLeftKey = KeyCode.LeftArrow;
         [SerializeField] private KeyCode gateRightKey = KeyCode.RightArrow;
 
-        // ===================== Debug =====================
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
@@ -161,7 +158,6 @@ namespace JellyGame.UI.Tutorial
         }
 
         private FlowState _state = FlowState.Idle;
-
         private int _currentIndex = -1;
         private float _canSkipAtUnscaledTime = 0f;
 
@@ -171,9 +167,19 @@ namespace JellyGame.UI.Tutorial
         private Coroutine _flowRoutine;
         private Coroutine _gateRoutine;
 
-        public bool IsRunning => _state != FlowState.Idle;
-        public int CurrentIndex => _currentIndex;
-        public int WindowCount => windows != null ? windows.Count : 0;
+        private struct BehaviourState
+        {
+            public Behaviour b;
+            public bool wasEnabled;
+
+            public BehaviourState(Behaviour b, bool wasEnabled)
+            {
+                this.b = b;
+                this.wasEnabled = wasEnabled;
+            }
+        }
+
+        private readonly List<BehaviourState> _startDisabledSnapshot = new List<BehaviourState>();
 
         private void Start()
         {
@@ -199,9 +205,8 @@ namespace JellyGame.UI.Tutorial
                 SkipCurrentWindow();
         }
 
-        /// <summary>
-        /// Starts the whole flow: optional intro move, then the tutorial sequence.
-        /// </summary>
+        public int WindowCount => windows != null ? windows.Count : 0;
+
         public void StartTutorial()
         {
             if (_flowRoutine != null)
@@ -222,6 +227,9 @@ namespace JellyGame.UI.Tutorial
             _currentIndex = -1;
             HideAllWindows();
 
+            // NEW: lock scripts at tutorial start
+            CaptureAndDisableStartScripts();
+
             if (WindowCount == 0)
             {
                 if (debugLogs)
@@ -236,7 +244,6 @@ namespace JellyGame.UI.Tutorial
             if (playIntroMoveBeforeTutorial)
                 yield return PlayIntroMove();
 
-            // Now enter the actual window sequence
             StartTutorialSequenceOnly();
         }
 
@@ -251,12 +258,9 @@ namespace JellyGame.UI.Tutorial
                 PauseGame();
 
             ShowWindowAtIndex(0);
-
-            if (debugLogs)
-                Debug.Log("[Tutorial] Started sequence.", this);
         }
 
-        // ===================== Skip / Window Advance =====================
+        // ===================== Skip / Advance =====================
 
         public void SkipCurrentWindow()
         {
@@ -266,11 +270,12 @@ namespace JellyGame.UI.Tutorial
             if (_currentIndex < 0 || _currentIndex >= WindowCount)
                 return;
 
-            // If this window has a gate, we do NOT show the next window yet.
+            // NEW: window completed actions happen when the window is closed (regardless of gate/no gate).
+            ApplyWindowCompleteScriptActions(_currentIndex);
+
             if (TryStartGateForCurrentWindow())
                 return;
 
-            // Normal behavior: advance immediately
             AdvanceToNextWindowOrFinish();
         }
 
@@ -280,21 +285,18 @@ namespace JellyGame.UI.Tutorial
             if (gate == null || !gate.enabled)
                 return false;
 
-            // Hide current window
             HideWindowAtIndex(_currentIndex);
 
-            // Resume the game (so the user can perform the required action)
+            if (gate.activateObjectOnGateStart != null)
+                gate.activateObjectOnGateStart.SetActive(true);
+
             if (pauseGameWhileActive)
                 ResumeGame();
 
             _state = FlowState.WaitingForGate;
 
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Gate START at window index {_currentIndex}. requirement={gate.requirement}", this);
-
             gate.onGateStart?.Invoke();
 
-            // Start gate coroutine; when done, it will pause+show next window.
             if (_gateRoutine != null)
                 StopCoroutine(_gateRoutine);
 
@@ -314,11 +316,19 @@ namespace JellyGame.UI.Tutorial
                     yield return WaitForAreaClosedOnce();
                     break;
 
-                default:
+                case RequirementType.PickupCollectedOnce:
+                    yield return WaitForPickupCollectedOnce();
+                    break;
+
+                case RequirementType.EnemyKilledOnce:
+                    yield return WaitForEnemyKilledOnce(gate.enemyLayerName);
                     break;
             }
 
             gate.onGateComplete?.Invoke();
+
+            if (gate.deactivateObjectOnGateComplete && gate.activateObjectOnGateStart != null)
+                gate.activateObjectOnGateStart.SetActive(false);
 
             float cd = Mathf.Max(0f, gate.afterCompleteCountdownSeconds);
             if (cd > 0f)
@@ -341,29 +351,7 @@ namespace JellyGame.UI.Tutorial
             _gateRoutine = null;
         }
 
-        private IEnumerator WaitForAreaClosedOnce()
-        {
-            bool done = false;
-
-            void OnAreaClosed(object data)
-            {
-                // We don't care about payload right now, only that an area was closed.
-                done = true;
-            }
-
-            // IMPORTANT: subscribe ONLY while this gate is active
-            EventManager.StartListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
-
-            try
-            {
-                while (!done)
-                    yield return null;
-            }
-            finally
-            {
-                EventManager.StopListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
-            }
-        }
+        // ===================== Gate requirements =====================
 
         private IEnumerator WaitForPressAllArrowKeysOnce()
         {
@@ -380,9 +368,81 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
+        private IEnumerator WaitForAreaClosedOnce()
+        {
+            bool done = false;
+            void OnAreaClosed(object data) => done = true;
+
+            EventManager.StartListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
+            try
+            {
+                while (!done)
+                    yield return null;
+            }
+            finally
+            {
+                EventManager.StopListening(EventManager.GameEvent.AreaClosed, OnAreaClosed);
+            }
+        }
+
+        private IEnumerator WaitForPickupCollectedOnce()
+        {
+            bool done = false;
+            void OnPickupCollected(object data) => done = true;
+
+            EventManager.StartListening(EventManager.GameEvent.PickupCollected, OnPickupCollected);
+            try
+            {
+                while (!done)
+                    yield return null;
+            }
+            finally
+            {
+                EventManager.StopListening(EventManager.GameEvent.PickupCollected, OnPickupCollected);
+            }
+        }
+
+        private IEnumerator WaitForEnemyKilledOnce(string enemyLayerName)
+        {
+            bool done = false;
+
+            int enemyLayer = LayerMask.NameToLayer(enemyLayerName);
+            if (enemyLayer < 0)
+            {
+                Debug.LogError($"[Tutorial] EnemyKilledOnce gate: Layer '{enemyLayerName}' does not exist. Gate will never complete.", this);
+                yield break;
+            }
+
+            void OnEntityDied(object data)
+            {
+                if (data is EntityDiedEventData died)
+                {
+                    if (died.VictimLayer == enemyLayer)
+                        done = true;
+                }
+                else if (data is GameObject go)
+                {
+                    if (go.layer == enemyLayer)
+                        done = true;
+                }
+            }
+
+            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+            try
+            {
+                while (!done)
+                    yield return null;
+            }
+            finally
+            {
+                EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+            }
+        }
+
+        // ===================== Window sequence helpers =====================
+
         private void AdvanceToNextWindowOrFinish()
         {
-            // Hide current if it's still visible
             HideWindowAtIndex(_currentIndex);
 
             int next = _currentIndex + 1;
@@ -410,11 +470,9 @@ namespace JellyGame.UI.Tutorial
             if (pauseGameWhileActive && restorePreviousTimeScaleOnFinish)
                 ResumeGame();
 
-            if (debugLogs)
-                Debug.Log("[Tutorial] Finished.", this);
+            // NEW: restore scripts we disabled at tutorial start
+            RestoreStartScriptsIfNeeded();
         }
-
-        // ===================== Window Show/Hide =====================
 
         private void ShowWindowAtIndex(int index)
         {
@@ -424,14 +482,14 @@ namespace JellyGame.UI.Tutorial
             index = Mathf.Clamp(index, 0, windows.Count - 1);
             _currentIndex = index;
 
+            // NEW: per-window "on show" script actions
+            ApplyWindowShowScriptActions(_currentIndex);
+
             GameObject go = windows[_currentIndex];
             if (go != null)
                 go.SetActive(true);
 
             _canSkipAtUnscaledTime = Time.unscaledTime + Mathf.Max(0f, skipCooldownSeconds);
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Showing window {_currentIndex + 1}/{WindowCount}. CanSkipAt={_canSkipAtUnscaledTime:F2} (unscaled).", this);
         }
 
         private void HideWindowAtIndex(int index)
@@ -470,6 +528,110 @@ namespace JellyGame.UI.Tutorial
             return windowGates[windowIndex];
         }
 
+        // ===================== NEW: Script action helpers =====================
+
+        private void CaptureAndDisableStartScripts()
+        {
+            _startDisabledSnapshot.Clear();
+
+            if (disableOnTutorialStart == null || disableOnTutorialStart.Count == 0)
+                return;
+
+            for (int i = 0; i < disableOnTutorialStart.Count; i++)
+            {
+                Component c = disableOnTutorialStart[i];
+                if (c == null)
+                    continue;
+
+                // Only Behaviours can be enabled/disabled
+                if (c is Behaviour b)
+                {
+                    _startDisabledSnapshot.Add(new BehaviourState(b, b.enabled));
+                    b.enabled = false;
+                }
+                else
+                {
+                    if (debugLogs)
+                        Debug.LogWarning($"[Tutorial] disableOnTutorialStart entry '{c.name}' is not a Behaviour (type={c.GetType().Name}). Ignored.", this);
+                }
+            }
+        }
+
+
+        private void RestoreStartScriptsIfNeeded()
+        {
+            if (!restoreDisabledScriptsOnFinish)
+            {
+                _startDisabledSnapshot.Clear();
+                return;
+            }
+
+            for (int i = 0; i < _startDisabledSnapshot.Count; i++)
+            {
+                var s = _startDisabledSnapshot[i];
+                if (s.b == null)
+                    continue;
+
+                s.b.enabled = s.wasEnabled;
+            }
+
+            _startDisabledSnapshot.Clear();
+        }
+
+        private void ApplyWindowShowScriptActions(int windowIndex)
+        {
+            WindowScriptActions a = GetWindowScriptActions(windowIndex);
+            if (a == null)
+                return;
+
+            SetEnabled(a.disableOnShow, false);
+            SetEnabled(a.enableOnShow, true);
+        }
+
+
+        private void ApplyWindowCompleteScriptActions(int windowIndex)
+        {
+            WindowScriptActions a = GetWindowScriptActions(windowIndex);
+            if (a == null)
+                return;
+
+            SetEnabled(a.disableOnComplete, false);
+            SetEnabled(a.enableOnComplete, true);
+        }
+
+
+        private WindowScriptActions GetWindowScriptActions(int windowIndex)
+        {
+            if (windowScriptActions == null)
+                return null;
+
+            for (int i = 0; i < windowScriptActions.Count; i++)
+            {
+                var a = windowScriptActions[i];
+                if (a != null && a.windowIndex == windowIndex)
+                    return a;
+            }
+
+            return null;
+        }
+
+        private static void SetEnabled(List<Component> list, bool enabled)
+        {
+            if (list == null)
+                return;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                Component c = list[i];
+                if (c == null)
+                    continue;
+
+                if (c is Behaviour b)
+                    b.enabled = enabled;
+            }
+        }
+
+
         // ===================== Pause/Resume =====================
 
         private void PauseGame()
@@ -481,9 +643,6 @@ namespace JellyGame.UI.Tutorial
             }
 
             Time.timeScale = 0f;
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Paused game. prevTimeScale={_prevTimeScale}", this);
         }
 
         private void ResumeGame()
@@ -492,29 +651,18 @@ namespace JellyGame.UI.Tutorial
 
             Time.timeScale = restore;
             _prevTimeScaleCaptured = false;
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] Resumed game. timeScale={Time.timeScale}", this);
         }
 
-        // ===================== Intro Move (Velocity-driven) =====================
+        // ===================== Intro Move (velocity-driven) =====================
 
         private IEnumerator PlayIntroMove()
         {
             if (introMoveTarget == null)
-            {
-                if (debugLogs)
-                    Debug.Log("[Tutorial] Intro move enabled but introMoveTarget is null. Skipping intro move.", this);
                 yield break;
-            }
 
             Vector3 dir = ResolveIntroDirection(introMoveTarget);
             if (dir.sqrMagnitude < 0.0001f)
-            {
-                if (debugLogs)
-                    Debug.Log("[Tutorial] Intro direction resolved to zero. Skipping intro move.", this);
                 yield break;
-            }
 
             dir.Normalize();
 
@@ -540,8 +688,12 @@ namespace JellyGame.UI.Tutorial
             {
                 prevKinematic = rb.isKinematic;
                 rb.isKinematic = true;
-                rb.linearVelocity = Vector3.zero;
                 rb.angularVelocity = Vector3.zero;
+#if UNITY_6000_0_OR_NEWER
+                rb.linearVelocity = Vector3.zero;
+#else
+                rb.velocity = Vector3.zero;
+#endif
             }
 
             float startSpeed = Mathf.Max(0f, introStartSpeed);
@@ -550,7 +702,6 @@ namespace JellyGame.UI.Tutorial
             float curveArea = ComputeCurveArea01(introSpeedProfile, 200);
             float curveAvg = Mathf.Max(0.0001f, curveArea);
 
-            // distance = duration * (startSpeed + (maxSpeed-startSpeed)*area) * k
             float unscaledDistancePerK = duration * (startSpeed + (maxSpeed - startSpeed) * curveAvg);
             float k = (unscaledDistancePerK > 0.0001f) ? (distance / unscaledDistancePerK) : 0f;
 
@@ -586,7 +737,6 @@ namespace JellyGame.UI.Tutorial
                 }
 
                 Vector3 finalPos = basePos + side * wob;
-
                 ApplyIntroPosition(introMoveTarget, rb, finalPos);
 
                 t += dt;

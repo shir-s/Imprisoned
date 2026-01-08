@@ -9,7 +9,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
     /// Responsible only for:
     /// - Raycasting from the cube to the surface.
     /// - Recording StrokeSamples into StrokeHistory.
-    /// - Applying pruning rules.
+    /// - Pruning ONLY by time-to-live (TTL).
     ///
     /// Does NOT clear history between strokes – so the trail is continuous.
     /// Recording can be turned on/off at runtime via RecordingEnabled.
@@ -26,16 +26,10 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
         [Tooltip("Minimum world-space distance between consecutive stored samples.")]
         [SerializeField] private float minSampleDistance = 0.02f;
 
-        [Header("History Limits")]
-        [Tooltip("Kept for API compatibility; currently not used in pruning.")]
-        [SerializeField] private float maxHistoryLength = 50f;
-
-        [SerializeField] private int maxHistoryPoints = 1000;
-
-        [Header("History Mode")]
-        [Tooltip("If true, when maxHistoryPoints is exceeded we delete ONLY one oldest point per new sample (boss/enemy mode).\n" +
-                 "If false, we delete a 5% chunk (scrolling snake mode used by shape detection scenes).")]
-        [SerializeField] private bool useSinglePointPrune = false;
+        [Header("History Lifetime (ONLY prune rule)")]
+        [Tooltip("Each point is deleted after it lived for this many seconds.\n" +
+                 "0 or negative = never delete by time.")]
+        [SerializeField] private float pointLifetimeSeconds = 10f;
 
         [Header("Recording")]
         [Tooltip("If false, movement events will not add new samples to the history.")]
@@ -63,7 +57,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
         public void OnMovementStart(Vector3 worldPos)
         {
-            // Do NOT clear history here – we want an infinite snake.
+            // Do NOT clear history here – we want a continuous trail.
             TryRecordAt(worldPos);
         }
 
@@ -77,11 +71,17 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
             // Keep history.
         }
 
+        private void Update()
+        {
+            // Prune even if the player/enemy stops moving (so old points still expire).
+            PruneExpiredPoints();
+        }
+
         // -------- Internal helpers --------
 
         private void TryRecordAt(Vector3 worldPos)
         {
-            // NEW: global gate for rivers / special zones
+            // global gate for rivers / special zones
             if (!recordingEnabled)
                 return;
 
@@ -94,7 +94,6 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
             Transform surface = hit.collider.transform;
             _currentSurface = surface;
 
-            // Compute world pos for spacing check
             Vector3 sampleWorldPos = hit.point;
 
             // If we already have samples, enforce min distance
@@ -103,7 +102,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
                 Vector3 lastWorldPos = History[History.Count - 1].WorldPos;
                 float dist = Vector3.Distance(lastWorldPos, sampleWorldPos);
                 if (dist < minSampleDistance)
-                    return; // too close, skip this one
+                    return;
             }
 
             StrokeSample s = new StrokeSample
@@ -116,21 +115,39 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
             History.AddSample(s);
 
-            // Choose prune mode
-            if (useSinglePointPrune)
-            {
-                // Boss / enemy mode: never nuke a whole segment, only eat one oldest point.
-                History.PruneSingleOldest(maxHistoryPoints);
-            }
-            else
-            {
-                // Original "scrolling snake" behavior.
-                History.Prune(maxHistoryLength, maxHistoryPoints);
-            }
+            // ONLY prune rule: time-to-live
+            PruneExpiredPoints();
 
             if (debugSampleNormals)
-            {
                 Debug.DrawRay(s.WorldPos, s.WorldNormal * 0.2f, Color.cyan, 0.3f);
+        }
+
+        private void PruneExpiredPoints()
+        {
+            if (pointLifetimeSeconds <= 0f)
+                return;
+
+            int count = History.Count;
+            if (count == 0)
+                return;
+
+            float cutoffTime = Time.time - pointLifetimeSeconds;
+
+            // Times are monotonic (we always store Time.time when added),
+            // so expired points are a prefix of the list.
+            int lastExpiredIndex = -1;
+            for (int i = 0; i < count; i++)
+            {
+                if (History[i].time <= cutoffTime)
+                    lastExpiredIndex = i;
+                else
+                    break;
+            }
+
+            if (lastExpiredIndex >= 0)
+            {
+                // Remove all expired points [0..lastExpiredIndex]
+                History.ConsumeUpTo(lastExpiredIndex);
             }
         }
 
@@ -147,8 +164,8 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
         private void OnValidate()
         {
-            if (maxHistoryPoints < 10) maxHistoryPoints = 10;
             if (minSampleDistance < 0f) minSampleDistance = 0f;
+            // allow <= 0 to mean "never expire"
         }
     }
 }
