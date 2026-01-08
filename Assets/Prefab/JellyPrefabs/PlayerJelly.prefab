@@ -685,9 +685,7 @@ MonoBehaviour:
   rayDistance: 10
   useWorldDown: 1
   minSampleDistance: 1
-  maxHistoryLength: 300
-  maxHistoryPoints: 1000
-  useSinglePointPrune: 0
+  pointLifetimeSeconds: 10
   recordingEnabled: 1
   debugRays: 0
   debugSampleNormals: 0
@@ -1008,5 +1006,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHitVFX
   slimeHitMaterial: {fileID: 2100000, guid: 588bebfe4f4a84683a7231e51c5cfa3f, type: 2}
   intensityParameter: _VignetteIntencity
-  maxIntensity: 63
-  duration: 2
+  maxIntensity: 120
+  duration: 1.3
