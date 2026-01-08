@@ -779,8 +779,10 @@ MonoBehaviour:
   fallbackMaxPaintsPerFrame: 4000
   fallbackMaxTotalSamples: 250000
   fallbackBaseUvStep: 0.0015
+  clipPolygonToSurfaceBounds: 1
   debugPolygon: 1
   debugFillFailures: 1
+  debugMultiSurface: 0
 --- !u!114 &5857841112863270929
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -977,10 +979,34 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7825105255691795365, guid: 38079288a2e024431aff91565d28925f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8203950999905286463}
   m_SourcePrefab: {fileID: 100100000, guid: 38079288a2e024431aff91565d28925f, type: 3}
 --- !u!4 &3281357469885916475 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 838134724627651680, guid: 38079288a2e024431aff91565d28925f, type: 3}
   m_PrefabInstance: {fileID: 2749480749567981915}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &5381878425852773118 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7825105255691795365, guid: 38079288a2e024431aff91565d28925f, type: 3}
+  m_PrefabInstance: {fileID: 2749480749567981915}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8203950999905286463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5381878425852773118}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 983df58dc2ea4793a19b59d1283504cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerHitVFX
+  slimeHitMaterial: {fileID: 2100000, guid: 588bebfe4f4a84683a7231e51c5cfa3f, type: 2}
+  intensityParameter: _VignetteIntencity
+  maxIntensity: 63
+  duration: 2
