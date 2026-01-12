@@ -32095,10 +32095,14 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  horizontalAxisName: Horizontal
+  verticalAxisName: Vertical
+  controllerSensitivity: 1.5
+  controllerDeadzone: 0.1
   inputForward: {x: 0, y: 0, z: 1}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
-  recenterDegPerSec: 40
+  recenterDegPerSec: 60
   followDegPerSec: 360
   physicsDriven: 1
   inputCamera: {fileID: 1410603021}
