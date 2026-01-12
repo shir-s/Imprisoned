@@ -51003,6 +51003,8 @@ MonoBehaviour:
   surfaceSlider: {fileID: 8636758073285739173}
   hoverHeightAtSize1: 0.5
   scaleHoverHeightWithSize: 1
+  particlesObject: {fileID: 0}
+  scaleParticlesWithSize: 1
   healthImageRect: {fileID: 1953021156}
   healthImageDownAtMinSize: 60
   updateHealthUiOnAwake: 1
@@ -52330,7 +52332,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MovementPaintController
   minStepDistance: 0.00002
-  maxSegmentLength: 0.01
+  maxSegmentLength: 0.0004
   maxSegmentsPerFrame: 12
   useAllPainters: 1
   activePainterIndex: 0
@@ -54082,7 +54084,7 @@ MonoBehaviour:
   painter: {fileID: 8045036301634720403}
   fillMode: 1
   useGpuPolygonFill: 1
-  progressiveTimeBudgetMsPerFrame: 1.5
+  progressiveTimeBudgetMsPerFrame: 1.2
   progressiveMaxTotalSamples: 160000
   progressiveBaseUvStep: 0.01
   progressiveRingCount: 50
