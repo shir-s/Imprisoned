@@ -1,4 +1,3 @@
-// FILEPATH: Assets/Scripts/UI/Tutorial/TutorialSequenceController.cs
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -27,12 +26,11 @@ namespace JellyGame.UI.Tutorial
         [Tooltip("Keyboard key to skip/advance.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
 
-        // --- CHANGED TO LIST FOR CROSS-PLATFORM SUPPORT ---
-        [Tooltip("Controller buttons to skip/advance. Add JoystickButton0 (PC) AND JoystickButton1 (Mac) to support everyone.")]
+        [Tooltip("Controller buttons to skip/advance. Add JoystickButton0 (PC) AND JoystickButton1 (Mac).")]
         [SerializeField] private List<KeyCode> gamepadSkipButtons = new List<KeyCode> 
         { 
-            KeyCode.JoystickButton0, // Usually 'A' on Windows
-            KeyCode.JoystickButton1  // Usually 'A' on Mac (or 'B' on Windows)
+            KeyCode.JoystickButton0, 
+            KeyCode.JoystickButton1 
         };
 
         [SerializeField] private bool requireKeyDown = true;
@@ -104,11 +102,21 @@ namespace JellyGame.UI.Tutorial
         [Header("Window Gates")]
         [SerializeField] private List<WindowGate> windowGates = new List<WindowGate>();
 
-        [Header("Gate Input")]
+        [Header("Gate Input (Keyboard)")]
         [SerializeField] private KeyCode gateUpKey = KeyCode.UpArrow;
         [SerializeField] private KeyCode gateDownKey = KeyCode.DownArrow;
         [SerializeField] private KeyCode gateLeftKey = KeyCode.LeftArrow;
         [SerializeField] private KeyCode gateRightKey = KeyCode.RightArrow;
+        
+        // --- NEW: Controller Axes Support for Gates ---
+        [Header("Gate Input (Controller Axes)")]
+        [Tooltip("Axis name for Up/Down check (e.g. Vertical).")]
+        [SerializeField] private string gateVerticalAxis = "Vertical";
+        [Tooltip("Axis name for Left/Right check (e.g. Horizontal).")]
+        [SerializeField] private string gateHorizontalAxis = "Horizontal";
+        [Tooltip("How far the stick needs to be pushed to count as a 'press' (0.5 is half-way).")]
+        [SerializeField] private float axisThreshold = 0.5f;
+
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
@@ -145,14 +153,10 @@ namespace JellyGame.UI.Tutorial
             if (_currentIndex < 0 || _currentIndex >= WindowCount) return;
             if (Time.unscaledTime < _canSkipAtUnscaledTime) return;
 
-            // --- CHANGED LOGIC TO SUPPORT MULTIPLE BUTTONS ---
             bool pressed = false;
-
-            // 1. Check Keyboard
             if (requireKeyDown) { if (Input.GetKeyDown(skipKey)) pressed = true; }
             else { if (Input.GetKey(skipKey)) pressed = true; }
 
-            // 2. Check Gamepad List (Checks all buttons in the list)
             if (!pressed && gamepadSkipButtons != null)
             {
                 for (int i = 0; i < gamepadSkipButtons.Count; i++)
@@ -160,7 +164,6 @@ namespace JellyGame.UI.Tutorial
                     KeyCode btn = gamepadSkipButtons[i];
                     if (requireKeyDown) { if (Input.GetKeyDown(btn)) pressed = true; }
                     else { if (Input.GetKey(btn)) pressed = true; }
-                    
                     if (pressed) break;
                 }
             }
@@ -263,12 +266,27 @@ namespace JellyGame.UI.Tutorial
         private IEnumerator WaitForPressAllArrowKeysOnce()
         {
             bool up = false, down = false, left = false, right = false;
+
+            // Loop until ALL directions have been triggered at least once
             while (!(up && down && left && right))
             {
+                // 1. Check Keyboard
                 if (!up && Input.GetKeyDown(gateUpKey)) up = true;
                 if (!down && Input.GetKeyDown(gateDownKey)) down = true;
                 if (!left && Input.GetKeyDown(gateLeftKey)) left = true;
                 if (!right && Input.GetKeyDown(gateRightKey)) right = true;
+                
+                // 2. Check Controller Stick (Axes)
+                // We use GetAxisRaw or GetAxis. Raw is snappier for checks.
+                float v = Input.GetAxis(gateVerticalAxis);
+                float h = Input.GetAxis(gateHorizontalAxis);
+
+                // Threshold check (e.g. if stick pushed more than 50%)
+                if (!up && v > axisThreshold) up = true;
+                if (!down && v < -axisThreshold) down = true;
+                if (!right && h > axisThreshold) right = true;
+                if (!left && h < -axisThreshold) left = true;
+
                 yield return null;
             }
         }
