@@ -11546,7 +11546,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &299743015
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32095,10 +32095,16 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  horizontalAxisName: Horizontal
+  verticalAxisName: Vertical
+  responseCurve: 2
+  controllerSensitivity: 1.5
+  controllerDeadzone: 0.1
+  invertVertical: 0
   inputForward: {x: 0, y: 0, z: 1}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
-  recenterDegPerSec: 40
+  recenterDegPerSec: 60
   followDegPerSec: 360
   physicsDriven: 1
   inputCamera: {fileID: 1410603021}

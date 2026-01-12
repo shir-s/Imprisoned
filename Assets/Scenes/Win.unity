@@ -621,6 +621,7 @@ GameObject:
   - component: {fileID: 542036278}
   - component: {fileID: 542036277}
   - component: {fileID: 542036276}
+  - component: {fileID: 542036279}
   m_Layer: 5
   m_Name: ButtonRestart
   m_TagString: Untagged
@@ -742,6 +743,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 542036274}
   m_CullTransparentMesh: 1
+--- !u!114 &542036279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 542036274}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ebe079518444a8697a408f6cd36b333, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.UIButtonTrigger
+  triggerKeys: 4c0100004e01000072000000
 --- !u!1 &1266760193
 GameObject:
   m_ObjectHideFlags: 0
@@ -1122,6 +1136,7 @@ GameObject:
   - component: {fileID: 1974144943}
   - component: {fileID: 1974144942}
   - component: {fileID: 1974144941}
+  - component: {fileID: 1974144944}
   m_Layer: 5
   m_Name: ButtonNextLevel
   m_TagString: Untagged
@@ -1243,6 +1258,19 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1974144939}
   m_CullTransparentMesh: 1
+--- !u!114 &1974144944
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1974144939}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ebe079518444a8697a408f6cd36b333, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.UIButtonTrigger
+  triggerKeys: 4a0100004b0100000d00000020000000
 --- !u!1 &2138347312
 GameObject:
   m_ObjectHideFlags: 0

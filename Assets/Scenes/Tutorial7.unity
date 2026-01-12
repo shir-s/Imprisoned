@@ -565,6 +565,12 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  horizontalAxisName: Horizontal
+  verticalAxisName: Vertical
+  responseCurve: 2
+  controllerSensitivity: 1.5
+  controllerDeadzone: 0.1
+  invertVertical: 0
   inputForward: {x: -1, y: 0, z: 0}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
@@ -15861,6 +15867,7 @@ MonoBehaviour:
   restorePreviousTimeScaleOnFinish: 1
   skipCooldownSeconds: 0.75
   skipKey: 101
+  gamepadSkipButtons: 4a0100004b010000
   requireKeyDown: 1
   autoStart: 1
   endImmediatelyIfNoWindows: 1
@@ -37375,7 +37382,7 @@ Animator:
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 1a7672a74330f4ed7a70d95bbe928aa0, type: 2}
   m_CullingMode: 0
-  m_UpdateMode: 0
+  m_UpdateMode: 2
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
@@ -42296,7 +42303,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1835009555
 RectTransform:
   m_ObjectHideFlags: 0
@@ -49958,7 +49965,7 @@ Animator:
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 9100000, guid: 1a7672a74330f4ed7a70d95bbe928aa0, type: 2}
   m_CullingMode: 0
-  m_UpdateMode: 0
+  m_UpdateMode: 2
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
@@ -51005,6 +51012,7 @@ MonoBehaviour:
   scaleHoverHeightWithSize: 1
   particlesObject: {fileID: 0}
   scaleParticlesWithSize: 1
+  particlesScaleMultiplier: 1
   healthImageRect: {fileID: 1953021156}
   healthImageDownAtMinSize: 60
   updateHealthUiOnAwake: 1
@@ -52332,7 +52340,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MovementPaintController
   minStepDistance: 0.00002
-  maxSegmentLength: 0.0004
+  maxSegmentLength: 0.01
   maxSegmentsPerFrame: 12
   useAllPainters: 1
   activePainterIndex: 0
@@ -54084,7 +54092,7 @@ MonoBehaviour:
   painter: {fileID: 8045036301634720403}
   fillMode: 1
   useGpuPolygonFill: 1
-  progressiveTimeBudgetMsPerFrame: 1.2
+  progressiveTimeBudgetMsPerFrame: 1.5
   progressiveMaxTotalSamples: 160000
   progressiveBaseUvStep: 0.01
   progressiveRingCount: 50
