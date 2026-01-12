@@ -32,15 +32,15 @@ namespace JellyGame.GamePlay.Map
         
         [Tooltip("Make small movements precise and big movements fast. 1 = Linear, 2 = Exponential (Recommended: 1.5 to 2).")]
         [Range(1f, 3f)] 
-        [SerializeField] private float responseCurve = 1.0f; 
+        [SerializeField] private float responseCurve = 2.0f; 
 
         [Tooltip("Higher = reaches max tilt faster. Combine with Curve for best feel.")]
         [Range(0.1f, 3f)] 
-        [SerializeField] private float controllerSensitivity = 1.0f;
+        [SerializeField] private float controllerSensitivity = 1.5f;
 
         [Tooltip("Deadzone to prevent drift.")]
         [Range(0f, 0.5f)] 
-        [SerializeField] private float controllerDeadzone = 0.19f;
+        [SerializeField] private float controllerDeadzone = 0.1f;
 
         [Tooltip("Check this if pushing UP should tilt the tray UP (instead of forward/down).")]
         [SerializeField] private bool invertVertical = false;

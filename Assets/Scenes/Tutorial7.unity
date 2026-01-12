@@ -565,6 +565,12 @@ MonoBehaviour:
   downKey: 274
   leftKey: 276
   rightKey: 275
+  horizontalAxisName: Horizontal
+  verticalAxisName: Vertical
+  responseCurve: 2
+  controllerSensitivity: 1.5
+  controllerDeadzone: 0.1
+  invertVertical: 0
   inputForward: {x: -1, y: 0, z: 0}
   maxTiltDeg: 10
   tiltAccelDegPerSec: 20
@@ -15861,6 +15867,7 @@ MonoBehaviour:
   restorePreviousTimeScaleOnFinish: 1
   skipCooldownSeconds: 0.75
   skipKey: 101
+  gamepadSkipButtons: 4a0100004b010000
   requireKeyDown: 1
   autoStart: 1
   endImmediatelyIfNoWindows: 1
@@ -51003,6 +51010,9 @@ MonoBehaviour:
   surfaceSlider: {fileID: 8636758073285739173}
   hoverHeightAtSize1: 0.5
   scaleHoverHeightWithSize: 1
+  particlesObject: {fileID: 0}
+  scaleParticlesWithSize: 1
+  particlesScaleMultiplier: 1
   healthImageRect: {fileID: 1953021156}
   healthImageDownAtMinSize: 60
   updateHealthUiOnAwake: 1
