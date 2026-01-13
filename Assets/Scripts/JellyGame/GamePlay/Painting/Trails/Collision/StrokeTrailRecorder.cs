@@ -26,6 +26,13 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
         [Tooltip("Minimum world-space distance between consecutive stored samples.")]
         [SerializeField] private float minSampleDistance = 0.02f;
 
+        [Header("Front Edge Offset")]
+        [Tooltip("If true, offset the sample point to the front edge of the character (based on movement direction).")]
+        [SerializeField] private bool useForwardOffset = true;
+
+        [Tooltip("Multiplier for forward offset. 0.5 = half of character depth (front edge).")]
+        [SerializeField, Range(0f, 1f)] private float forwardOffsetMultiplier = 0.5f;
+
         [Header("History Lifetime (ONLY prune rule)")]
         [Tooltip("Each point is deleted after it lived for this many seconds.\n" +
                  "0 or negative = never delete by time.")]
@@ -38,6 +45,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
         [Header("Debug")]
         [SerializeField] private bool debugRays = false;
         [SerializeField] private bool debugSampleNormals = false;
+        [SerializeField] private bool debugForwardOffset = false;
 
         public StrokeHistory History { get; } = new StrokeHistory();
 
@@ -52,18 +60,23 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
         }
 
         private Transform _currentSurface;
+        private Vector3 _lastMoveDirection = Vector3.forward;
 
         // -------- IMovementPainter --------
 
         public void OnMovementStart(Vector3 worldPos)
         {
             // Do NOT clear history here – we want a continuous trail.
-            TryRecordAt(worldPos);
+            TryRecordAt(worldPos, Vector3.zero);
         }
 
         public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
         {
-            TryRecordAt(to);
+            Vector3 moveDir = (to - from);
+            if (moveDir.sqrMagnitude > 0.0001f)
+                _lastMoveDirection = moveDir.normalized;
+            
+            TryRecordAt(to, _lastMoveDirection);
         }
 
         public void OnMovementEnd(Vector3 worldPos)
@@ -79,7 +92,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
         // -------- Internal helpers --------
 
-        private void TryRecordAt(Vector3 worldPos)
+        private void TryRecordAt(Vector3 worldPos, Vector3 moveDirection)
         {
             // global gate for rivers / special zones
             if (!recordingEnabled)
@@ -95,6 +108,23 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
             _currentSurface = surface;
 
             Vector3 sampleWorldPos = hit.point;
+
+            // Apply forward offset if enabled
+            if (useForwardOffset && moveDirection.sqrMagnitude > 0.001f)
+            {
+                // Calculate forward offset based on character scale
+                float forwardOffset = Mathf.Abs(transform.lossyScale.z) * forwardOffsetMultiplier;
+                Vector3 offsetPos = sampleWorldPos + moveDirection.normalized * forwardOffset;
+                
+                // Raycast at the offset position to get the actual surface point
+                if (TryRaycastSurface(offsetPos + Vector3.up * 0.1f, out var hitOffset))
+                {
+                    sampleWorldPos = hitOffset.point;
+                    
+                    if (debugForwardOffset)
+                        Debug.DrawLine(hit.point, sampleWorldPos, Color.yellow, 0.5f);
+                }
+            }
 
             // If we already have samples, enforce min distance
             if (History.Count > 0)
