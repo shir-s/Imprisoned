@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TimeBrush_Mat
-  m_Shader: {fileID: 4800000, guid: 500d637309a5932449bfa6f240a7ad85, type: 3}
+  m_Name: lvl 2 floor
+  m_Shader: {fileID: -6465566751694194690, guid: 68c09b59c9de84cb2b7bac1ca1863fa3, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -24,6 +24,10 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _BASE_COLOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _BaseMap:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -44,7 +48,15 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _EMISSION_COLOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _EmissionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _METALNESS_MAP:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
@@ -56,12 +68,52 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _NORMAL_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PaintTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _PaintTimeTex:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SPECULAR_COLOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SPECULAR_IOR_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SPECULAR_ROUGHNESS_MAP:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_00e6b618439442ceb8028011d4735cab_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 4050aff99c98345e3a278c6539b8a3a0, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_11f14a782dc741449c2eb81a43c0eab6_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 585ed001268f8402ab4e444c75865a1f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_43c5948485884aed829125b0df93d7ab_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 6865777a4de1840a6931a730daee3f97, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_962913293e524ee18e5cddf362e83535_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 585ed001268f8402ab4e444c75865a1f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
@@ -83,51 +135,78 @@ Material:
     m_Ints: []
     m_Floats:
     - _AddPrecomputedVelocity: 0
+    - _AgingSpeed: 0.1
     - _AlphaClip: 0
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BrushHardness: 0.5
-    - _BrushOpacity: 1
+    - _BrushHardness: 0
+    - _BrushOpacity: 0
+    - _BubbleNormalStrength: -1
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
+    - _CurrentTime: 0
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DstBlend: 0
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
+    - _FadeWidth: 0.05
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _IsFill: 0
+    - _METALNESS: 0
+    - _MaxAge: 10
+    - _MaxAgeFill: 2
     - _Metallic: 0
+    - _Normal_Bubble_Strength: -0.72
+    - _Normal_Slime_Strength: 0.39
     - _OcclusionStrength: 1
-    - _PaintTime: 11.276294
+    - _PaintStrength: 1
     - _Parallax: 0.005
+    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
+    - _SPECULAR_IOR: 1.5
+    - _SPECULAR_ROUGHNESS: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _SrcBlendAlpha: 1
+    - _StepEdge: 1
     - _Surface: 0
+    - _SurfaceNoiseSpeed: 1
+    - _SurfaceNoiseStrength: 5
+    - _Surface_Noise_Scale: 22.41
+    - _Surface_Noise_Speed: 3.45
+    - _Surface_Noise_Strength: 1
     - _WorkflowMode: 1
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
+    - _surfaceNoiseScale: 4
     m_Colors:
-    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BrushCenter: {r: 0.50096047, g: 0.22694981, b: 0, a: 0}
-    - _BrushHalfSize: {r: 0.006289363, g: 0.006289363, b: 0, a: 0}
+    - _BASE_COLOR: {r: 0, g: 0, b: 0, a: 0}
+    - _BaseColor: {r: 0.7692239, g: 0.8113208, b: 0.7992931, a: 1}
+    - _Base_Color: {r: 0.050980397, g: 1, b: 0.14509805, a: 1}
+    - _BrushCenter: {r: 0, g: 0, b: 0, a: 0}
+    - _BrushColor: {r: 0, g: 0, b: 0, a: 1}
+    - _BrushHalfSize: {r: 0, g: 0, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _EMISSION_COLOR: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FreshColor: {r: 0.19999996, g: 0.8, b: 0.29999998, a: 1}
+    - _OldColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+    - _SPECULAR_COLOR: {r: 1, g: 1, b: 1, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _SplurColor: {r: 0.05188679, g: 1, b: 0.14614508, a: 1}
+    - _Splur_color: {r: 0.050980397, g: 1, b: 0.14509805, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &1541404942057104339
+--- !u!114 &5527979902101186311
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

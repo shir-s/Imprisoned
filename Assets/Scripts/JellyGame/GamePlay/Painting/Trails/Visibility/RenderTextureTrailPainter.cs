@@ -14,6 +14,10 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
     [DisallowMultipleComponent]
     public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     {
+        [Header("Trail Protection")]
+        [Tooltip("When filling, don't paint over trails younger than this (seconds). Should match MaxAge in Shader Graph.")]
+        [SerializeField] private float trailProtectionMaxAge = 10f;
+        
         [Header("Raycast")]
         [SerializeField] private LayerMask surfaceMask;
         [SerializeField] private float rayDistance = 2f;
@@ -172,6 +176,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             timeBrushBlitMaterial.SetFloat("_BrushOpacity", opacity);
             timeBrushBlitMaterial.SetFloat("_PaintTime", currentTime);
             timeBrushBlitMaterial.SetFloat("_IsFill", isFill ? 1f : 0f);
+            timeBrushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
 
             EnsureTemp(timeRT, ref _tempTimeRT);
             timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
