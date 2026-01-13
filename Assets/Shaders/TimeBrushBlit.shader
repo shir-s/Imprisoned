@@ -1,5 +1,6 @@
 // Writes to time texture for TRAILS and FILLS
 // R = Paint Time, G = IsFill (0 = trail, 1 = fill)
+// NEW: When painting fill, skip fresh trail pixels
 Shader "Custom/TimeBrushBlit"
 {
     Properties
@@ -11,6 +12,7 @@ Shader "Custom/TimeBrushBlit"
         _BrushOpacity  ("Brush Opacity",    Range(0,1)) = 1.0
         _PaintTime     ("Paint Time (seconds)", Float) = 0.0
         _IsFill        ("Is Fill (0=trail, 1=fill)", Float) = 0.0
+        _MaxAge        ("Max Age (seconds)", Float) = 10.0
     }
 
     SubShader
@@ -46,6 +48,7 @@ Shader "Custom/TimeBrushBlit"
             float     _BrushOpacity;
             float     _PaintTime;
             float     _IsFill;
+            float     _MaxAge;
 
             v2f vert (appdata v)
             {
@@ -54,7 +57,6 @@ Shader "Custom/TimeBrushBlit"
                 o.uv = v.uv;
                 return o;
             }
-            
             
             float4 frag (v2f i) : SV_Target
             {
@@ -78,10 +80,26 @@ Shader "Custom/TimeBrushBlit"
                 mask = pow(mask, power);
                 mask *= saturate(_BrushOpacity);
 
+                // NEW: Fresh trail protection
+                if (_IsFill > 0.5 && mask > 0.01)
+                {
+                    float existingIsFill = existing.g;
+                    float existingTime = existing.r;
+                    
+                    // If existing pixel is a trail (G < 0.5) and has been painted (time > 0)
+                    if (existingIsFill < 0.5 && existingTime > 0.0)
+                    {
+                        float age = _PaintTime - existingTime;
+                        if (age < _MaxAge)
+                        {
+                            // Fresh trail - don't paint over it
+                            return existing;
+                        }
+                    }
+                }
+
                 float finalTime = lerp(existing.r, _PaintTime, step(0.01, mask));
-                
-                // DEBUG: Always write _IsFill directly, ignore lerp
-                float fillFlag = _IsFill;
+                float fillFlag = lerp(existing.g, _IsFill, step(0.01, mask));
 
                 return float4(finalTime, fillFlag, 0, 1);
             }
