@@ -22889,7 +22889,7 @@ MonoBehaviour:
   maxTries: 20
   enableBackupSpawn: 1
   backupSpawnDelaySeconds: 12
-  debugLogs: 1
+  debugLogs: 0
 --- !u!4 &1473102173
 Transform:
   m_ObjectHideFlags: 0
@@ -31486,6 +31486,14 @@ PrefabInstance:
       propertyPath: timePolygonFillMaterial
       value: 
       objectReference: {fileID: 2100000, guid: 53f9461c8723bfa459e8a235d0980f40, type: 2}
+    - target: {fileID: 5497614389305410418, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugLoop
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5497614389305410418, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugLoopVerbose
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: maxSize
       value: 3
@@ -31505,6 +31513,18 @@ PrefabInstance:
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: healthImageDownAtMinSize
       value: 60
+      objectReference: {fileID: 0}
+    - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.x
@@ -31551,6 +31571,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 3793594676184193298}
     - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugLogs
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: maxDamagePerFill
       value: 3
       objectReference: {fileID: 0}
@@ -31565,6 +31589,22 @@ PrefabInstance:
     - target: {fileID: 7436787547629168166, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_Name
       value: PlayerJelly
+      objectReference: {fileID: 0}
+    - target: {fileID: 8519175273987129019, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugRays
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8519175273987129019, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugEdgeSamples
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8519175273987129019, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugForwardOffset
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8519175273987129019, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: debugSampleNormals
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8892700715739925041, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: minStepDistance

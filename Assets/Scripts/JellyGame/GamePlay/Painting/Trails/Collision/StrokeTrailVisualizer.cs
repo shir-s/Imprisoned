@@ -10,16 +10,20 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
         [SerializeField] private StrokeTrailRecorder recorder;
         [SerializeField] private StrokeCrossingDetector crossingDetector;
 
+        [Header("What to draw")]
+        [SerializeField] private bool drawEdgePoints = true;
+        [SerializeField] private bool drawCenterPoints = false;
+
         [Header("Turn colors (no crossing)")]
-        [SerializeField] private Color normalColor      = Color.green;
-        [SerializeField] private Color smallTurnColor   = Color.green;
-        [SerializeField] private Color mediumTurnColor  = Color.magenta;
-        [SerializeField] private Color sharpTurnColor   = Color.red;
+        [SerializeField] private Color normalColor = Color.green;
+        [SerializeField] private Color smallTurnColor = Color.green;
+        [SerializeField] private Color mediumTurnColor = Color.magenta;
+        [SerializeField] private Color sharpTurnColor = Color.red;
 
         [Header("Crossing override colors")]
-        [SerializeField] private Color crossingSmallColor  = Color.cyan;
+        [SerializeField] private Color crossingSmallColor = Color.cyan;
         [SerializeField] private Color crossingMediumColor = Color.blue;
-        [SerializeField] private Color crossingSharpColor  = Color.white;
+        [SerializeField] private Color crossingSharpColor = Color.white;
 
         [SerializeField] private float pointRadius = 0.01f;
 
@@ -31,26 +35,40 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
             int count = history.Count;
             if (count == 0) return;
 
+            var edgePairs = recorder.EdgePairs;
+
             for (int i = 0; i < count; i++)
             {
-                Vector3 pos = history[i].WorldPos;
                 Color c = normalColor;
 
-                // 1) base color from turn at this point
-                if (StrokeTurnUtils.TryGetTurnAt(history, i, out float angle, out StrokeTurnCategory turnCat))
-                {
+                if (StrokeTurnUtils.TryGetTurnAt(history, i, out _, out StrokeTurnCategory turnCat))
                     c = CategoryToColor(turnCat, smallTurnColor, mediumTurnColor, sharpTurnColor);
-                }
 
-                // 2) if this point is a crossing, override with crossing color
                 if (crossingDetector != null &&
                     crossingDetector.TryGetCrossingCategoryAt(i, out StrokeTurnCategory crossCat))
-                {
                     c = CategoryToColor(crossCat, crossingSmallColor, crossingMediumColor, crossingSharpColor);
-                }
 
                 Gizmos.color = c;
-                Gizmos.DrawSphere(pos, pointRadius);
+
+                Vector3 centerWorld = history[i].WorldPos;
+
+                if (drawEdgePoints && edgePairs != null && i < edgePairs.Count)
+                {
+                    var p = edgePairs[i];
+
+                    // Draw ONLY the edge points (computed in world each frame so they follow surface tilt)
+                    if (p.hasLeft)
+                        Gizmos.DrawSphere(p.GetLeftWorld(centerWorld), pointRadius);
+
+                    if (p.hasRight)
+                        Gizmos.DrawSphere(p.GetRightWorld(centerWorld), pointRadius);
+
+                    if (!p.hasLeft && !p.hasRight && !drawCenterPoints)
+                        Gizmos.DrawSphere(centerWorld, pointRadius);
+                }
+
+                if (drawCenterPoints)
+                    Gizmos.DrawSphere(centerWorld, pointRadius);
             }
         }
 
@@ -58,10 +76,10 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
         {
             switch (cat)
             {
-                case StrokeTurnCategory.Small:  return small;
+                case StrokeTurnCategory.Small: return small;
                 case StrokeTurnCategory.Medium: return medium;
-                case StrokeTurnCategory.Sharp:  return sharp;
-                default:                        return small;
+                case StrokeTurnCategory.Sharp: return sharp;
+                default: return small;
             }
         }
     }

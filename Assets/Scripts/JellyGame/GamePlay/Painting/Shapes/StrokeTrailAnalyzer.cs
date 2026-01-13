@@ -2,6 +2,7 @@
 
 using JellyGame.GamePlay.Painting.Trails.Collision;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
+using JellyGame.GamePlay.Map.Surfaces;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Painting.Shapes
@@ -10,29 +11,38 @@ namespace JellyGame.GamePlay.Painting.Shapes
     public class StrokeTrailAnalyzer : MonoBehaviour, IMovementPainter
     {
         [Header("Loop Detection")]
-        [Tooltip("Max world distance between loop start and end for the loop to count as 'closed'.")]
         [SerializeField] private float closureMaxDistance = 0.25f;
-
-        [Tooltip("Minimum number of indices between loop start and end.\n" +
-                 "Prevents treating tiny wiggles as full loops.")]
         [SerializeField] private int minLoopIndexSeparation = 6;
 
+        [Header("Edge-aware Closure")]
+        [SerializeField] private bool useEdgePairsForClosure = true;
+
+        [Header("On Loop Closed")]
+        [Tooltip("If true, when a loop is accepted we delete ALL points from the start of history up to the closure point (end index).\n" +
+                 "This recreates the old 'consume history on closure' behavior.")]
+        [SerializeField] private bool consumeHistoryUpToClosurePoint = true;
+
+        [Tooltip("If true, when consuming history, also age the corresponding trail section (make it gray).")]
+        [SerializeField] private bool ageConsumedTrailSection = true;
+
         [Header("Path Analysis")]
-        [Tooltip("Minimum separation (meters along the stroke) between accepted corners.\nUsed when building the simplified loop path.")]
         [SerializeField] private float minCornerSeparationMeters = 2f;
 
-        [Header("Debug")]
-        [Tooltip("Log when loops are accepted and sent to detectors.")]
-        [SerializeField] private bool debugLoop = false;
+        [Header("References")]
+        [Tooltip("The painter used to age the trail. Auto-found if null.")]
+        [SerializeField] private RenderTextureTrailPainter trailPainter;
 
-        [Tooltip("If true, also log per-step 'Best candidate' / 'not closed yet' spam.")]
+        [Tooltip("The paint surface to age. Auto-found if null.")]
+        [SerializeField] private SimplePaintSurface paintSurface;
+
+        [Header("Debug")]
+        [SerializeField] private bool debugLoop = false;
         [SerializeField] private bool debugLoopVerbose = false;
 
         private StrokeTrailRecorder _recorder;
         private StrokeHistory _history;
         private IStrokeShapeDetector[] _detectors;
 
-        // Prevents spamming while we stay in a closed area
         private bool _closureHandled;
 
         private void Awake()
@@ -48,28 +58,23 @@ namespace JellyGame.GamePlay.Painting.Shapes
             _history = _recorder.History;
             _detectors = GetComponents<IStrokeShapeDetector>();
 
-            if (debugLoop)
-                Debug.Log($"[StrokeTrailAnalyzer] Found {_detectors.Length} IStrokeShapeDetector components on {name}.");
+            // Auto-find painter if not assigned
+            if (trailPainter == null)
+                trailPainter = GetComponent<RenderTextureTrailPainter>();
+
+            // Auto-find surface if not assigned (look for first one in scene or on parent)
+            if (paintSurface == null)
+                paintSurface = FindObjectOfType<SimplePaintSurface>();
         }
 
-        // -------- IMovementPainter --------
-
-        public void OnMovementStart(Vector3 worldPos)
-        {
-            _closureHandled = false;
-        }
+        public void OnMovementStart(Vector3 worldPos) => _closureHandled = false;
 
         public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
         {
             TryDetectLoopAndNotifyDetectors();
         }
 
-        public void OnMovementEnd(Vector3 worldPos)
-        {
-            _closureHandled = false;
-        }
-
-        // -------- Core loop detection --------
+        public void OnMovementEnd(Vector3 worldPos) => _closureHandled = false;
 
         private void TryDetectLoopAndNotifyDetectors()
         {
@@ -78,28 +83,25 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             int count = _history.Count;
             if (count < 4)
-            {
-                if (debugLoopVerbose)
-                    Debug.Log($"[StrokeTrailAnalyzer] Not enough points yet (count={count}).");
                 return;
-            }
 
             int last = count - 1;
-            var lastPos = _history[last].WorldPos;
-            float lenToLast = _history.GetLengthAt(last); // only for debug
+            float lenToLast = _history.GetLengthAt(last);
 
             int bestStart = -1;
             float bestChord = float.PositiveInfinity;
             float bestLoopLen = 0f;
 
-            // Scan earlier samples to find best loop candidate.
             for (int i = 0; i < last - 1; i++)
             {
                 int indexDiff = last - i;
                 if (indexDiff < minLoopIndexSeparation)
                     continue;
 
-                float chord = Vector3.Distance(lastPos, _history[i].WorldPos);
+                float chord = useEdgePairsForClosure 
+                    ? ComputeEdgeAwareChord(i, last) 
+                    : Vector3.Distance(_history[i].WorldPos, _history[last].WorldPos);
+
                 if (chord < bestChord)
                 {
                     float lenToStart = (i > 0) ? _history.GetLengthAt(i) : 0f;
@@ -112,59 +114,31 @@ namespace JellyGame.GamePlay.Painting.Shapes
             }
 
             if (bestStart < 0)
-            {
-                if (debugLoopVerbose)
-                    Debug.Log("[StrokeTrailAnalyzer] No loop candidate with enough index separation.");
                 return;
-            }
 
             if (debugLoopVerbose)
             {
                 Debug.Log(
                     $"[StrokeTrailAnalyzer] Best candidate: start={bestStart}, last={last}, " +
-                    $"indexDiff={last - bestStart}, len≈{bestLoopLen:F3}, " +
-                    $"chord={bestChord:F3}, closureMax={closureMaxDistance:F3}"
+                    $"indexDiff={last - bestStart}, len≈{bestLoopLen:F3}, chord={bestChord:F3}, closureMax={closureMaxDistance:F3}"
                 );
             }
 
-            // Hysteresis: if we are clearly far away, re-arm detection.
             if (bestChord > closureMaxDistance * 1.5f)
                 _closureHandled = false;
 
-            bool closedNow = bestChord <= closureMaxDistance;
-
-            if (!closedNow)
-            {
-                if (debugLoopVerbose)
-                    Debug.Log("[StrokeTrailAnalyzer] Candidate not closed yet (too far).");
+            if (bestChord > closureMaxDistance)
                 return;
-            }
 
             if (_closureHandled)
-            {
-                if (debugLoopVerbose)
-                    Debug.Log("[StrokeTrailAnalyzer] Closure already handled for this pass.");
                 return;
-            }
 
             _closureHandled = true;
 
             if (debugLoop)
-                Debug.Log($"[StrokeTrailAnalyzer] Loop candidate ACCEPTED [{bestStart}..{last}] (len≈{bestLoopLen:F3})");
+                Debug.Log($"[StrokeTrailAnalyzer] Loop ACCEPTED [{bestStart}..{last}] (len≈{bestLoopLen:F3})");
 
-            // -------- Build pre-analyzed loop data (corners) --------
-            StrokePathLoop loopPath = StrokePathBuilder.BuildLoopCorners(
-                _history,
-                bestStart,
-                last,
-                minCornerSeparationMeters
-            );
-
-            if (debugLoop)
-            {
-                int cornerCount = loopPath != null ? loopPath.CornerCount : 0;
-                Debug.Log($"[StrokeTrailAnalyzer] Built StrokePathLoop with {cornerCount} corners for segment [{bestStart}..{last}].");
-            }
+            StrokePathLoop loopPath = StrokePathBuilder.BuildLoopCorners(_history, bestStart, last, minCornerSeparationMeters);
 
             StrokeLoopSegment seg = new StrokeLoopSegment
             {
@@ -174,33 +148,94 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 path = loopPath
             };
 
-            // -------- Call detectors on this loop segment --------
-            if (_detectors == null || _detectors.Length == 0)
-            {
-                if (debugLoop)
-                    Debug.Log("[StrokeTrailAnalyzer] No IStrokeShapeDetector found on this GameObject.");
-            }
-            else
+            bool anyDetectorHandled = false;
+
+            if (_detectors != null && _detectors.Length > 0)
             {
                 foreach (var det in _detectors)
                 {
                     if (det == null) continue;
 
-                    if (debugLoop)
-                        Debug.Log($"[StrokeTrailAnalyzer] Sending loop [{bestStart}..{last}] to detector {det.GetType().Name}");
-
-                    // We still notify detectors, but we DO NOT delete/clear history here anymore.
                     bool handled = det.TryHandleShape(seg);
                     if (handled)
+                    {
+                        anyDetectorHandled = true;
                         break;
+                    }
                 }
             }
 
-            // IMPORTANT CHANGE:
-            // We no longer clear history on intersections/loops.
-            // Point deletion is now handled ONLY by StrokeTrailRecorder's time-to-live pruning.
+            // Consume history and age the trail
+            if (consumeHistoryUpToClosurePoint)
+            {
+                // FIRST: Age the trail section BEFORE removing the points (we need their positions!)
+                if (ageConsumedTrailSection && trailPainter != null && paintSurface != null)
+                {
+                    AgeTrailSection(0, last);
+                }
 
-            // Allow new loops again only after we move away (handled by hysteresis above).
+                // THEN: Remove the points from history
+                _recorder.ConsumeUpToInclusive(last);
+
+                if (debugLoop)
+                    Debug.Log($"[StrokeTrailAnalyzer] Consumed and aged history up to index {last}.");
+            }
+        }
+
+        /// <summary>
+        /// Ages a section of the trail (makes it gray) by painting old timestamps
+        /// at each point position in the time texture.
+        /// </summary>
+        private void AgeTrailSection(int startIndex, int endIndexInclusive)
+        {
+            if (trailPainter == null || paintSurface == null || _history == null)
+                return;
+
+            // Clamp indices
+            int count = _history.Count;
+            startIndex = Mathf.Clamp(startIndex, 0, count - 1);
+            endIndexInclusive = Mathf.Clamp(endIndexInclusive, 0, count - 1);
+
+            if (startIndex > endIndexInclusive)
+                return;
+
+            // Call the painter's method to age these points
+            trailPainter.AgeTrailRange(paintSurface, _history, startIndex, endIndexInclusive);
+
+            if (debugLoop)
+                Debug.Log($"[StrokeTrailAnalyzer] Aged trail section [{startIndex}..{endIndexInclusive}] ({endIndexInclusive - startIndex + 1} points)");
+        }
+
+        private float ComputeEdgeAwareChord(int aIndex, int bIndex)
+        {
+            var edgePairs = _recorder != null ? _recorder.EdgePairs : null;
+
+            Vector3 aCenter = _history[aIndex].WorldPos;
+            Vector3 bCenter = _history[bIndex].WorldPos;
+
+            float best = Vector3.Distance(aCenter, bCenter);
+
+            if (!useEdgePairsForClosure || edgePairs == null)
+                return best;
+
+            if (aIndex < 0 || bIndex < 0 || aIndex >= edgePairs.Count || bIndex >= edgePairs.Count)
+                return best;
+
+            var a = edgePairs[aIndex];
+            var b = edgePairs[bIndex];
+
+            Vector3 aL = a.GetLeftWorld(aCenter);
+            Vector3 aR = a.GetRightWorld(aCenter);
+
+            Vector3 bL = b.GetLeftWorld(bCenter);
+            Vector3 bR = b.GetRightWorld(bCenter);
+
+            float d00 = Vector3.Distance(aL, bL);
+            float d01 = Vector3.Distance(aL, bR);
+            float d10 = Vector3.Distance(aR, bL);
+            float d11 = Vector3.Distance(aR, bR);
+
+            return Mathf.Min(best, d00, d01, d10, d11);
         }
     }
 }
