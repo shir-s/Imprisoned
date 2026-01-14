@@ -1,6 +1,6 @@
 // FILEPATH: Assets/Scripts/AI/Movement/NavigatorTypes.cs
 // 
-// FIXED VERSION: Added ShouldBlockMovement to ISurfaceHandler interface
+// v2: Added ISurfaceNormalQuery interface for surface-aware hopping
 
 using UnityEngine;
 
@@ -26,6 +26,21 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         Vector3 CurrentUp { get; }
         bool IsGrounded { get; }
         Vector3 GroundPosition(Vector3 position);
+    }
+
+    /// <summary>
+    /// Interface for querying surface normals at arbitrary world positions.
+    /// Used by HoppingLocomotion to detect target surfaces for transition hops.
+    /// </summary>
+    public interface ISurfaceNormalQuery
+    {
+        /// <summary>
+        /// Attempts to find the surface normal at or near the given world position.
+        /// </summary>
+        /// <param name="worldPosition">The position to query</param>
+        /// <param name="normal">The surface normal if found</param>
+        /// <returns>True if a surface was found</returns>
+        bool TryGetSurfaceNormalAt(Vector3 worldPosition, out Vector3 normal);
     }
 
     /// <summary>
@@ -67,10 +82,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         Vector3 TransitionMoveDirection { get; }
         
         /// <summary>
-        /// NEW: Returns true if movement should be blocked because rotation is incomplete.
+        /// Returns true if movement should be blocked because rotation is incomplete.
         /// During surface transitions, the enemy should pause movement until rotation
-        /// to the new surface orientation is complete. This prevents transient
-        /// non-axis-aligned orientations from being visible.
+        /// to the new surface orientation is complete.
         /// </summary>
         bool ShouldBlockMovement { get; }
         
@@ -116,6 +130,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         [Tooltip("How long a hop takes (seconds).")]
         public float HopDuration = 0.22f;
+
+        [Tooltip("How far each hop goes (world units). If <= 0, uses MoveSpeed * HopDuration.")]
+        public float HopDistance = 0.8f;
 
         [Tooltip("Hop height along the current up direction.")]
         public float HopHeight = 0.35f;

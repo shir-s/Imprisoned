@@ -16600,7 +16600,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2790502361088553366, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalScale.x
@@ -17328,7 +17328,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &206499244
 Transform:
   m_ObjectHideFlags: 0
@@ -26313,6 +26313,7 @@ MonoBehaviour:
   - {fileID: 1506815275}
   - {fileID: 854833247}
   - {fileID: 409934584}
+  - {fileID: 2092761916}
   - {fileID: 964219293}
   - {fileID: 2105794887}
   - {fileID: 1835009554}
@@ -26330,21 +26331,31 @@ MonoBehaviour:
   - {fileID: 5032915102478349644}
   - {fileID: 2478737630829881642}
   restoreDisabledScriptsOnFinish: 1
+  deactivateOnTutorialStart: []
+  restoreDeactivatedObjectsOnFinish: 1
   windowScriptActions:
   - windowIndex: 3
     enableOnShow:
     - {fileID: 2478737630829881642}
     - {fileID: 5032915102478349644}
     disableOnShow: []
+    activateOnShow: []
+    deactivateOnShow: []
     enableOnComplete: []
     disableOnComplete: []
+    activateOnComplete: []
+    deactivateOnComplete: []
   - windowIndex: 7
     enableOnShow:
     - {fileID: 2478737630829881642}
     - {fileID: 5032915102478349644}
     disableOnShow: []
+    activateOnShow: []
+    deactivateOnShow: []
     enableOnComplete: []
     disableOnComplete: []
+    activateOnComplete: []
+    deactivateOnComplete: []
   playIntroMoveBeforeTutorial: 1
   introMoveTarget: {fileID: 1621034874765817570}
   introDirectionMode: 0
@@ -26416,7 +26427,7 @@ MonoBehaviour:
     onGateComplete:
       m_PersistentCalls:
         m_Calls: []
-  - enabled: 1
+  - enabled: 0
     requirement: 1
     afterCompleteCountdownSeconds: 3
     activateObjectOnGateStart: {fileID: 0}
@@ -26441,6 +26452,18 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   - enabled: 1
+    requirement: 1
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 2929676165028298123}
+    deactivateObjectOnGateComplete: 1
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
     requirement: 2
     afterCompleteCountdownSeconds: 3
     activateObjectOnGateStart: {fileID: 2929676165028298123}
@@ -26453,10 +26476,10 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   - enabled: 0
-    requirement: 0
-    afterCompleteCountdownSeconds: 0
-    activateObjectOnGateStart: {fileID: 0}
-    deactivateObjectOnGateComplete: 0
+    requirement: 3
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 1291572107}
+    deactivateObjectOnGateComplete: 1
     enemyLayerName: Enemy
     onGateStart:
       m_PersistentCalls:
@@ -61414,7 +61437,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1153558227
 Transform:
   m_ObjectHideFlags: 0
@@ -77564,7 +77587,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &1713931364
 Transform:
   m_ObjectHideFlags: 0
@@ -101555,7 +101578,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2100703259
 Transform:
   m_ObjectHideFlags: 0
