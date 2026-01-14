@@ -87,18 +87,24 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             float dt = Time.deltaTime;
             Vector3 target = _currentTarget.Value;
 
-            // Update surface handler (handles transitions + grounding)
             if (_surfaceHandler != null)
             {
                 _surfaceHandler.UpdateSurface(target, dt);
-                
+
+                // ✅ IMPORTANT: freeze locomotion while surface handler is rotating to the new surface
+                if (_surfaceHandler.ShouldBlockMovement)
+                {
+                    _locomotion.Stop();
+                    _surfaceHandler.EnsureGrounded();
+                    return;
+                }
+
                 if (!_locomotion.IsInMotion)
                 {
                     _surfaceHandler.EnsureGrounded();
                 }
             }
 
-            // Compute and execute movement
             Vector3 moveDirection = ComputeMoveDirection(target);
             _debugBestDir = moveDirection;
 
@@ -210,13 +216,27 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         {
             Vector3 up = GetUp();
             Vector3 toTarget = target - transform.position;
+
             Vector3 toTargetPlanar = Vector3.ProjectOnPlane(toTarget, up);
             float planarDist = toTargetPlanar.magnitude;
 
-            if (planarDist < 0.01f && toTarget.magnitude > 0.1f)
+            // ✅ When surface alignment is enabled, NEVER return a direction that contains "up".
+            // If planar is tiny, just keep going forward on the current surface.
+            if (enableSurfaceAlignment)
             {
-                // Target directly above/below
-                return toTarget.normalized;
+                if (planarDist < 0.001f)
+                {
+                    Vector3 fallback = Vector3.ProjectOnPlane(transform.forward, up);
+                    return fallback.sqrMagnitude > 0.0001f ? fallback.normalized : Vector3.zero;
+                }
+            }
+            else
+            {
+                // old behavior can remain for non-surface mode if you want
+                if (planarDist < 0.01f && toTarget.magnitude > 0.1f)
+                    return toTarget.normalized;
+                if (planarDist < 0.001f)
+                    return Vector3.zero;
             }
 
             if (planarDist < 0.001f)

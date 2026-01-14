@@ -25,19 +25,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         public abstract void Move(Vector3 direction, float deltaTime, float speedMultiplier = 1f);
 
-        public virtual void Rotate(Vector3 direction, float deltaTime)
-        {
-            if (direction.sqrMagnitude < 0.0001f)
-                return;
-
-            Vector3 up = surfaceProvider?.CurrentUp ?? Vector3.up;
-            Quaternion targetRot = Quaternion.LookRotation(direction, up);
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation, 
-                targetRot, 
-                settings.TurnSpeed * deltaTime
-            );
-        }
+        public abstract void Rotate(Vector3 direction, float deltaTime);
 
         public virtual void Stop() { }
         public virtual void OnEnable() { }

@@ -83,6 +83,28 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 _hopEndPos = hopEndCandidate;
             }
         }
+        
+        public override void Rotate(Vector3 direction, float deltaTime)
+        {
+            if (direction.sqrMagnitude < 0.0001f)
+                return;
+
+            Vector3 up = surfaceProvider?.CurrentUp ?? Vector3.up;
+
+            // ✅ Always rotate using planar direction, so you never tilt toward "up"
+            Vector3 planar = Vector3.ProjectOnPlane(direction, up);
+            if (planar.sqrMagnitude < 0.0001f)
+                return;
+
+            planar.Normalize();
+
+            Quaternion targetRot = Quaternion.LookRotation(planar, up);
+            transform.rotation = Quaternion.RotateTowards(
+                transform.rotation,
+                targetRot,
+                settings.TurnSpeed * deltaTime
+            );
+        }
 
         private void ContinueHop(float deltaTime)
         {
