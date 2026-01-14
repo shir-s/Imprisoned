@@ -15699,7 +15699,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
-  target: {fileID: 0}
+  target: {fileID: 1259213360}
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -15712,8 +15712,8 @@ MonoBehaviour:
   moveOnY: 0
   moveOnZ: 1
   useBounds: 1
-  boundsMin: {x: -30, y: -100, z: -40}
-  boundsMax: {x: 25, y: 100, z: 30}
+  boundsMin: {x: -90, y: -100, z: -50}
+  boundsMax: {x: 40, y: 100, z: 40}
 --- !u!1001 &1344263627
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -16791,6 +16791,37 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 2022174239}
   m_SourcePrefab: {fileID: 100100000, guid: 45676675436694bb98eb87161231800a, type: 3}
+--- !u!1 &1645561961
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1645561962}
+  m_Layer: 0
+  m_Name: GameObject
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1645561962
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1645561961}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -90.6, y: 1.49698, z: -50}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1651628624 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 7638906125137393128, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
@@ -34830,3 +34861,4 @@ SceneRoots:
   - {fileID: 67787693}
   - {fileID: 289349773874169644}
   - {fileID: 454053015}
+  - {fileID: 1645561962}
