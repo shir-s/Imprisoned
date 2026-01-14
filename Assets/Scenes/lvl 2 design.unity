@@ -15207,7 +15207,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
-  target: {fileID: 0}
+  target: {fileID: 1259213360}
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -15220,8 +15220,8 @@ MonoBehaviour:
   moveOnY: 0
   moveOnZ: 1
   useBounds: 1
-  boundsMin: {x: -30, y: -100, z: -40}
-  boundsMax: {x: 25, y: 100, z: 30}
+  boundsMin: {x: -90, y: -100, z: -50}
+  boundsMax: {x: 40, y: 100, z: 40}
 --- !u!1001 &1344263627
 PrefabInstance:
   m_ObjectHideFlags: 0
