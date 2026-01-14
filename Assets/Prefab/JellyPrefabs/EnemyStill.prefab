@@ -1036,7 +1036,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.5633506, z: -0, w: 0.82621795}
   m_LocalPosition: {x: -18.3, y: 1.59, z: 20.3}
-  m_LocalScale: {x: 1.5, y: 1.5, z: 1.5}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6264449690354094753}
@@ -1209,6 +1209,8 @@ MonoBehaviour:
   maxLocalZ: 5
   fallbackMode: 0
   upwardRayDistance: 10
+  respectWallClimbing: 1
+  wallClimbAngleThreshold: 25
   debugRays: 0
   debugBoundsGizmos: 0
   debugLogs: 0
@@ -1228,6 +1230,8 @@ MonoBehaviour:
   routeType: 0
   waypoints: []
   waitTimeAtWaypoint: 1
+  arrivalThreshold: 1
+  debugLogs: 0
 --- !u!114 &5464436208633200509
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1240,20 +1244,47 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a811d570899d4364fa30362dec079100, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Movement.SteeringNavigator
-  bodyRadius: 1
-  clearance: 0.2
-  obstacleLayers:
-    serializedVersion: 2
-    m_Bits: 1573376
-  lookAheadDistance: 3
-  sensorVerticalOffset: 0.1
-  sensorResolution: 16
-  moveSpeed: 6
-  turnSpeed: 720
+  locomotionType: 0
+  locomotionSettings:
+    MoveSpeed: 3
+    TurnSpeed: 720
+    HopInterval: 0.45
+    HopDuration: 0.22
+    HopHeight: 0.35
+  avoidanceSettings:
+    BodyRadius: 0.5
+    Clearance: 0.2
+    ObstacleLayers:
+      serializedVersion: 2
+      m_Bits: 0
+    LookAheadDistance: 2
+    SensorVerticalOffset: 0.1
+    SensorResolution: 16
+  enableSurfaceAlignment: 0
+  surfaceSettings:
+    SurfaceLayers:
+      serializedVersion: 2
+      m_Bits: 0
+    StickDistance: 1.5
+    ForwardProbeDistance: 1
+    AlignSpeed: 12
+    SupportNormalDot: 0.7
+    ApproachStartDistance: 3
+    ClimbStartDistance: 0.8
+    SurfaceAngleThreshold: 30
+    WaypointSearchRadius: 2
+    WaypointMaxSearchRadius: 8
+    WaypointSearchStep: 2
+    SurfaceAnchorOffset: 0.05
+    NormalLockDuration: 0.5
+    BodyRadius: 0.5
+  directApproachDistance: 1.5
+  steeringDisableDistance: 0.8
+  maxSteeringAngle: 45
   drawSensorRays: 1
-  drawDangerRays: 1
-  drawRepulsion: 1
-  drawBestDir: 1
+  drawBestDirection: 1
+  drawSurfaceRays: 0
+  debugLogs: 0
 --- !u!114 &4245138404071004478
 MonoBehaviour:
   m_ObjectHideFlags: 0

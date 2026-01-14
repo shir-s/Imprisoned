@@ -45,19 +45,42 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private List<Component> disableOnTutorialStart = new List<Component>();
 
         [SerializeField] private bool restoreDisabledScriptsOnFinish = true;
+        
+        [Header("GameObject Locks (Deactivated During Tutorial)")]
+        [SerializeField] private List<GameObject> deactivateOnTutorialStart = new List<GameObject>();
+
+        [SerializeField] private bool restoreDeactivatedObjectsOnFinish = true;
+
+        [Serializable]
+        private struct GameObjectState
+        {
+            public GameObject go;
+            public bool wasActive;
+            public GameObjectState(GameObject go, bool wasActive) { this.go = go; this.wasActive = wasActive; }
+        }
+
+        private readonly List<GameObjectState> _startDeactivatedSnapshot = new List<GameObjectState>();
 
         [Serializable]
         private class WindowScriptActions
         {
             public int windowIndex = 0;
+
             [Header("When this window is SHOWN")]
             public List<Component> enableOnShow = new List<Component>();
             public List<Component> disableOnShow = new List<Component>();
 
+            public List<GameObject> activateOnShow = new List<GameObject>();
+            public List<GameObject> deactivateOnShow = new List<GameObject>();
+
             [Header("When this window is COMPLETED")]
             public List<Component> enableOnComplete = new List<Component>();
             public List<Component> disableOnComplete = new List<Component>();
+
+            public List<GameObject> activateOnComplete = new List<GameObject>();
+            public List<GameObject> deactivateOnComplete = new List<GameObject>();
         }
+
 
         [Header("Per-Window Script Actions")]
         [SerializeField] private List<WindowScriptActions> windowScriptActions = new List<WindowScriptActions>();
@@ -140,6 +163,8 @@ namespace JellyGame.UI.Tutorial
         }
 
         private readonly List<BehaviourState> _startDisabledSnapshot = new List<BehaviourState>();
+        
+
 
         private void Start()
         {
@@ -375,35 +400,97 @@ namespace JellyGame.UI.Tutorial
         private void CaptureAndDisableStartScripts()
         {
             _startDisabledSnapshot.Clear();
-            if (disableOnTutorialStart == null) return;
-            for (int i = 0; i < disableOnTutorialStart.Count; i++)
+            if (disableOnTutorialStart != null)
             {
-                Component c = disableOnTutorialStart[i];
-                if (c == null) continue;
-                if (c is Behaviour b) { _startDisabledSnapshot.Add(new BehaviourState(b, b.enabled)); b.enabled = false; }
+                for (int i = 0; i < disableOnTutorialStart.Count; i++)
+                {
+                    Component c = disableOnTutorialStart[i];
+                    if (c == null) continue;
+
+                    if (c is Behaviour b)
+                    {
+                        _startDisabledSnapshot.Add(new BehaviourState(b, b.enabled));
+                        b.enabled = false;
+                    }
+                    else if (debugLogs)
+                    {
+                        Debug.Log($"[Tutorial] disableOnTutorialStart item '{c.name}' is a {c.GetType().Name} (not a Behaviour) -> cannot disable via .enabled. If you meant to hide the unit, put its GameObject in 'deactivateOnTutorialStart'.", this);
+                    }
+                }
+            }
+
+            // NEW: deactivate GameObjects
+            _startDeactivatedSnapshot.Clear();
+            if (deactivateOnTutorialStart == null) return;
+
+            for (int i = 0; i < deactivateOnTutorialStart.Count; i++)
+            {
+                GameObject go = deactivateOnTutorialStart[i];
+                if (go == null) continue;
+
+                _startDeactivatedSnapshot.Add(new GameObjectState(go, go.activeSelf));
+                go.SetActive(false);
             }
         }
 
         private void RestoreStartScriptsIfNeeded()
         {
-            if (!restoreDisabledScriptsOnFinish) { _startDisabledSnapshot.Clear(); return; }
-            for (int i = 0; i < _startDisabledSnapshot.Count; i++) { var s = _startDisabledSnapshot[i]; if (s.b != null) s.b.enabled = s.wasEnabled; }
-            _startDisabledSnapshot.Clear();
+            if (!restoreDisabledScriptsOnFinish)
+            {
+                _startDisabledSnapshot.Clear();
+            }
+            else
+            {
+                for (int i = 0; i < _startDisabledSnapshot.Count; i++)
+                {
+                    var s = _startDisabledSnapshot[i];
+                    if (s.b != null) s.b.enabled = s.wasEnabled;
+                }
+                _startDisabledSnapshot.Clear();
+            }
+
+            // NEW: restore GameObjects
+            if (!restoreDeactivatedObjectsOnFinish)
+            {
+                _startDeactivatedSnapshot.Clear();
+                return;
+            }
+
+            for (int i = 0; i < _startDeactivatedSnapshot.Count; i++)
+            {
+                var s = _startDeactivatedSnapshot[i];
+                if (s.go != null) s.go.SetActive(s.wasActive);
+            }
+            _startDeactivatedSnapshot.Clear();
         }
+
 
         private void ApplyWindowShowScriptActions(int windowIndex)
         {
             WindowScriptActions a = GetWindowScriptActions(windowIndex);
             if (a == null) return;
-            SetEnabled(a.disableOnShow, false); SetEnabled(a.enableOnShow, true);
+
+            SetEnabled(a.disableOnShow, false);
+            SetEnabled(a.enableOnShow, true);
+
+            // NEW:
+            SetActive(a.deactivateOnShow, false);
+            SetActive(a.activateOnShow, true);
         }
 
         private void ApplyWindowCompleteScriptActions(int windowIndex)
         {
             WindowScriptActions a = GetWindowScriptActions(windowIndex);
             if (a == null) return;
-            SetEnabled(a.disableOnComplete, false); SetEnabled(a.enableOnComplete, true);
+
+            SetEnabled(a.disableOnComplete, false);
+            SetEnabled(a.enableOnComplete, true);
+
+            // NEW:
+            SetActive(a.deactivateOnComplete, false);
+            SetActive(a.activateOnComplete, true);
         }
+
 
         private WindowScriptActions GetWindowScriptActions(int windowIndex)
         {
@@ -417,6 +504,17 @@ namespace JellyGame.UI.Tutorial
             if (list == null) return;
             for (int i = 0; i < list.Count; i++) { Component c = list[i]; if (c is Behaviour b) b.enabled = enabled; }
         }
+        
+        private static void SetActive(List<GameObject> list, bool active)
+        {
+            if (list == null) return;
+            for (int i = 0; i < list.Count; i++)
+            {
+                GameObject go = list[i];
+                if (go != null) go.SetActive(active);
+            }
+        }
+
 
         private void PauseGame()
         {

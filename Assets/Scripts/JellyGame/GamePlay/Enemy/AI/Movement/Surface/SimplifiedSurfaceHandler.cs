@@ -43,6 +43,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         // Ground surface tracking for logs
         private Collider _lastGroundCollider = null;
         private Vector3 _lastGroundNormal = Vector3.zero;
+        
+        private Vector3 _stableForward = Vector3.forward;
 
         #region Interface Properties
         public Vector3 CurrentUp => _transform.up;
@@ -85,6 +87,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             }
         }
 
+
         private void ContinueTransition(float deltaTime)
         {
             _transitionProgress += deltaTime / TRANSITION_DURATION;
@@ -93,25 +96,96 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (_transitionProgress >= 1f)
             {
                 _transitionProgress = 1f;
-                AlignToNormal(_targetNormal);
 
                 Vector3 oldNormal = _currentNormal;
-                _currentNormal = _targetNormal;
+
+                // Apply final rotation to the target normal
+                AlignToNormal(_targetNormal);
+
+                // ✅ Validate we can actually ground on the new up
+                if (!TryGroundOnUp(_targetNormal, out RaycastHit groundedHit))
+                {
+                    // Revert: we never actually found the surface we “transitioned” to
+                    _currentNormal = oldNormal;
+                    _targetNormal = oldNormal;
+                    AlignToNormal(oldNormal);
+
+                    _isTransitioning = false;
+                    _lockedMoveDirection = Vector3.zero;
+
+                    // short cooldown to avoid thrashing
+                    _transitionCooldownTimer = 0.25f;
+
+                    if (_debugLogs)
+                        Debug.LogWarning($"[Surface] ✗ COMPLETE-REVERT: no ground on newUp. Reverting to {V(oldNormal)}", _transform);
+
+                    _transform.position = _preTransitionPosition;
+                    _isGrounded = false;
+                    return;
+                }
+
+                // ✅ Success: snap normal to the *actual* hit normal (more accurate than target guess)
+                _currentNormal = groundedHit.normal.normalized;
+
                 _isTransitioning = false;
                 _lockedMoveDirection = Vector3.zero;
                 _transitionCooldownTimer = TRANSITION_COOLDOWN;
 
                 if (_debugLogs)
-                    Debug.Log($"[Surface] ✓ COMPLETE: now on {V(_currentNormal)}", _transform);
+                    Debug.Log($"[Surface] ✓ COMPLETE: grounded on {groundedHit.collider.name} normal={V(_currentNormal)}", _transform);
 
                 SnapToSurface(oldNormal);
                 return;
             }
 
-            // Smoothly interpolate rotation during transition
             Vector3 interpolatedNormal = Vector3.Slerp(_lockedStartNormal, _targetNormal, _transitionProgress).normalized;
             AlignToNormal(interpolatedNormal);
         }
+
+        private bool TryGroundOnUp(Vector3 up, out RaycastHit hit)
+        {
+            if (up.sqrMagnitude < 0.001f)
+            {
+                hit = default;
+                return false;
+            }
+
+            up.Normalize();
+
+            Vector3 origin = _transform.position + up * 0.6f;
+            float dist = Mathf.Max(2.0f, _settings.StickDistance + 1.0f);
+
+            if (Physics.Raycast(origin, -up, out hit, dist, _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+                return true;
+
+            // small “search cone” fallback for edges / being slightly inside a collider
+            Vector3 right = Vector3.Cross(up, _transform.forward);
+            if (right.sqrMagnitude < 0.001f) right = Vector3.Cross(up, Vector3.right);
+            right.Normalize();
+
+            Vector3 fwd = Vector3.ProjectOnPlane(_transform.forward, up);
+            if (fwd.sqrMagnitude < 0.001f) fwd = Vector3.ProjectOnPlane(Vector3.forward, up);
+            fwd.Normalize();
+
+            Vector3[] offsets =
+            {
+                right * 0.25f,
+                -right * 0.25f,
+                fwd * 0.25f,
+                -fwd * 0.25f,
+            };
+
+            foreach (var off in offsets)
+            {
+                Vector3 o = origin + off;
+                if (Physics.Raycast(o, -up, out hit, dist, _settings.SurfaceLayers, QueryTriggerInteraction.Ignore))
+                    return true;
+            }
+
+            hit = default;
+            return false;
+        }
+
 
         /// <summary>
         /// Main detection logic - works with tilted surfaces
@@ -301,11 +375,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private void StartTransition(Vector3 newNormal, Vector3 moveDirection, string reason)
         {
             newNormal = newNormal.normalized;
-
             if (newNormal.sqrMagnitude < 0.001f)
                 return;
 
-            // Only transition if the angle difference is significant
             if (Vector3.Angle(newNormal, _currentNormal) < 20f)
                 return;
 
@@ -316,11 +388,22 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _targetNormal = newNormal;
             _isTransitioning = true;
             _transitionProgress = 0f;
-            _lockedMoveDirection = moveDirection;
+
+            // ✅ lock move direction and also lock a stable forward for the whole transition
+            _lockedMoveDirection = moveDirection.sqrMagnitude > 0.001f ? moveDirection.normalized : _transform.forward;
+
+            Vector3 startFwd = Vector3.ProjectOnPlane(_transform.forward, _lockedStartNormal);
+            if (startFwd.sqrMagnitude < 0.001f)
+                startFwd = Vector3.ProjectOnPlane(_lockedMoveDirection, _lockedStartNormal);
+            if (startFwd.sqrMagnitude < 0.001f)
+                startFwd = Vector3.ProjectOnPlane(Vector3.forward, _lockedStartNormal);
+
+            _stableForward = startFwd.normalized;
 
             if (_debugLogs)
                 Debug.Log($"[Surface] ▶ START: {V(_currentNormal)} → {V(_targetNormal)} | {reason}", _transform);
         }
+
 
         private void SnapToSurface(Vector3 previousNormal)
         {
@@ -421,11 +504,17 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private void AlignToNormal(Vector3 normal)
         {
             if (normal.sqrMagnitude < 0.001f) return;
-
             normal = normal.normalized;
 
-            Vector3 forward = _transform.forward;
-            Vector3 projectedForward = Vector3.ProjectOnPlane(forward, normal);
+            // ✅ Use a deterministic reference forward.
+            Vector3 referenceForward = _isTransitioning ? _lockedMoveDirection : _transform.forward;
+
+            Vector3 projectedForward = Vector3.ProjectOnPlane(referenceForward, normal);
+
+            if (projectedForward.sqrMagnitude < 0.001f)
+            {
+                projectedForward = Vector3.ProjectOnPlane(_stableForward, normal);
+            }
 
             if (projectedForward.sqrMagnitude < 0.001f)
             {
@@ -435,8 +524,13 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             }
 
             projectedForward.Normalize();
+
+            // keep stable forward updated when valid
+            _stableForward = projectedForward;
+
             _transform.rotation = Quaternion.LookRotation(projectedForward, normal);
         }
+
 
         public Vector3 GroundPosition(Vector3 position)
         {

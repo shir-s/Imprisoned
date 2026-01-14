@@ -65,6 +65,8 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         private static readonly int IsFillId = Shader.PropertyToID("_IsFill");
 
         public float DefaultHalfSizeUV => fallbackHalfSizeUV;
+        
+        public float SizeWorldMultiplierForRecorder => sizeWorldMultiplier;
 
         private void Awake()
         {
@@ -183,8 +185,51 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             Graphics.Blit(timeRT, _tempTimeRT, timeBrushBlitMaterial);
             Graphics.Blit(_tempTimeRT, timeRT);
         }
-
+        
         // ========== Public API for UV painting ==========
+        
+        
+        /// <summary>
+        /// Forces a range of stroke history samples to appear "aged" (gray) on the paint texture.
+        /// Call this when consuming history due to area closure.
+        /// Uses a larger brush size to cover the full trail width (not just center points).
+        /// </summary>
+        public void AgeTrailRange(SimplePaintSurface surface, StrokeHistory history, int startIndex, int endIndexInclusive)
+        {
+            if (surface == null || history == null || !surface.EnableTimeAging || timeBrushBlitMaterial == null)
+                return;
+
+            var timeRT = surface.PaintTimeRT;
+            if (timeRT == null)
+                return;
+
+            // Use a very old time so shader treats these as aged (gray)
+            float oldTime = surface.GetCurrentTime() - 1000f;
+
+            // Use LARGER size to cover full trail width (1.5x to cover edges + margin)
+            float halfSizeUV = fallbackHalfSizeUV * sizeWorldMultiplier * 2f;
+
+            for (int i = startIndex; i <= endIndexInclusive && i < history.Count; i++)
+            {
+                Vector3 worldPos = history[i].WorldPos;
+
+                if (!surface.TryWorldToPaintUV(worldPos, out var uvCenter))
+                    continue;
+
+                timeBrushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+                timeBrushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
+                timeBrushBlitMaterial.SetFloat("_BrushOpacity", 1f);
+                timeBrushBlitMaterial.SetFloat("_PaintTime", oldTime);  // OLD time = gray
+                timeBrushBlitMaterial.SetFloat("_IsFill", 0f);
+                timeBrushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
+
+                EnsureTemp(timeRT, ref _tempTimeRT);
+                timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
+                Graphics.Blit(timeRT, _tempTimeRT, timeBrushBlitMaterial);
+                Graphics.Blit(_tempTimeRT, timeRT);
+            }
+        }
+
 
         /// <summary>
         /// Paint at UV (for trails - G=0)
@@ -340,6 +385,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
         // ========== Helper Methods ==========
 
+        
         private void EnsureTemp(RenderTexture rt, ref RenderTexture tempRT)
         {
             if (tempRT == null ||
