@@ -136,18 +136,21 @@ namespace JellyGame.GamePlay.Player
 
         public void ApplyDamage(float amount)
         {
+            if (!isActiveAndEnabled) return;
             if (_dead || amount <= 0f) return;
             ChangeVolumeAdd(-amount * sizeLossPerDamage);
         }
 
         public void Heal(float amount)
         {
+            if (!isActiveAndEnabled) return;
             if (_dead || amount <= 0f) return;
             ChangeVolumeAdd(amount * sizeGainPerHeal);
         }
 
         public void ChangeVolumeAdd(float amount)
         {
+            if (!isActiveAndEnabled) return;
             if (_dead) return;
 
             float oldSize = GetCurrentSize();
@@ -158,6 +161,7 @@ namespace JellyGame.GamePlay.Player
 
         public void ChangeVolumeMultiply(float factor)
         {
+            if (!isActiveAndEnabled) return;
             if (_dead) return;
 
             float oldSize = GetCurrentSize();

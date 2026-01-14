@@ -87,11 +87,13 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
         public void OnMovementStart(Vector3 worldPos)
         {
+            if (!isActiveAndEnabled) return;
             TryRecordAt(worldPos, Vector3.zero);
         }
 
         public void OnMoveStep(Vector3 from, Vector3 to, float stepMeters, float deltaTime)
         {
+            if (!isActiveAndEnabled) return;
             Vector3 moveDir = (to - from);
             if (moveDir.sqrMagnitude > 0.0001f)
                 _lastMoveDirection = moveDir.normalized;
@@ -101,6 +103,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
         public void OnMovementEnd(Vector3 worldPos)
         {
+            if (!isActiveAndEnabled) return;    
         }
 
         private void Update()
@@ -129,6 +132,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Collision
 
         private void TryRecordAt(Vector3 worldPos, Vector3 moveDirection)
         {
+            if (!isActiveAndEnabled) return;
             if (!recordingEnabled)
                 return;
 
