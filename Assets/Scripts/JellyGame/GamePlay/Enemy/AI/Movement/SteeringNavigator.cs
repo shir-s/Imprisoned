@@ -1,6 +1,7 @@
 // FILEPATH: Assets/Scripts/AI/Movement/SteeringNavigator.cs
 //
 // UPDATED VERSION - Uses enhanced HoppingLocomotion for proper surface transitions
+// v3 Changes: Passes debug flag to HoppingLocomotion for landing diagnostics
 
 using UnityEngine;
 
@@ -13,6 +14,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
     /// v2 Changes:
     /// - Passes destination to HoppingLocomotion for smarter hop planning
     /// - Handles transition hops that the locomotion performs
+    /// 
+    /// v3 Changes:
+    /// - Passes debug flag to HoppingLocomotion for landing diagnostics
+    /// - Added LastHopLandingDistance property for monitoring
     /// </summary>
     [DisallowMultipleComponent]
     public class SteeringNavigator : MonoBehaviour, ISpeedMultiplierSink
@@ -47,6 +52,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         [SerializeField] private bool drawBestDirection = true;
         [SerializeField] private bool drawSurfaceRays = false;
         [SerializeField] private bool debugLogs = false;
+        [Tooltip("Enable detailed hop landing diagnostics (separate from general debug logs)")]
+        [SerializeField] private bool debugHopLanding = false;
 
         #endregion
 
@@ -80,6 +87,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         public bool IsSurfaceAlignmentEnabled => enableSurfaceAlignment;
         public Vector3? CurrentTarget => _currentTarget;
         public bool IsStopped => _isStopped;
+        
+        /// <summary>
+        /// Distance from surface at the last hop landing (for diagnostics).
+        /// Only valid when using Hopping locomotion.
+        /// </summary>
+        public float LastHopLandingDistance => _hoppingLocomotion?.LastLandingDistance ?? 0f;
 
         #endregion
 
@@ -160,6 +173,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (locomotionType == LocomotionType.Hopping)
             {
                 _hoppingLocomotion = new HoppingLocomotion(transform, locomotionSettings, surfaceProvider);
+                _hoppingLocomotion.SetDebugLogs(debugLogs || debugHopLanding); // Enable logging if either flag is set
                 _locomotion = _hoppingLocomotion;
             }
             else
@@ -226,6 +240,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         public void ResetObstacleMask()
         {
             _obstacleAvoidance?.ResetObstacleMask();
+        }
+        
+        /// <summary>
+        /// Enable or disable hop landing debug logs at runtime
+        /// </summary>
+        public void SetHopDebugLogs(bool enabled)
+        {
+            _hoppingLocomotion?.SetDebugLogs(enabled);
         }
 
         #endregion
