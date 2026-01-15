@@ -21626,6 +21626,7 @@ GameObject:
   - component: {fileID: 6434148831320174956}
   - component: {fileID: 3403405759177542882}
   - component: {fileID: 760981854059287258}
+  - component: {fileID: -2730073728750476205}
   m_Layer: 11
   m_Name: ClimbingEnemy
   m_TagString: Untagged
@@ -21827,13 +21828,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a811d570899d4364fa30362dec079100, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Movement.SteeringNavigator
-  locomotionType: 0
+  locomotionType: 1
   locomotionSettings:
-    MoveSpeed: 3
+    MoveSpeed: 6
     TurnSpeed: 720
-    HopInterval: 0.45
-    HopDuration: 0.22
-    HopHeight: 0.35
+    HopInterval: 4
+    HopDuration: 0.5
+    HopDistance: 6
+    HopHeight: 4
   avoidanceSettings:
     BodyRadius: 1
     Clearance: 0.2
@@ -21853,7 +21855,7 @@ MonoBehaviour:
     AlignSpeed: 12
     SupportNormalDot: 0.7
     ApproachStartDistance: 3
-    ClimbStartDistance: 1
+    ClimbStartDistance: 4
     SurfaceAngleThreshold: 15
     WaypointSearchRadius: 2
     WaypointMaxSearchRadius: 8
@@ -21861,13 +21863,14 @@ MonoBehaviour:
     SurfaceAnchorOffset: 0.05
     NormalLockDuration: 0.5
     BodyRadius: 1
-  directApproachDistance: 1.5
-  steeringDisableDistance: 2
+  directApproachDistance: 3
+  steeringDisableDistance: 5
   maxSteeringAngle: 15
   drawSensorRays: 1
   drawBestDirection: 1
   drawSurfaceRays: 1
   debugLogs: 1
+  debugHopLanding: 1
 --- !u!114 &760981854059287258
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -21884,6 +21887,39 @@ MonoBehaviour:
   destroyOnDeath: 1
   particleSystem: {fileID: 1225152734831637305}
   debugLogs: 1
+--- !u!114 &-2730073728750476205
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8672544896499340625}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2ccab3b72dc585343b943299879316a2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Behaviors.JumpAttackBehavior
+  priority: 25
+  targetPriorities:
+  - layer:
+      layerIndex: 7
+    attackPriority: 10
+    customDetectionRadius: 15
+  detectionRadius: 15
+  minJumpDistance: 2
+  maxJumpDistance: 8
+  stationaryTimeRequired: 1.5
+  stationaryThreshold: 0.3
+  jumpDuration: 0.5
+  jumpHeight: 2.5
+  landingDamage: 3
+  postLandingWait: 0.5
+  jumpCooldown: 5
+  surfaceLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  debugLogs: 0
+  debugGizmos: 1
 --- !u!1 &9167303698979979685
 GameObject:
   m_ObjectHideFlags: 0
