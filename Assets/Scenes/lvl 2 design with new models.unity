@@ -8314,6 +8314,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: EnemyRangedThenMelee
       objectReference: {fileID: 0}
+    - target: {fileID: 6414533385032334429, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8482994998386503142, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
       propertyPath: damageCooldown
       value: 2
@@ -17479,7 +17483,7 @@ MonoBehaviour:
   spawnOnEnemyDeath: 1
   enemyLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 2048
   spawnHeightOffset: 0.5
   respawnDelaySeconds: 5
   center: {x: 0, y: 0}
@@ -23986,8 +23990,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 2.0467741, y: 0.8473972, z: 1.6739638}
-  m_Center: {x: -0.5233864, y: -0.07630142, z: 0.3369797}
+  m_Size: {x: 2.0467741, y: 1.3220018, z: 1.6739639}
+  m_Center: {x: -0.5233864, y: -0.3136035, z: 0.3369797}
 --- !u!4 &1936932615 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 3548779528716352785, guid: e6daccd395c5841ce861f110eb8ad06e, type: 3}
