@@ -1,6 +1,6 @@
 // FILEPATH: Assets/Scripts/AI/Movement/SteeringNavigator.cs
 //
-// SIMPLIFIED VERSION - uses SimplifiedSurfaceHandler instead of complex SurfaceAlignmentHandler
+// UPDATED VERSION - Uses enhanced HoppingLocomotion for proper surface transitions
 
 using UnityEngine;
 
@@ -9,6 +9,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
     /// <summary>
     /// Orchestrates navigation for spider-like enemies.
     /// Uses SimplifiedSurfaceHandler for clean, unified surface transitions.
+    /// 
+    /// v2 Changes:
+    /// - Passes destination to HoppingLocomotion for smarter hop planning
+    /// - Handles transition hops that the locomotion performs
     /// </summary>
     [DisallowMultipleComponent]
     public class SteeringNavigator : MonoBehaviour, ISpeedMultiplierSink
@@ -49,6 +53,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         #region Runtime Components
 
         private ILocomotion _locomotion;
+        private HoppingLocomotion _hoppingLocomotion; // Cached reference for destination-aware hopping
         private IObstacleAvoidance _obstacleAvoidance;
         private SimplifiedSurfaceHandler _surfaceHandler;
 
@@ -66,6 +71,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         #region Public Properties
 
         public bool IsInClimbTransition => _surfaceHandler?.IsInTransition ?? false;
+        
+        /// <summary>
+        /// True if the hopping locomotion is currently performing a surface-transition hop
+        /// </summary>
+        public bool IsInHopTransition => _hoppingLocomotion?.IsTransitionHop ?? false;
+        
         public bool IsSurfaceAlignmentEnabled => enableSurfaceAlignment;
         public Vector3? CurrentTarget => _currentTarget;
         public bool IsStopped => _isStopped;
@@ -87,24 +98,42 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             float dt = Time.deltaTime;
             Vector3 target = _currentTarget.Value;
 
+            // Update hopping locomotion with current destination
+            if (_hoppingLocomotion != null)
+            {
+                _hoppingLocomotion.SetDestination(target);
+            }
+
+            // Handle surface alignment
             if (_surfaceHandler != null)
             {
-                _surfaceHandler.UpdateSurface(target, dt);
+                bool isMidHop = _locomotion != null && _locomotion.IsInMotion;
+                bool isHopTransition = _hoppingLocomotion?.IsTransitionHop ?? false;
 
-                // ✅ IMPORTANT: freeze locomotion while surface handler is rotating to the new surface
-                if (_surfaceHandler.ShouldBlockMovement)
+                // Don't run surface handler during hopping - the hop itself handles transitions
+                if (!isMidHop && !isHopTransition)
                 {
-                    _locomotion.Stop();
-                    _surfaceHandler.EnsureGrounded();
-                    return;
-                }
+                    // For continuous locomotion, let surface handler detect transitions
+                    if (locomotionType == LocomotionType.Continuous)
+                    {
+                        _surfaceHandler.UpdateSurface(target, dt);
 
-                if (!_locomotion.IsInMotion)
-                {
-                    _surfaceHandler.EnsureGrounded();
+                        if (_surfaceHandler.ShouldBlockMovement)
+                        {
+                            _locomotion.Stop();
+                            _surfaceHandler.EnsureGrounded();
+                            return;
+                        }
+                    }
+
+                    if (!_locomotion.IsInMotion)
+                    {
+                        _surfaceHandler.EnsureGrounded();
+                    }
                 }
             }
 
+            // Compute move direction
             Vector3 moveDirection = ComputeMoveDirection(target);
             _debugBestDir = moveDirection;
 
@@ -128,11 +157,15 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 surfaceProvider = _surfaceHandler;
             }
 
-            _locomotion = locomotionType switch
+            if (locomotionType == LocomotionType.Hopping)
             {
-                LocomotionType.Hopping => new HoppingLocomotion(transform, locomotionSettings, surfaceProvider),
-                _ => new ContinuousLocomotion(transform, locomotionSettings, surfaceProvider)
-            };
+                _hoppingLocomotion = new HoppingLocomotion(transform, locomotionSettings, surfaceProvider);
+                _locomotion = _hoppingLocomotion;
+            }
+            else
+            {
+                _locomotion = new ContinuousLocomotion(transform, locomotionSettings, surfaceProvider);
+            }
 
             _obstacleAvoidance = new ContextSteering(avoidanceSettings, surfaceProvider, drawSensorRays);
         }
@@ -153,6 +186,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _isStopped = true;
             _locomotion?.Stop();
             _surfaceHandler?.ResetTransition();
+            
+            if (_hoppingLocomotion != null)
+            {
+                _hoppingLocomotion.SetDestination(null);
+            }
         }
 
         public bool HasReachedDestination(float threshold = 0.2f)
@@ -196,7 +234,15 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         private Vector3 ComputeMoveDirection(Vector3 target)
         {
-            // If in a surface transition, use the transition direction
+            // If the hopping locomotion is doing a transition hop, don't override its direction
+            if (_hoppingLocomotion != null && _hoppingLocomotion.IsTransitionHop)
+            {
+                // Still need to return a direction for the hop to continue
+                Vector3 toTarget = target - transform.position;
+                return toTarget.sqrMagnitude > 0.001f ? toTarget.normalized : transform.forward;
+            }
+
+            // If in a surface transition (continuous locomotion), use the transition direction
             if (_surfaceHandler != null && _surfaceHandler.IsInTransition)
             {
                 Vector3 transitionDir = _surfaceHandler.TransitionMoveDirection;
@@ -220,19 +266,29 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             Vector3 toTargetPlanar = Vector3.ProjectOnPlane(toTarget, up);
             float planarDist = toTargetPlanar.magnitude;
 
-            // ✅ When surface alignment is enabled, NEVER return a direction that contains "up".
+            // When surface alignment is enabled, NEVER return a direction that contains "up".
             // If planar is tiny, just keep going forward on the current surface.
             if (enableSurfaceAlignment)
             {
                 if (planarDist < 0.001f)
                 {
-                    Vector3 fallback = Vector3.ProjectOnPlane(transform.forward, up);
-                    return fallback.sqrMagnitude > 0.0001f ? fallback.normalized : Vector3.zero;
+                    // Target might be on a different surface (above/below on wall)
+                    // Check if we should be approaching a surface transition
+                    if (toTarget.magnitude > 0.5f)
+                    {
+                        // There's significant distance but no planar component
+                        // This means target is "above" or "below" us in current orientation
+                        // Keep moving forward to find the surface edge
+                        Vector3 fallback = Vector3.ProjectOnPlane(transform.forward, up);
+                        return fallback.sqrMagnitude > 0.0001f ? fallback.normalized : Vector3.zero;
+                    }
+                    
+                    Vector3 fallbackDir = Vector3.ProjectOnPlane(transform.forward, up);
+                    return fallbackDir.sqrMagnitude > 0.0001f ? fallbackDir.normalized : Vector3.zero;
                 }
             }
             else
             {
-                // old behavior can remain for non-surface mode if you want
                 if (planarDist < 0.01f && toTarget.magnitude > 0.1f)
                     return toTarget.normalized;
                 if (planarDist < 0.001f)
@@ -301,10 +357,18 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 Gizmos.DrawWireSphere(_currentTarget.Value, 0.3f);
             }
 
+            // Show surface handler transition
             if (_surfaceHandler != null && _surfaceHandler.IsInTransition)
             {
                 Gizmos.color = Color.red;
                 Gizmos.DrawRay(transform.position, _surfaceHandler.TransitionMoveDirection * 2f);
+            }
+
+            // Show hop transition
+            if (_hoppingLocomotion != null && _hoppingLocomotion.IsTransitionHop)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawRay(transform.position, _hoppingLocomotion.TransitionTargetNormal * 1.5f);
             }
         }
 

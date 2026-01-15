@@ -107,7 +107,8 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private bool introForceKinematicIfRigidBody = true;
 
         // ===================== Gates =====================
-        private enum RequirementType { PressAllArrowKeysOnce, AreaClosedOnce, PickupCollectedOnce, EnemyKilledOnce }
+        private enum RequirementType { PressAllArrowKeysOnce, AreaClosedOnce, PickupCollectedOnce, EnemyKilledOnce, OrderedTriggerSequenceOnce }
+
 
         [Serializable]
         private class WindowGate
@@ -115,12 +116,17 @@ namespace JellyGame.UI.Tutorial
             public bool enabled = false;
             public RequirementType requirement = RequirementType.PressAllArrowKeysOnce;
             public float afterCompleteCountdownSeconds = 0.5f;
+
             public GameObject activateObjectOnGateStart;
+
+            public OrderedTriggerSequence orderedTriggerSequence;
+
             public bool deactivateObjectOnGateComplete = false;
             public string enemyLayerName = "Enemy";
             public UnityEvent onGateStart;
             public UnityEvent onGateComplete;
         }
+
 
         [Header("Window Gates")]
         [SerializeField] private List<WindowGate> windowGates = new List<WindowGate>();
@@ -244,6 +250,9 @@ namespace JellyGame.UI.Tutorial
 
         private bool TryStartGateForCurrentWindow()
         {
+            if (true)
+                Debug.Log($"[Tutorial] TryStartGateForCurrentWindow index={_currentIndex} gateEnabled={(GetGate(_currentIndex)?.enabled ?? false)} activate={(GetGate(_currentIndex)?.activateObjectOnGateStart ? GetGate(_currentIndex).activateObjectOnGateStart.name : "null")}", this);
+
             WindowGate gate = GetGate(_currentIndex);
             if (gate == null || !gate.enabled) return false;
 
@@ -267,6 +276,10 @@ namespace JellyGame.UI.Tutorial
                 case RequirementType.AreaClosedOnce: yield return WaitForAreaClosedOnce(); break;
                 case RequirementType.PickupCollectedOnce: yield return WaitForPickupCollectedOnce(); break;
                 case RequirementType.EnemyKilledOnce: yield return WaitForEnemyKilledOnce(gate.enemyLayerName); break;
+
+                case RequirementType.OrderedTriggerSequenceOnce:
+                    yield return WaitForOrderedTriggerSequenceOnce(gate.orderedTriggerSequence);
+                    break;
             }
 
             gate.onGateComplete?.Invoke();
@@ -625,5 +638,17 @@ namespace JellyGame.UI.Tutorial
             }
             return area;
         }
+        
+        private IEnumerator WaitForOrderedTriggerSequenceOnce(OrderedTriggerSequence seq)
+        {
+            if (seq == null) yield break;
+
+            // ensure it starts clean
+            seq.StartSequence();
+
+            while (!seq.Completed)
+                yield return null;
+        }
+
     }
 }
