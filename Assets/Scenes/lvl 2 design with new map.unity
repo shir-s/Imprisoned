@@ -14841,29 +14841,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
   m_PrefabInstance: {fileID: 698159080}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &686301074
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 686301072}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 10
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!65 &686301075
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -14960,9 +14937,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
       insertIndex: -1
       addedObject: {fileID: 686301075}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 686301074}
   m_SourcePrefab: {fileID: 100100000, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
 --- !u!1 &712545872
 GameObject:
@@ -26981,29 +26955,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
   m_PrefabInstance: {fileID: 1557630623}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1176557759
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1176557757}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 10
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!65 &1176557760
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -29458,9 +29409,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1176557760}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1176557759}
   m_SourcePrefab: {fileID: 100100000, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
 --- !u!1001 &1561857398
 PrefabInstance:
@@ -35240,9 +35188,6 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1828628768}
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1828628767}
   m_SourcePrefab: {fileID: 100100000, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
 --- !u!4 &1828628765 stripped
 Transform:
@@ -35254,29 +35199,6 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 382d88b69728c486e9b3534246d1ac76, type: 3}
   m_PrefabInstance: {fileID: 1828628764}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1828628767
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1828628766}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 10
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!65 &1828628768
 BoxCollider:
   m_ObjectHideFlags: 0
