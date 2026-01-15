@@ -13542,7 +13542,7 @@ PrefabInstance:
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: healthImageRect
       value: 
-      objectReference: {fileID: 0}
+      objectReference: {fileID: 1968426433}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: sizeLossPerDamage
       value: 0.15
@@ -28973,6 +28973,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   spawnHeightOffset: 0.5
+  spawnOnDeathDelaySeconds: 0
   respawnDelaySeconds: 5
   center: {x: 0, y: 0}
   halfSize: {x: 10, y: 10}

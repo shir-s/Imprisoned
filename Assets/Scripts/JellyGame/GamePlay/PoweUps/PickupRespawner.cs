@@ -22,6 +22,10 @@ public class PickupRespawner : MonoBehaviour
     [Tooltip("Height offset above the enemy death position")]
     [SerializeField] private float spawnHeightOffset = 0.5f;
     
+    [Tooltip("Delay before spawning pickup when enemy dies (0 = immediate). Only used when Spawn On Enemy Death is enabled.")]
+    [SerializeField] private float spawnOnDeathDelaySeconds = 0f;
+    
+    [Tooltip("Delay before respawning pickup when pickup is collected. Only used when Spawn On Enemy Death is disabled.")]
     [SerializeField] private float respawnDelaySeconds = 0f; // Delay before spawning (0 = immediate)
 
     [Header("Map bounds (for random spawn on map)")]
@@ -69,6 +73,17 @@ public class PickupRespawner : MonoBehaviour
     {
         Debug.Log($"[PickupRespawner] Start called. spawnOnEnemyDeath: {spawnOnEnemyDeath}, pickupPrefab: {pickupPrefab?.name ?? "NULL"}", this);
         
+        // VALIDATION: Check critical settings
+        if (spawnOnEnemyDeath && pickupPrefab == null)
+        {
+            Debug.LogError($"[PickupRespawner] ❌❌❌ CRITICAL: Pickup Prefab is NOT set! Cannot spawn pickups. Please assign a pickup prefab in the Inspector.", this);
+        }
+        
+        if (spawnOnEnemyDeath && enemyLayers.value == 0)
+        {
+            Debug.LogWarning($"[PickupRespawner] ⚠️ Enemy Layers is set to 'Nothing' (0). No enemy deaths will be counted! Set it to 'Everything' or the enemy layer.", this);
+        }
+        
         // Initialize last spawn time to current time so backup doesn't trigger immediately
         if (enableBackupSpawn && spawnOnEnemyDeath)
         {
@@ -103,7 +118,12 @@ public class PickupRespawner : MonoBehaviour
         if (spawnOnEnemyDeath)
         {
             EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
-            Debug.Log("[PickupRespawner] ✓ Started listening to EntityDied events.", this);
+            Debug.Log("[PickupRespawner] ✓ Started listening to EntityDied events. Waiting for enemy deaths...", this);
+            
+            if (pickupPrefab == null)
+            {
+                Debug.LogError("[PickupRespawner] ❌ Cannot listen to events: Pickup Prefab is not set!", this);
+            }
         }
         else
         {
@@ -149,7 +169,8 @@ public class PickupRespawner : MonoBehaviour
         // Check layer filter - if enemyLayers is set, only spawn for enemies on those layers
         if (enemyLayers.value != 0 && (enemyLayers.value & (1 << layer)) == 0)
         {
-            Debug.Log($"[PickupRespawner] Entity {e.Victim.name} died on layer {layer}, but not in enemyLayers filter. Ignoring.", this);
+            Debug.LogWarning($"[PickupRespawner] ⚠️ Entity {e.Victim.name} died on layer {layer} (Layer name: {LayerMask.LayerToName(layer)}), but not in enemyLayers filter ({enemyLayers.value}). Ignoring. " +
+                $"To fix: Set 'Enemy Layers' in Inspector to include layer {layer} ({LayerMask.LayerToName(layer)}).", this);
             return;
         }
 
@@ -194,10 +215,10 @@ public class PickupRespawner : MonoBehaviour
 
     private IEnumerator SpawnPickupAtPosition(Vector3 deathPosition)
     {
-        if (respawnDelaySeconds > 0f)
+        if (spawnOnDeathDelaySeconds > 0f)
         {
-            Debug.Log($"[PickupRespawner] Waiting {respawnDelaySeconds} seconds before spawning...", this);
-            yield return new WaitForSeconds(respawnDelaySeconds);
+            Debug.Log($"[PickupRespawner] Waiting {spawnOnDeathDelaySeconds} seconds before spawning...", this);
+            yield return new WaitForSeconds(spawnOnDeathDelaySeconds);
         }
 
         // Spawn pickup slightly above the death position
