@@ -56,6 +56,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _FloorNormalMap:
+        m_Texture: {fileID: 2800000, guid: cae2e4e47813a4776b5cefc461627e66, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _FloorTexture:
         m_Texture: {fileID: 2800000, guid: 9a17d8817f8cc4bc9a1fdd4b26727c4d, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -159,6 +163,7 @@ Material:
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
     - _FadeWidth: 0.05
+    - _FloorNormalsStrenght: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
