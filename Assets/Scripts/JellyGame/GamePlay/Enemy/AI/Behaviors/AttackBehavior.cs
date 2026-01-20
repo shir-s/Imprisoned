@@ -68,6 +68,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [SerializeField] private bool debugGizmos = true;
 
         private SteeringNavigator _navigator;
+        private Animator _animator;
 
         private Transform _currentTarget;
         private Collider _currentTargetCollider;
@@ -82,6 +83,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         private void Awake()
         {
             _navigator = GetComponent<SteeringNavigator>();
+            // Look for Animator on this object or in children (for rigged models)
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                _animator = GetComponent<Animator>();
+            }
         }
 
         public bool CanActivate()
@@ -109,6 +116,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nextHitTime = Time.time; // can hit immediately once in range
 
             if (debugLogs) Debug.Log($"[AttackBehavior] OnEnter. Target: {(_currentTarget != null ? _currentTarget.name : "None")}", this);
+
+            // Set attack animation
+            if (_animator != null)
+            {
+                _animator.SetBool("reg_attac", true);
+            }
 
             // --- NAVIGATION OVERRIDE START ---
             if (_navigator != null)
@@ -198,6 +211,13 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         public void OnExit()
         {
             if (debugLogs) Debug.Log("[AttackBehavior] Exiting.", this);
+            
+            // Stop attack animation
+            if (_animator != null)
+            {
+                _animator.SetBool("reg_attac", false);
+            }
+            
             _navigator.Stop();
             ClearTarget();
 
