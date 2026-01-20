@@ -10,6 +10,7 @@ Shader "Custom/PaintBrushBlit"
         _BrushColor    ("Brush Color",       Color)   = (0,0,0,1)
         _CornerRadius  ("Corner Radius",     Range(0, 1)) = 0.2
         _PaintTime     ("Paint Time (0-1 normalized)", Float) = 0.0
+        _PaintType     ("Paint Type (0=Trail, 1=Fill)", Float) = 0.0
     }
 
     SubShader
@@ -49,6 +50,7 @@ Shader "Custom/PaintBrushBlit"
             float4    _BrushColor;
             float     _PaintTime;      // NEW: normalized time when painting
             float     _CornerRadius;    
+            float     _PaintType;
             
             v2f vert (appdata v)
             {
@@ -92,22 +94,44 @@ Shader "Custom/PaintBrushBlit"
                 float power = lerp(1.0, 4.0, hard);
                 mask = pow(mask, power);
 */
-
-                float mask = 1.0;
                 
                 // opacity
+                float mask = 1.0;
                 mask *= saturate(_BrushOpacity);
 
-                fixed3 brushRGB = _BrushColor.rgb;
+                //write to channels
+                //float isFill = _PaintType;       
+                //float isTrail = 1.0 - isFill;
 
-                fixed3 finalRGB = lerp(existing.rgb, brushRGB, mask);
-                fixed  finalA   = saturate(existing.a + mask * (1.0 - existing.a));
+                fixed4 result = existing;
+
+                float killFactor = 100.0;
+                if (_PaintType < 0.5) 
+                {
+                    result.r = max(result.r, mask);
+                    result.g = saturate(result.g - mask * killFactor);
+                }
+                else 
+                {
+                    result.g = max(result.g, mask);
+                    result.r = saturate(result.r - mask * killFactor);
+                }
+
+                //result.r = max(result.r, mask * isTrail);
+                //result.g = max(result.g, mask * isFill);
+                result.a = saturate(existing.a + mask * (1.0 - existing.a));
+                
+                //fixed3 brushRGB = _BrushColor.rgb;
+
+                //fixed3 finalRGB = lerp(existing.rgb, brushRGB, mask);
+                //fixed  finalA   = saturate(existing.a + mask * (1.0 - existing.a));
                 
                 // NEW: Store paint time in a way that new paint overwrites old
                 // We use the Blue channel since your poison effect is green-based
                 // Or we can use a separate texture (see TimeBrushBlit shader)
                 
-                return fixed4(finalRGB, finalA);
+                //return fixed4(finalRGB, finalA);
+                return result;
             }
 
             ENDCG

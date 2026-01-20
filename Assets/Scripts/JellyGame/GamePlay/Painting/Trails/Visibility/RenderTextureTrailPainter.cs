@@ -63,7 +63,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         private static readonly int OpacityId = Shader.PropertyToID("_Opacity");
         private static readonly int PaintTimeId = Shader.PropertyToID("_PaintTime");
         private static readonly int IsFillId = Shader.PropertyToID("_IsFill");
-
+        private static readonly int PaintTypeId = Shader.PropertyToID("_PaintType"); 
         public float DefaultHalfSizeUV => fallbackHalfSizeUV;
         
         public float SizeWorldMultiplierForRecorder => sizeWorldMultiplier;
@@ -144,11 +144,15 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
                 halfSizeUV = new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV);
 
             UpdatePaintColor();
-
-            // Paint COLOR
+            
+            // set geometry properties
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
-
+            
+            // set type to trail
+            brushBlitMaterial.SetFloat(PaintTypeId, 0f);
+            
+            //blit logic
             EnsureTemp(rt, ref _tempRT);
             brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
@@ -179,7 +183,8 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             timeBrushBlitMaterial.SetFloat("_PaintTime", currentTime);
             timeBrushBlitMaterial.SetFloat("_IsFill", isFill ? 1f : 0f);
             timeBrushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
-
+            timeBrushBlitMaterial.SetFloat("_CornerRadius", 0.2f);
+            
             EnsureTemp(timeRT, ref _tempTimeRT);
             timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
             Graphics.Blit(timeRT, _tempTimeRT, timeBrushBlitMaterial);
@@ -269,7 +274,10 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
             brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
-
+            
+            //Pass the fill flag to the shader
+            brushBlitMaterial.SetFloat(PaintTypeId, isFill ? 1f : 0f);
+            
             EnsureTemp(rt, ref _tempRT);
             brushBlitMaterial.SetTexture(brushSourceTexProperty, rt);
             Graphics.Blit(rt, _tempRT, brushBlitMaterial);
@@ -345,7 +353,8 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             UpdatePaintColor();
             
             // Fill COLOR texture
-            polygonFillMaterial.SetColor(FillColorId, _currentPaintColor);
+            polygonFillMaterial.SetColor(FillColorId, new Color(0f, 1f, 0f, 1f));
+            //polygonFillMaterial.SetColor(FillColorId, _currentPaintColor);
             polygonFillMaterial.SetFloat(OpacityId, polygonFillOpacity);
             FillPolygonToRT(rt, poly, tris, polygonFillMaterial);
 

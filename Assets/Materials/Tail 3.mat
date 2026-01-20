@@ -56,6 +56,14 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _FloorNormalMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _FloorTexture:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _METALNESS_MAP:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -155,6 +163,7 @@ Material:
     - _DstBlendAlpha: 0
     - _EnvironmentReflections: 1
     - _FadeWidth: 0.05
+    - _FloorNormalsStrenght: 1
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
@@ -191,20 +200,23 @@ Material:
     m_Colors:
     - _BASE_COLOR: {r: 0, g: 0, b: 0, a: 0}
     - _BaseColor: {r: 0.3647059, g: 0.5294118, b: 0.48235294, a: 1}
-    - _Base_Color: {r: 0.050980397, g: 1, b: 0.14509805, a: 1}
+    - _Base_Color: {r: 0.05098039, g: 1, b: 0.121304795, a: 1}
     - _BrushCenter: {r: 0, g: 0, b: 0, a: 0}
     - _BrushColor: {r: 0, g: 0, b: 0, a: 1}
     - _BrushHalfSize: {r: 0, g: 0, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EMISSION_COLOR: {r: 0, g: 0, b: 0, a: 0}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FillColor: {r: 0.9245283, g: 0.8560105, b: 0.41429326, a: 1}
+    - _FillSplurColor: {r: 0.7075472, g: 0.4557227, b: 0.15018693, a: 1}
+    - _FloorTextureTiling: {r: 1, g: 1, b: 0, a: 0}
     - _FreshColor: {r: 0.19999996, g: 0.8, b: 0.29999998, a: 1}
     - _OldColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     - _PoisonTiling: {r: 9, g: 9, b: 0, a: 0}
     - _SPECULAR_COLOR: {r: 1, g: 1, b: 1, a: 0}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SplurColor: {r: 0.05188679, g: 1, b: 0.14614508, a: 1}
-    - _Splur_color: {r: 0.050980397, g: 1, b: 0.14509805, a: 1}
+    - _Splur_color: {r: 0.13594696, g: 0.4433962, b: 0.15403223, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
 --- !u!114 &5527979902101186311
