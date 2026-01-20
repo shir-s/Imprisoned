@@ -5,11 +5,10 @@ Shader "Custom/PaintBrushBlit"
         _MainTex       ("Source (Paint RT)", 2D)      = "black" {}
         _BrushCenter   ("Brush Center",      Vector)  = (0.5, 0.5, 0, 0)
         _BrushHalfSize ("Brush Half Size",   Vector)  = (0.1, 0.1, 0, 0)
-        _BrushHardness ("Brush Hardness",    Range(0,1)) = 0.5
+        //_BrushHardness ("Brush Hardness",    Range(0,1)) = 0.5
         _BrushOpacity  ("Brush Opacity",     Range(0,1)) = 1.0
         _BrushColor    ("Brush Color",       Color)   = (0,0,0,1)
-        
-        // NEW: Time data for aging system
+        _CornerRadius  ("Corner Radius",     Range(0, 1)) = 0.2
         _PaintTime     ("Paint Time (0-1 normalized)", Float) = 0.0
     }
 
@@ -45,11 +44,12 @@ Shader "Custom/PaintBrushBlit"
             sampler2D _MainTex;
             float4    _BrushCenter;    // xy
             float4    _BrushHalfSize;  // xy
-            float     _BrushHardness;
+            //float     _BrushHardness;
             float     _BrushOpacity;
             float4    _BrushColor;
             float     _PaintTime;      // NEW: normalized time when painting
-
+            float     _CornerRadius;    
+            
             v2f vert (appdata v)
             {
                 v2f o;
@@ -65,10 +65,19 @@ Shader "Custom/PaintBrushBlit"
                 float2 halfSize = max(_BrushHalfSize.xy, float2(1e-6, 1e-6));
                 float2 rel = (i.uv - _BrushCenter.xy) / halfSize;
 
-                // square distance instead of circular
-                float r = max(abs(rel.x), abs(rel.y));
+                // square with rounded corners
+                float2 d = abs(rel) - (1.0 - _CornerRadius);
+                float dist = length(max(d, 0.0));
 
-                // soft square fade
+                if (dist > _CornerRadius)
+                    return existing;
+                
+                //float r = max(abs(rel.x), abs(rel.y));
+                /*// hard square brush
+                if (r > 1.0)
+                    return existing;*/
+
+                /*// soft square fade
                 if (r >= 1.5)
                     return existing;
 
@@ -82,7 +91,10 @@ Shader "Custom/PaintBrushBlit"
                 float hard = saturate(_BrushHardness);
                 float power = lerp(1.0, 4.0, hard);
                 mask = pow(mask, power);
+*/
 
+                float mask = 1.0;
+                
                 // opacity
                 mask *= saturate(_BrushOpacity);
 
