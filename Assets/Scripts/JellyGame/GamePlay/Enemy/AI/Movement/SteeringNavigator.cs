@@ -63,6 +63,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private HoppingLocomotion _hoppingLocomotion; // Cached reference for destination-aware hopping
         private IObstacleAvoidance _obstacleAvoidance;
         private SimplifiedSurfaceHandler _surfaceHandler;
+        private Animator _animator;
 
         #endregion
 
@@ -101,15 +102,28 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private void Awake()
         {
             InitializeComponents();
+            // Look for Animator on this object or in children (for rigged models)
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                _animator = GetComponent<Animator>();
+            }
         }
 
         private void Update()
-        {
+        { 
+            // If stopped or no target, set to idle
             if (_isStopped || _currentTarget == null)
+            {
+                UpdateAnimationState(false);
                 return;
+            }
 
             float dt = Time.deltaTime;
             Vector3 target = _currentTarget.Value;
+
+            // Check if we've reached the destination (for waypoint waiting)
+            bool hasReachedDestination = HasReachedDestination(0.5f);
 
             // Update hopping locomotion with current destination
             if (_hoppingLocomotion != null)
@@ -135,6 +149,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                         {
                             _locomotion.Stop();
                             _surfaceHandler.EnsureGrounded();
+                            UpdateAnimationState(false);
                             return;
                         }
                     }
@@ -150,10 +165,17 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             Vector3 moveDirection = ComputeMoveDirection(target);
             _debugBestDir = moveDirection;
 
-            if (moveDirection.sqrMagnitude > 0.0001f)
+            // If we've reached destination, we're idle (waiting at waypoint)
+            // Otherwise, check if we have a direction to move
+            bool isMoving = !hasReachedDestination && moveDirection.sqrMagnitude > 0.0001f;
+            
+            if (isMoving)
             {
                 _locomotion.Move(moveDirection, dt, _speedMultiplier);
             }
+            
+            // Update animation state
+            UpdateAnimationState(isMoving);
         }
 
         #endregion
@@ -200,6 +222,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _isStopped = true;
             _locomotion?.Stop();
             _surfaceHandler?.ResetTransition();
+            
+            UpdateAnimationState(false);
             
             if (_hoppingLocomotion != null)
             {
@@ -356,6 +380,26 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private Vector3 GetUp()
         {
             return enableSurfaceAlignment ? transform.up : Vector3.up;
+        }
+
+        private void UpdateAnimationState(bool isMoving)
+        {
+            if (_animator == null) return;
+
+            // Don't update walking/idle animations if currently attacking
+            // Attack animation has priority
+            bool isAttacking = _animator.GetBool("reg_attac");
+            if (isAttacking)
+                return;
+
+            _animator.SetBool("reg_walking", isMoving);
+            _animator.SetBool("reg_idle", !isMoving);
+            
+            // Debug log (remove after testing)
+            if (debugLogs && Time.frameCount % 60 == 0)
+            {
+                Debug.Log($"[SteeringNavigator] Animation state - isMoving: {isMoving}, reg_walking: {_animator.GetBool("reg_walking")}, reg_idle: {_animator.GetBool("reg_idle")}, reg_attac: {isAttacking}", this);
+            }
         }
 
         #endregion
