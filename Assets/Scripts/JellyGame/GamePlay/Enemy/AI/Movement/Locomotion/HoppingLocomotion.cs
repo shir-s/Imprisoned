@@ -14,6 +14,13 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
     /// - FIXED: Won't overshoot waypoint - hop distance clamped to actual distance
     /// - Added waypoint surface pre-check at hop start
     /// - Better handling of waypoints on different height surfaces
+    /// 
+    /// v12 Changes:
+    /// - FIXED: Wrong-side landing detection using world-space expectations
+    /// - For floors: validates spider is ABOVE surface when normal points up
+    /// - For ceilings: validates spider is BELOW surface when normal points down
+    /// - Compares new normal against previous normal - rejects sudden flips
+    /// - Surface side validation in TryFindSurfaceAtPosition rejects bad normals
     /// </summary>
     public class HoppingLocomotion : LocomotionBase
     {
@@ -323,6 +330,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
 
         /// <summary>
         /// v11: Enhanced surface finding - searches in multiple directions with larger radius
+        /// v12: Added surface side validation - rejects normals pointing away from waypoint
         /// </summary>
         private bool TryFindSurfaceAtPosition(Vector3 position, out RaycastHit bestHit, out Transform surface)
         {
@@ -353,6 +361,21 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 if (Physics.Raycast(origin, dir, out RaycastHit hit, SURFACE_SEARCH_RADIUS, 
                     surfaceLayers, QueryTriggerInteraction.Ignore))
                 {
+                    // v12 FIX: Validate surface side!
+                    // The normal should point TOWARD the waypoint position, not away from it.
+                    // If waypoint is at Y=0.1 and we hit floor from below (normal 0,-1,0),
+                    // the dot product of (waypoint - hitPoint) and normal would be negative = wrong side!
+                    Vector3 fromHitToWaypoint = position - hit.point;
+                    float dotWithNormal = Vector3.Dot(fromHitToWaypoint.normalized, hit.normal);
+                    
+                    if (dotWithNormal < -0.1f)
+                    {
+                        // Normal points away from waypoint = wrong side of surface
+                        if (_debugLogs)
+                            Debug.Log($"[HoppingLoco] Rejected surface hit: normal {V(hit.normal)} points away from waypoint (dot={dotWithNormal:F2})");
+                        continue;
+                    }
+                    
                     float dist = Vector3.Distance(position, hit.point);
                     if (dist < bestDist)
                     {
@@ -370,9 +393,16 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 if (Physics.SphereCast(position + Vector3.up * 2f, 0.5f, Vector3.down, out RaycastHit sphereHit, 
                     SURFACE_SEARCH_RADIUS, surfaceLayers, QueryTriggerInteraction.Ignore))
                 {
-                    bestHit = sphereHit;
-                    surface = sphereHit.collider.transform;
-                    found = true;
+                    // Also validate sphere cast result
+                    Vector3 fromHitToWaypoint = position - sphereHit.point;
+                    float dotWithNormal = Vector3.Dot(fromHitToWaypoint.normalized, sphereHit.normal);
+                    
+                    if (dotWithNormal >= -0.1f)
+                    {
+                        bestHit = sphereHit;
+                        surface = sphereHit.collider.transform;
+                        found = true;
+                    }
                 }
             }
             
@@ -755,10 +785,110 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             return currentPos;
         }
 
+        /// <summary>
+        /// v11 Enhanced: Validate spider is on correct side of surface.
+        /// Uses multiple checks including world-space expectations and previous normal comparison.
+        /// </summary>
         private Vector3 ValidateAndCorrectSurfaceSide(Vector3 position, Vector3 surfaceUp)
         {
             LayerMask surfaceLayers = GetSurfaceLayers();
             
+            // === CHECK 1: Is the normal physically reasonable? ===
+            // For mostly-horizontal surfaces (floors/ceilings), the normal should match world expectations
+            // If surface is horizontal (normal.y close to ±1), check if we're on the expected side
+            
+            bool isHorizontalSurface = Mathf.Abs(surfaceUp.y) > 0.7f; // Surface is floor-like or ceiling-like
+            
+            if (isHorizontalSurface)
+            {
+                // For horizontal surfaces, check if we're on the WORLD-UP side or WORLD-DOWN side
+                // A floor should have normal pointing UP (y > 0)
+                // If we got a downward normal for a floor, we're on the wrong side!
+                
+                bool normalPointsDown = surfaceUp.y < -0.7f;
+                bool spiderAboveSurface = true; // Assume true, will verify below
+                
+                // Raycast world-down to find the actual surface
+                Vector3 worldDownOrigin = position + Vector3.up * 1.0f;
+                if (Physics.Raycast(worldDownOrigin, Vector3.down, out RaycastHit worldDownHit, 3f,
+                    surfaceLayers, QueryTriggerInteraction.Ignore))
+                {
+                    // Is the spider above the hit point?
+                    spiderAboveSurface = position.y > worldDownHit.point.y - 0.1f;
+                    
+                    // If spider is above the surface but got a downward normal, that's WRONG
+                    if (spiderAboveSurface && normalPointsDown)
+                    {
+                        // Use the world-down raycast result instead - it has the correct normal
+                        Vector3 correctedPos = worldDownHit.point + worldDownHit.normal * 0.05f;
+                        _hopEndUp = worldDownHit.normal.normalized;
+                        
+                        if (_debugLogs)
+                            Debug.LogWarning($"[HoppingLoco] WRONG SIDE FIX: Spider above floor but got down-normal. " +
+                                $"Correcting normal from {V(surfaceUp)} to {V(_hopEndUp)}, pos to {V(correctedPos)}");
+                        
+                        return correctedPos;
+                    }
+                }
+                
+                // Also check: if spider is BELOW a surface and got an upward normal, that's wrong too
+                Vector3 worldUpOrigin = position + Vector3.down * 1.0f;
+                if (Physics.Raycast(worldUpOrigin, Vector3.up, out RaycastHit worldUpHit, 3f,
+                    surfaceLayers, QueryTriggerInteraction.Ignore))
+                {
+                    bool spiderBelowSurface = position.y < worldUpHit.point.y + 0.1f;
+                    bool normalPointsUp = surfaceUp.y > 0.7f;
+                    
+                    // If spider is below surface but got an upward normal, wrong!
+                    if (spiderBelowSurface && normalPointsUp && !spiderAboveSurface)
+                    {
+                        Vector3 correctedPos = worldUpHit.point + worldUpHit.normal * 0.05f;
+                        _hopEndUp = worldUpHit.normal.normalized;
+                        
+                        if (_debugLogs)
+                            Debug.LogWarning($"[HoppingLoco] WRONG SIDE FIX: Spider below ceiling but got up-normal. " +
+                                $"Correcting normal from {V(surfaceUp)} to {V(_hopEndUp)}, pos to {V(correctedPos)}");
+                        
+                        return correctedPos;
+                    }
+                }
+            }
+            
+            // === CHECK 2: Compare with previous surface normal ===
+            // If the new normal is roughly OPPOSITE to where we came from, that's suspicious
+            // (Unless it's a legitimate transition like floor-to-ceiling)
+            
+            float angleFromStart = Vector3.Angle(_hopStartUp, surfaceUp);
+            bool isOppositeToStart = angleFromStart > 150f; // Nearly opposite
+            bool wasTransitionHop = _isTransitionHop;
+            
+            if (isOppositeToStart && !wasTransitionHop)
+            {
+                // We weren't doing a transition but ended up with opposite normal - suspicious!
+                // Try to find the correct surface by raycasting from start direction
+                
+                Vector3 fromStartOrigin = position + _hopStartUp * 0.5f;
+                if (Physics.Raycast(fromStartOrigin, -_hopStartUp, out RaycastHit startDirHit, 2f,
+                    surfaceLayers, QueryTriggerInteraction.Ignore))
+                {
+                    float angleWithStartNormal = Vector3.Angle(_hopStartUp, startDirHit.normal);
+                    
+                    // If this hit has a normal similar to where we came from, use it
+                    if (angleWithStartNormal < 45f)
+                    {
+                        Vector3 correctedPos = startDirHit.point + startDirHit.normal * 0.05f;
+                        _hopEndUp = startDirHit.normal.normalized;
+                        
+                        if (_debugLogs)
+                            Debug.LogWarning($"[HoppingLoco] WRONG SIDE FIX: Got opposite normal without transition. " +
+                                $"Correcting from {V(surfaceUp)} to {V(_hopEndUp)}");
+                        
+                        return correctedPos;
+                    }
+                }
+            }
+            
+            // === CHECK 3: Original validation - position relative to surface ===
             Vector3 rayOrigin = position + surfaceUp * 0.5f;
             
             if (Physics.Raycast(rayOrigin, -surfaceUp, out RaycastHit hit, 2f, 
@@ -770,8 +900,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 if (dotWithNormal < -0.01f)
                 {
                     Vector3 correctedPos = hit.point + hit.normal * 0.05f;
+                    _hopEndUp = hit.normal.normalized;
                     if (_debugLogs)
-                        Debug.LogWarning($"[HoppingLoco] WRONG SIDE detected! Correcting from {V(position)} to {V(correctedPos)}");
+                        Debug.LogWarning($"[HoppingLoco] WRONG SIDE detected (dot check)! Correcting to {V(correctedPos)}");
                     return correctedPos;
                 }
                 else if (dotWithNormal > 0.3f)
@@ -818,16 +949,41 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private bool TryGroundHop(ref Vector3 pos, Vector3 surfaceUp, out string method)
         {
             LayerMask surfaceLayers = GetSurfaceLayers();
+            Vector3 intendedLanding = GetCurrentHopEndPos(); // Use this for side validation
+            
+            // Helper to validate surface side
+            bool IsValidSurfaceSide(RaycastHit hit)
+            {
+                // The normal should point toward the intended landing position
+                // If we're trying to land at Y=0.1 and hit returns normal (0,-1,0),
+                // that means we'd end up below the surface = wrong!
+                Vector3 fromHitToIntended = intendedLanding - hit.point;
+                float dot = Vector3.Dot(fromHitToIntended.normalized, hit.normal);
+                
+                // Allow some tolerance - dot should be >= -0.1 (not pointing strongly away)
+                // A dot of 0 means perpendicular which is fine for edges
+                // A dot of -1 means completely wrong side
+                if (dot < -0.3f)
+                {
+                    if (_debugLogs)
+                        Debug.Log($"[HoppingLoco] TryGroundHop rejected hit: normal {V(hit.normal)} points away from intended landing (dot={dot:F2})");
+                    return false;
+                }
+                return true;
+            }
             
             // Method 1: Raycast from above along target up direction
             Vector3 rayOrigin1 = pos + surfaceUp * 0.5f;
             if (Physics.Raycast(rayOrigin1, -surfaceUp, out RaycastHit hit1, 2f, 
                 surfaceLayers, QueryTriggerInteraction.Ignore))
             {
-                pos = hit1.point + hit1.normal * 0.05f;
-                _hopEndUp = hit1.normal.normalized;
-                method = "raycast-surfaceUp";
-                return true;
+                if (IsValidSurfaceSide(hit1))
+                {
+                    pos = hit1.point + hit1.normal * 0.05f;
+                    _hopEndUp = hit1.normal.normalized;
+                    method = "raycast-surfaceUp";
+                    return true;
+                }
             }
             
             // Method 2: World down
@@ -835,20 +991,26 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (Physics.Raycast(rayOrigin2, Vector3.down, out RaycastHit hit2, 2f, 
                 surfaceLayers, QueryTriggerInteraction.Ignore))
             {
-                pos = hit2.point + hit2.normal * 0.05f;
-                _hopEndUp = hit2.normal.normalized;
-                method = "raycast-worldDown";
-                return true;
+                if (IsValidSurfaceSide(hit2))
+                {
+                    pos = hit2.point + hit2.normal * 0.05f;
+                    _hopEndUp = hit2.normal.normalized;
+                    method = "raycast-worldDown";
+                    return true;
+                }
             }
             
             // Method 3: SphereCast
             if (Physics.SphereCast(rayOrigin1, 0.3f, -surfaceUp, out RaycastHit hit3, 2f, 
                 surfaceLayers, QueryTriggerInteraction.Ignore))
             {
-                pos = hit3.point + hit3.normal * 0.1f;
-                _hopEndUp = hit3.normal.normalized;
-                method = "spherecast";
-                return true;
+                if (IsValidSurfaceSide(hit3))
+                {
+                    pos = hit3.point + hit3.normal * 0.1f;
+                    _hopEndUp = hit3.normal.normalized;
+                    method = "spherecast";
+                    return true;
+                }
             }
             
             // Method 4: Start up fallback
@@ -856,13 +1018,16 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             if (Physics.Raycast(rayOrigin4, -_hopStartUp, out RaycastHit hit4, 2f, 
                 surfaceLayers, QueryTriggerInteraction.Ignore))
             {
-                pos = hit4.point + hit4.normal * 0.05f;
-                _hopEndUp = hit4.normal.normalized;
-                method = "raycast-startUp-fallback";
-                return true;
+                if (IsValidSurfaceSide(hit4))
+                {
+                    pos = hit4.point + hit4.normal * 0.05f;
+                    _hopEndUp = hit4.normal.normalized;
+                    method = "raycast-startUp-fallback";
+                    return true;
+                }
             }
             
-            // Method 5: Emergency all directions
+            // Method 5: Emergency all directions - WITH validation
             Vector3[] emergencyDirs = { Vector3.down, Vector3.up, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
             foreach (var dir in emergencyDirs)
             {
@@ -870,9 +1035,31 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 if (Physics.Raycast(origin, dir, out RaycastHit emergencyHit, 3f, 
                     surfaceLayers, QueryTriggerInteraction.Ignore))
                 {
-                    pos = emergencyHit.point + emergencyHit.normal * 0.05f;
-                    _hopEndUp = emergencyHit.normal.normalized;
-                    method = $"emergency-{dir}";
+                    if (IsValidSurfaceSide(emergencyHit))
+                    {
+                        pos = emergencyHit.point + emergencyHit.normal * 0.05f;
+                        _hopEndUp = emergencyHit.normal.normalized;
+                        method = $"emergency-{dir}";
+                        return true;
+                    }
+                }
+            }
+            
+            // Method 6: LAST RESORT - accept any surface but log warning
+            // This prevents getting completely stuck, but warns about potential wrong-side landing
+            foreach (var dir in emergencyDirs)
+            {
+                Vector3 origin = pos - dir * 0.5f;
+                if (Physics.Raycast(origin, dir, out RaycastHit lastResortHit, 3f, 
+                    surfaceLayers, QueryTriggerInteraction.Ignore))
+                {
+                    pos = lastResortHit.point + lastResortHit.normal * 0.05f;
+                    _hopEndUp = lastResortHit.normal.normalized;
+                    method = $"lastResort-{dir}";
+                    
+                    if (_debugLogs)
+                        Debug.LogWarning($"[HoppingLoco] Last resort grounding used - may be wrong side! normal={V(_hopEndUp)}");
+                    
                     return true;
                 }
             }
