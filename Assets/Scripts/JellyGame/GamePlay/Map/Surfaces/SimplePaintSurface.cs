@@ -100,7 +100,7 @@ namespace JellyGame.GamePlay.Map.Surfaces
 
             _paintRT = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.ARGB32);
             _paintRT.wrapMode = TextureWrapMode.Clamp;
-            _paintRT.filterMode = FilterMode.Bilinear;
+            _paintRT.filterMode = FilterMode.Point;
             _paintRT.Create();
 
             ClearRT(_paintRT, clearColor);
@@ -117,7 +117,7 @@ namespace JellyGame.GamePlay.Map.Surfaces
                 // RFloat gives us full 32-bit float precision for time values
                 _paintTimeRT = new RenderTexture(textureSize, textureSize, 0, RenderTextureFormat.RGFloat);
                 _paintTimeRT.wrapMode = TextureWrapMode.Clamp;
-                _paintTimeRT.filterMode = FilterMode.Point;
+                _paintTimeRT.filterMode = FilterMode.Bilinear;
                 _paintTimeRT.Create();
 
                 // Initialize with 0 (will be overwritten when painted)

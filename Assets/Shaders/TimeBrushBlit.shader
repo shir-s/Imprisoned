@@ -13,6 +13,7 @@ Shader "Custom/TimeBrushBlit"
         _PaintTime     ("Paint Time (seconds)", Float) = 0.0
         _IsFill        ("Is Fill (0=trail, 1=fill)", Float) = 0.0
         _MaxAge        ("Max Age (seconds)", Float) = 10.0
+        _CornerRadius  ("Corner Radius",    Range(0, 1)) = 0.2
     }
 
     SubShader
@@ -49,7 +50,8 @@ Shader "Custom/TimeBrushBlit"
             float     _PaintTime;
             float     _IsFill;
             float     _MaxAge;
-
+            float     _CornerRadius;
+            
             v2f vert (appdata v)
             {
                 v2f o;
@@ -65,43 +67,26 @@ Shader "Custom/TimeBrushBlit"
                 float2 halfSize = max(_BrushHalfSize.xy, float2(1e-6, 1e-6));
                 float2 rel = (i.uv - _BrushCenter.xy) / halfSize;
 
-                float r = max(abs(rel.x), abs(rel.y));
+                float2 d = abs(rel) - (1.0 - _CornerRadius);
+                float dist = length(max(d, 0.0));
 
-                if (r >= 1.5)
+                if (dist > _CornerRadius)
                     return existing;
 
-                float inner = 0.6;
-                float outer = 1.5;
-                float t = saturate((r - inner) / (outer - inner));
-
-                float mask = 1.0 - smoothstep(0.0, 1.0, t);
-                float hard = saturate(_BrushHardness);
-                float power = lerp(1.0, 4.0, hard);
-                mask = pow(mask, power);
-                mask *= saturate(_BrushOpacity);
-
-                // NEW: Fresh trail protection
-                if (_IsFill > 0.5 && mask > 0.01)
+                if (_IsFill > 0.5)
                 {
                     float existingIsFill = existing.g;
                     float existingTime = existing.r;
-                    
-                    // If existing pixel is a trail (G < 0.5) and has been painted (time > 0)
                     if (existingIsFill < 0.5 && existingTime > 0.0)
                     {
                         float age = _PaintTime - existingTime;
                         if (age < _MaxAge)
                         {
-                            // Fresh trail - don't paint over it
                             return existing;
                         }
                     }
                 }
-
-                float finalTime = lerp(existing.r, _PaintTime, step(0.01, mask));
-                float fillFlag = lerp(existing.g, _IsFill, step(0.01, mask));
-
-                return float4(finalTime, fillFlag, 0, 1);
+                return float4(_PaintTime, _IsFill, 0, 1);
             }
             ENDCG
         }
