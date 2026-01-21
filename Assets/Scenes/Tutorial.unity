@@ -32003,7 +32003,7 @@ MonoBehaviour:
     onGateComplete:
       m_PersistentCalls:
         m_Calls: []
-  - enabled: 1
+  - enabled: 0
     requirement: 0
     afterCompleteCountdownSeconds: 3
     activateObjectOnGateStart: {fileID: 0}
@@ -32032,13 +32032,26 @@ MonoBehaviour:
   - enabled: 1
     requirement: 1
     afterCompleteCountdownSeconds: 2
-    activateObjectOnGateStart: {fileID: 0}
+    activateObjectOnGateStart: {fileID: 1820748832}
     orderedTriggerSequence: {fileID: 1820748834}
-    deactivateObjectOnGateComplete: 0
+    deactivateObjectOnGateComplete: 1
     enemyLayerName: Enemy
     onGateStart:
       m_PersistentCalls:
-        m_Calls: []
+        m_Calls:
+        - m_Target: {fileID: 1820748834}
+          m_TargetAssemblyTypeName: JellyGame.UI.Tutorial.OrderedTriggerSequence,
+            Assembly-CSharp
+          m_MethodName: StartSequence
+          m_Mode: 1
+          m_Arguments:
+            m_ObjectArgument: {fileID: 0}
+            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+            m_IntArgument: 0
+            m_FloatArgument: 0
+            m_StringArgument: 
+            m_BoolArgument: 0
+          m_CallState: 2
     onGateComplete:
       m_PersistentCalls:
         m_Calls: []
@@ -89330,7 +89343,7 @@ Transform:
   m_GameObject: {fileID: 1820748832}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: -3.73, z: 0}
+  m_LocalPosition: {x: 0, y: -0.26, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -100241,7 +100254,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
   uniformScale: 1
   minSize: 0.2
-  maxSize: 3
+  maxSize: 5
   sizeLossPerDamage: 1
   sizeGainPerHeal: 1
   destroyOnDeath: 1
@@ -100719,7 +100732,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e84e16fa0beda4b99c2f5f0037e65a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.AreaFillSelfDamage
-  damagePerSquareMeter: 0.0002
+  damagePerSquareMeter: 0.002
   minDamagePerFill: 0
   maxDamagePerFill: 3
   onlyWhenAbilityActive: 1
@@ -101870,7 +101883,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a145ec368715b354ebe1e56ef7d3982a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.WearOnMovementDamage
-  damagePerMeter: 0.0001
+  damagePerMeter: 0.0005
   tickInterval: 0.1
   minProjectedMoveDelta: 0.0005
   surfaceMask:
