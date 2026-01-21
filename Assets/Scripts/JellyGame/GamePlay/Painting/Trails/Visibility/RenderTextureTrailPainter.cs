@@ -263,6 +263,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
                 return;
 
             var rt = surface.PaintRT;
+            var timeRT = surface.PaintTimeRT;
             if (rt == null)
                 return;
 
@@ -270,10 +271,17 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             halfSizeUV = Mathf.Max(0.00001f, halfSizeUV);
             opacity = Mathf.Clamp01(opacity);
+            
+            float currentTime = surface.GetCurrentTime();
 
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
             brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
+            brushBlitMaterial.SetFloat("_CornerRadius", 0.2f);
+            
+            brushBlitMaterial.SetTexture("_TimeTex", timeRT); // קריטי!
+            brushBlitMaterial.SetFloat("_PaintTime", currentTime);
+            brushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
             
             //Pass the fill flag to the shader
             brushBlitMaterial.SetFloat(PaintTypeId, isFill ? 1f : 0f);

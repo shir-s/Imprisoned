@@ -5,6 +5,7 @@ using JellyGame.GamePlay.Abilities;
 using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Map.Surfaces;
+using JellyGame.GamePlay.Painting.Trails.Collision;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
 using UnityEngine;
 
@@ -26,6 +27,16 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [Header("Fill Mode")]
         [SerializeField] private AreaFillMode fillMode = AreaFillMode.ProgressiveAnimated;
         [SerializeField] private bool useGpuPolygonFill = true;
+
+        [Header("Inner/Outer From Stroke Edges")]
+        [Tooltip("If true and StrokeTrailRecorder is recording edge pairs, we build TWO closed polygons from the stroke edges (left & right).\n" +
+                 "The outer polygon is closed using a parallel point match (not just straight line back to start).\n" +
+                 "We pick the BIGGER polygon for gameplay/zone colliders, and the SMALLER polygon for shader fill.")]
+        [SerializeField] private bool useStrokeEdgeInnerOuter = true;
+
+        [Tooltip("If true, shader fill uses the outer (larger) polygon. If false, shader fill uses the inner (smaller) polygon.\n" +
+                 "The collider always uses the opposite polygon (larger for gameplay zones).")]
+        [SerializeField] private bool fillUsesOuterPolygon = false;
 
         [Header("Progressive Animated Fill (budgeted)")]
         [Tooltip("Work time per frame for build+paint. Keeps FPS stable on weak PCs.")]
@@ -105,28 +116,96 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (paintSurfaces == null || paintSurfaces.Count == 0 || painter == null || seg.history == null)
                 return false;
 
-            // Build world-space polygon from stroke history
-            List<Vector3> worldPolyPoints = new List<Vector3>();
+            // Fallback: build world-space polygon from stroke history center points
+            List<Vector3> worldCenterPolyPoints = new List<Vector3>();
             for (int i = seg.startIndex; i <= seg.endIndexInclusive; i++)
             {
-                worldPolyPoints.Add(seg.history[i].WorldPos);
+                worldCenterPolyPoints.Add(seg.history[i].WorldPos);
             }
 
-            if (worldPolyPoints.Count < 3)
+            if (worldCenterPolyPoints.Count < 3)
                 return false;
+
+            // Optional: build TWO world-space polygons from stroke edge pairs (left & right)
+            // The outer polygon closure uses parallel point matching instead of straight line back to start
+            List<Vector3> worldInnerPolyPoints = null;
+            List<Vector3> worldOuterPolyPoints = null;
+            bool haveEdgePolys = useStrokeEdgeInnerOuter && TryBuildEdgeWorldPolygonsWithParallelClosure(
+                seg, 
+                out worldInnerPolyPoints, 
+                out worldOuterPolyPoints);
 
             // Collect fill data for each surface that intersects with the polygon
             List<SurfaceFillData> surfaceFillDatas = new List<SurfaceFillData>();
+
+            // We will paint using the SMALLER polygon (shader fill), but spawn gameplay zones using the BIGGER polygon (colliders).
+            bool haveAbilityPolys = false;
+            SimplePaintSurface abilitySurface = null;
+            List<Vector2> abilityColliderPolyXZ = null;
+            List<Vector2> abilityFillPolyXZ = null;
+            Bounds abilityColliderBounds = default;
 
             foreach (var surface in paintSurfaces)
             {
                 if (surface == null)
                     continue;
 
-                SurfaceFillData? fillData = BuildSurfaceFillData(surface, worldPolyPoints);
-                if (fillData.HasValue)
+                // Prefer edge-based inner/outer if available; otherwise fall back to centerline polygon.
+                SurfaceFillData? fillSmall = null;
+                SurfaceFillData? fillBig = null;
+
+                if (haveEdgePolys)
                 {
-                    surfaceFillDatas.Add(fillData.Value);
+                    SurfaceFillData? inner = BuildSurfaceFillData(surface, worldInnerPolyPoints);
+                    SurfaceFillData? outer = BuildSurfaceFillData(surface, worldOuterPolyPoints);
+
+                    if (inner.HasValue && outer.HasValue)
+                    {
+                        float areaInner = PolygonAreaAbs(inner.Value.localPolyXZ);
+                        float areaOuter = PolygonAreaAbs(outer.Value.localPolyXZ);
+
+                        if (areaInner <= areaOuter)
+                        {
+                            fillSmall = inner;
+                            fillBig = outer;
+                        }
+                        else
+                        {
+                            fillSmall = outer;
+                            fillBig = inner;
+                        }
+                    }
+                }
+
+                if (!fillSmall.HasValue || !fillBig.HasValue)
+                {
+                    // fallback (single polygon)
+                    SurfaceFillData? fallback = BuildSurfaceFillData(surface, worldCenterPolyPoints);
+                    if (fallback.HasValue)
+                    {
+                        fillSmall = fallback;
+                        fillBig = fallback;
+                    }
+                }
+
+                if (fillSmall.HasValue && fillBig.HasValue)
+                {
+                    // Choose fill polygon based on setting
+                    var fillPolygonToUse = fillUsesOuterPolygon ? fillBig.Value : fillSmall.Value;
+                    var colliderPolygonToUse = fillUsesOuterPolygon ? fillSmall.Value : fillBig.Value;
+
+                    // For painting, store the selected fill polygon
+                    surfaceFillDatas.Add(fillPolygonToUse);
+
+                    // For ability/colliders, store the opposite polygon (once, from the first valid surface)
+                    if (!haveAbilityPolys)
+                    {
+                        haveAbilityPolys = true;
+                        abilitySurface = colliderPolygonToUse.surface;
+                        abilityColliderPolyXZ = colliderPolygonToUse.localPolyXZ;
+                        abilityColliderBounds = colliderPolygonToUse.localBounds;
+                        abilityFillPolyXZ = fillPolygonToUse.localPolyXZ;
+                    }
                 }
             }
 
@@ -144,21 +223,27 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (SoundManager.Instance != null)
                 SoundManager.Instance.PlaySound("CloseArea", this.transform);
 
-            // Notify ability manager with the first surface's data (for zone spawning)
-            if (PlayerAbilityManager.Instance != null && surfaceFillDatas.Count > 0)
+            // Notify ability manager:
+            // - Fill polygon (SMALL) is used for "filled area" cost (self-damage).
+            // - Collider polygon (BIG) is used for gameplay zone spawning.
+            if (PlayerAbilityManager.Instance != null && haveAbilityPolys && abilitySurface != null)
             {
+                PlayerAbilityManager.Instance.OnAreaFilled(abilitySurface, abilityFillPolyXZ, abilityColliderPolyXZ, abilityColliderBounds);
+            }
+            else if (PlayerAbilityManager.Instance != null && surfaceFillDatas.Count > 0)
+            {
+                // Fallback if no edge polygons available
                 var firstData = surfaceFillDatas[0];
-                PlayerAbilityManager.Instance.OnAreaFilled(firstData.surface, firstData.localPolyXZ, firstData.localBounds);
+                PlayerAbilityManager.Instance.OnAreaFilled(firstData.surface, firstData.localPolyXZ, firstData.localPolyXZ, firstData.localBounds);
             }
 
             // NEW: Trigger a single "AreaClosed" event (once per closure)
             {
-                var firstData = surfaceFillDatas[0];
                 var evt = new EventManager.AreaClosedEventData
                 {
                     source = this,
-                    surfaceTransform = firstData.surface != null ? firstData.surface.transform : null,
-                    localBounds = firstData.localBounds
+                    surfaceTransform = abilitySurface != null ? abilitySurface.transform : (surfaceFillDatas.Count > 0 ? surfaceFillDatas[0].surface?.transform : null),
+                    localBounds = haveAbilityPolys ? abilityColliderBounds : (surfaceFillDatas.Count > 0 ? surfaceFillDatas[0].localBounds : default)
                 };
                 EventManager.TriggerEvent(EventManager.GameEvent.AreaClosed, evt);
             }
@@ -183,6 +268,202 @@ namespace JellyGame.GamePlay.Painting.Shapes
             return true;
         }
 
+        /// <summary>
+        /// Builds two closed polygons from stroke edge pairs (left & right).
+        /// The outer polygon closure uses parallel point matching: finds the point on the outer trail
+        /// that is closest to being parallel with the inner closure point (instead of just connecting
+        /// the outer end point directly back to the outer start point).
+        /// </summary>
+        private bool TryBuildEdgeWorldPolygonsWithParallelClosure(
+            StrokeLoopSegment seg, 
+            out List<Vector3> worldInner, 
+            out List<Vector3> worldOuter)
+        {
+            worldInner = null;
+            worldOuter = null;
+
+            var recorder = GetComponent<StrokeTrailRecorder>();
+            if (recorder == null || !recorder.EdgePairsEnabled)
+                return false;
+
+            var edgePairs = recorder.EdgePairs;
+            if (edgePairs == null || edgePairs.Count == 0)
+                return false;
+
+            int start = seg.startIndex;
+            int end = seg.endIndexInclusive;
+
+            if (start < 0 || end < start || seg.history == null)
+                return false;
+
+            // Build left and right edge point lists
+            int cap = Mathf.Max(0, end - start + 1);
+            var left = new List<Vector3>(cap);
+            var right = new List<Vector3>(cap);
+
+            for (int i = start; i <= end; i++)
+            {
+                if (i < 0 || i >= seg.history.Count || i >= edgePairs.Count)
+                    continue;
+
+                Vector3 centerWorld = seg.history[i].WorldPos;
+                var p = edgePairs[i];
+
+                if (p.hasLeft)
+                    left.Add(p.GetLeftWorld(centerWorld));
+
+                if (p.hasRight)
+                    right.Add(p.GetRightWorld(centerWorld));
+            }
+
+            RemoveConsecutiveNearDuplicates(left, 0.00001f);
+            RemoveConsecutiveNearDuplicates(right, 0.00001f);
+
+            RemoveClosingDuplicate(left, 0.00001f);
+            RemoveClosingDuplicate(right, 0.00001f);
+
+            if (left.Count < 3 || right.Count < 3)
+                return false;
+
+            // Determine which is inner and which is outer based on closure point distances
+            Vector3 innerStart = seg.history[start].WorldPos;
+            Vector3 innerEnd = seg.history[end].WorldPos;
+            Vector3 closureDir = (innerEnd - innerStart).normalized;
+
+            // Get edge points at closure
+            var startPair = edgePairs[start];
+            var endPair = edgePairs[end];
+            Vector3 leftStart = startPair.hasLeft ? startPair.GetLeftWorld(innerStart) : innerStart;
+            Vector3 leftEnd = endPair.hasLeft ? endPair.GetLeftWorld(innerEnd) : innerEnd;
+            Vector3 rightStart = startPair.hasRight ? startPair.GetRightWorld(innerStart) : innerStart;
+            Vector3 rightEnd = endPair.hasRight ? endPair.GetRightWorld(innerEnd) : innerEnd;
+
+            // Find parallel closure point on the outer trail
+            // The closure connects start and end on the inner trail. We want to find the matching
+            // point on the outer trail that is parallel to this closure.
+            List<Vector3> innerPoly, outerPoly;
+
+            float distLeftStart = Vector3.Distance(leftStart, innerStart);
+            float distLeftEnd = Vector3.Distance(leftEnd, innerEnd);
+            float distRightStart = Vector3.Distance(rightStart, innerStart);
+            float distRightEnd = Vector3.Distance(rightEnd, innerEnd);
+
+            // Whichever edge is closer to the center at both closure points is likely the inner edge
+            float leftClosureDist = distLeftStart + distLeftEnd;
+            float rightClosureDist = distRightStart + distRightEnd;
+
+            if (leftClosureDist <= rightClosureDist)
+            {
+                innerPoly = left;
+                outerPoly = right;
+            }
+            else
+            {
+                innerPoly = right;
+                outerPoly = left;
+            }
+
+            // For inner polygon: close normally (already closed by removing duplicate)
+            // For outer polygon: find parallel closure point
+            List<Vector3> outerClosed = new List<Vector3>(outerPoly);
+
+            // Find the point on the outer trail that is most parallel to the inner closure
+            // Project each outer point onto the closure line and find the best match
+            int bestMatchIdx = -1;
+            float bestMatchScore = float.PositiveInfinity;
+
+            // The closure vector goes from inner start to inner end
+            Vector3 innerClosureVec = innerEnd - innerStart;
+            float innerClosureLen = innerClosureVec.magnitude;
+            if (innerClosureLen < 0.0001f)
+            {
+                // Degenerate closure, just close normally
+                worldInner = innerPoly;
+                worldOuter = outerClosed;
+                return true;
+            }
+
+            Vector3 innerClosureDir = innerClosureVec / innerClosureLen;
+            Vector3 innerStartToOuterStart = outerClosed[0] - innerStart;
+
+            // Project the outer start point onto the closure line
+            float projStart = Vector3.Dot(innerStartToOuterStart, innerClosureDir);
+            float desiredProj = innerClosureLen; // We want to find a point at the end of the closure line
+
+            // Search through outer points to find the one closest to the desired projection
+            for (int i = 0; i < outerClosed.Count; i++)
+            {
+                Vector3 outerPt = outerClosed[i];
+                Vector3 innerStartToOuterPt = outerPt - innerStart;
+                float proj = Vector3.Dot(innerStartToOuterPt, innerClosureDir);
+
+                // Score: distance from desired projection + perpendicular distance from closure line
+                float perpDist = Vector3.Cross(innerStartToOuterPt, innerClosureDir).magnitude;
+                float score = Mathf.Abs(proj - desiredProj) + perpDist * 0.5f; // Weight perpendicular distance less
+
+                if (score < bestMatchScore)
+                {
+                    bestMatchScore = score;
+                    bestMatchIdx = i;
+                }
+            }
+
+            // If we found a good match, close to that point instead of the first point
+            if (bestMatchIdx >= 0 && bestMatchIdx < outerClosed.Count - 1)
+            {
+                // Move matching point to end for proper closure
+                if (bestMatchIdx > 0)
+                {
+                    Vector3 matchPoint = outerClosed[bestMatchIdx];
+                    outerClosed.RemoveAt(bestMatchIdx);
+                    outerClosed.Add(matchPoint);
+                }
+            }
+            // Otherwise, outer is already closed normally
+
+            worldInner = innerPoly;
+            worldOuter = outerClosed;
+            return true;
+        }
+
+        private static void RemoveConsecutiveNearDuplicates(List<Vector3> pts, float minSqrDist)
+        {
+            if (pts == null || pts.Count < 2)
+                return;
+
+            for (int i = pts.Count - 1; i >= 1; i--)
+            {
+                if ((pts[i] - pts[i - 1]).sqrMagnitude <= minSqrDist)
+                    pts.RemoveAt(i);
+            }
+        }
+
+        private static void RemoveClosingDuplicate(List<Vector3> pts, float minSqrDist)
+        {
+            if (pts == null || pts.Count < 3)
+                return;
+
+            if ((pts[0] - pts[pts.Count - 1]).sqrMagnitude <= minSqrDist)
+                pts.RemoveAt(pts.Count - 1);
+        }
+
+        private static float PolygonAreaAbs(List<Vector2> poly)
+        {
+            if (poly == null || poly.Count < 3)
+                return 0f;
+
+            double sum = 0.0;
+            int n = poly.Count;
+
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 a = poly[i];
+                Vector2 b = poly[(i + 1) % n];
+                sum += (double)a.x * b.y - (double)b.x * a.y;
+            }
+
+            return Mathf.Abs((float)sum) * 0.5f;
+        }
 
         /// <summary>
         /// Build fill data for a single surface from world-space polygon points.
