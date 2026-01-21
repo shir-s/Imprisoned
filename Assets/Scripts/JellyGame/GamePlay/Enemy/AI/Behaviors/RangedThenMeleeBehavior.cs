@@ -47,12 +47,17 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [SerializeField] private float damagePerHit = 1f;
         [SerializeField] private float hitCooldownSeconds = 0.5f;
 
+        [Header("Animation")]
+        [Tooltip("Parameter name for attack animation. Leave empty to use default 'ran_attac'.")]
+        [SerializeField] private string attackParamName = "ran_attac";
+
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
         public int Priority => priority;
 
         private SteeringNavigator _nav;
+        private Animator _animator;
 
         private Transform _target;
         private Collider _targetCol;
@@ -69,6 +74,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         private void Awake()
         {
             _nav = GetComponent<SteeringNavigator>();
+            // Look for Animator on this object or in children (for rigged models)
+            _animator = GetComponentInChildren<Animator>();
+            if (_animator == null)
+            {
+                _animator = GetComponent<Animator>();
+            }
         }
 
         public bool CanActivate()
@@ -80,9 +91,15 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
                 ClearTarget();
                 _phase = Phase.None;
+                UpdateAttackAnimation(false);
             }
 
-            return TryAcquireTarget();
+            bool hasTarget = TryAcquireTarget();
+            if (!hasTarget)
+            {
+                UpdateAttackAnimation(false);
+            }
+            return hasTarget;
         }
 
         public void OnEnter()
@@ -110,6 +127,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             if (_target == null || _targetCol == null)
             {
                 _nav.Stop();
+                UpdateAttackAnimation(false);
                 return;
             }
 
@@ -118,6 +136,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                 _nav.Stop();
                 ClearTarget();
                 _phase = Phase.None;
+                UpdateAttackAnimation(false);
                 return;
             }
 
@@ -136,6 +155,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (_phase == Phase.Shooting)
             {
+                // Update attack animation - shooting when in range
+                UpdateAttackAnimation(true);
+                
                 if (distXZ > shootRange)
                 {
                     _nav.SetDestination(tpos);
@@ -150,6 +172,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (_phase == Phase.ChasingDuringSlow)
             {
+                // Not shooting during chase phase - return to idle
+                UpdateAttackAnimation(false);
+                
                 if (distXZ > meleeAttackRadius)
                 {
                     _nav.SetDestination(tpos);
@@ -162,6 +187,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             }
 
             _nav.Stop();
+            UpdateAttackAnimation(false);
         }
 
         public void OnExit()
@@ -169,6 +195,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nav.Stop();
             ClearTarget();
             _phase = Phase.None;
+            UpdateAttackAnimation(false);
         }
 
     private void TryShootAtTarget()
@@ -431,6 +458,21 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nextShootTime = 0f;
             _nextMeleeHitTime = 0f;
             _slowWindowEndTime = -1f;
+            
+            UpdateAttackAnimation(false);
+        }
+
+        private void UpdateAttackAnimation(bool isAttacking)
+        {
+            if (_animator == null) return;
+
+            string attackParam = string.IsNullOrEmpty(attackParamName) ? "ran_attac" : attackParamName;
+            _animator.SetBool(attackParam, isAttacking);
+            
+            if (debugLogs && Time.frameCount % 60 == 0)
+            {
+                Debug.Log($"[RangedThenMelee] Attack animation - {attackParam}: {isAttacking}", this);
+            }
         }
     }
 }
