@@ -68,6 +68,10 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _TimeTex:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
@@ -88,7 +92,7 @@ Material:
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BrushHardness: 0.5
-    - _BrushOpacity: 0.003405264
+    - _BrushOpacity: 0.00009408818
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
@@ -103,9 +107,10 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
+    - _MaxAge: 10
     - _Metallic: 0
     - _OcclusionStrength: 1
-    - _PaintTime: 0
+    - _PaintTime: 12.245886
     - _PaintType: 0
     - _Parallax: 0.005
     - _QueueOffset: 0
@@ -121,9 +126,9 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BrushCenter: {r: 0.07638395, g: 0.49993038, b: 0, a: 0}
+    - _BrushCenter: {r: 0.78561354, g: 0.18209088, b: 0, a: 0}
     - _BrushColor: {r: 0, g: 0.9407029, b: 1, a: 1}
-    - _BrushHalfSize: {r: 0.07638395, g: 0.06318921, b: 0, a: 0}
+    - _BrushHalfSize: {r: 0.04472184, g: 0.04472184, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}

@@ -114,23 +114,31 @@ namespace JellyGame.GamePlay.Abilities
         /// <summary>
         /// Called by AreaFillShapeDetector when a closed area was detected + filled.
         /// </summary>
-        public void OnAreaFilled(SimplePaintSurface surface, System.Collections.Generic.IReadOnlyList<Vector2> localPolyXZ, Bounds localBounds)
+        public void OnAreaFilled(
+            SimplePaintSurface surface,
+            System.Collections.Generic.IReadOnlyList<Vector2> localFillPolyXZ,
+            System.Collections.Generic.IReadOnlyList<Vector2> localColliderPolyXZ,
+            Bounds localColliderBounds)
         {
             var ability = ActiveAbility;
             bool abilityActive = (ability != null && ability.CanSpawnZone);
 
-            // 1) Apply cost (optional)
+            // 1) Apply cost (optional) - uses fill polygon (smaller)
             if (areaFillSelfDamage != null)
-                areaFillSelfDamage.HandleAreaFilled(surface, localPolyXZ, abilityActive);
+                areaFillSelfDamage.HandleAreaFilled(surface, localFillPolyXZ, abilityActive);
 
-            // 2) Spawn zone (if ability supports it)
+            // 2) Spawn zone (if ability supports it) - uses collider polygon (larger)
             if (!abilityActive)
                 return;
 
             if (debugLogs)
                 Debug.Log($"[PlayerAbilityManager] OnAreaFilled -> {activeAbilityAsset.name}", this);
 
-            ability.SpawnZone(new AbilityZoneContext(surface, localPolyXZ, localBounds));
+            var zonePoly = localColliderPolyXZ != null && localColliderPolyXZ.Count >= 3
+                ? localColliderPolyXZ
+                : localFillPolyXZ;
+
+            ability.SpawnZone(new AbilityZoneContext(surface, zonePoly, localColliderBounds));
         }
 
         /// <summary>
