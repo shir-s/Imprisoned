@@ -1,7 +1,7 @@
 // FILEPATH: Assets/Scripts/AI/Movement/SteeringNavigator.cs
 //
 // UPDATED VERSION - Uses enhanced HoppingLocomotion for proper surface transitions
-// v3 Changes: Passes debug flag to HoppingLocomotion for landing diagnostics
+// v4 Changes: Don't call EnsureGrounded for hopping locomotion (prevents drift on tilted surfaces)
 
 using UnityEngine;
 
@@ -18,6 +18,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
     /// v3 Changes:
     /// - Passes debug flag to HoppingLocomotion for landing diagnostics
     /// - Added LastHopLandingDistance property for monitoring
+    /// 
+    /// v4 Changes:
+    /// - FIXED: Don't call EnsureGrounded for hopping locomotion
+    /// - Hopping locomotion handles its own grounding at landing time
+    /// - Prevents drift/sliding on tilted surfaces between hops
     /// </summary>
     [DisallowMultipleComponent]
     public class SteeringNavigator : MonoBehaviour, ISpeedMultiplierSink
@@ -131,27 +136,22 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 _hoppingLocomotion.SetDestination(target);
             }
 
-            // Handle surface alignment
-            if (_surfaceHandler != null)
+            // Handle surface alignment - ONLY for continuous locomotion
+            // Hopping locomotion handles its own grounding at landing time
+            if (_surfaceHandler != null && locomotionType == LocomotionType.Continuous)
             {
                 bool isMidHop = _locomotion != null && _locomotion.IsInMotion;
-                bool isHopTransition = _hoppingLocomotion?.IsTransitionHop ?? false;
 
-                // Don't run surface handler during hopping - the hop itself handles transitions
-                if (!isMidHop && !isHopTransition)
+                if (!isMidHop)
                 {
-                    // For continuous locomotion, let surface handler detect transitions
-                    if (locomotionType == LocomotionType.Continuous)
-                    {
-                        _surfaceHandler.UpdateSurface(target, dt);
+                    _surfaceHandler.UpdateSurface(target, dt);
 
-                        if (_surfaceHandler.ShouldBlockMovement)
-                        {
-                            _locomotion.Stop();
-                            _surfaceHandler.EnsureGrounded();
-                            UpdateAnimationState(false);
-                            return;
-                        }
+                    if (_surfaceHandler.ShouldBlockMovement)
+                    {
+                        _locomotion.Stop();
+                        _surfaceHandler.EnsureGrounded();
+                        UpdateAnimationState(false);
+                        return;
                     }
 
                     if (!_locomotion.IsInMotion)
@@ -160,6 +160,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                     }
                 }
             }
+            // For hopping locomotion: DO NOT call EnsureGrounded!
+            // The hop landing already positions the spider correctly.
+            // Calling EnsureGrounded causes drift on tilted surfaces.
 
             // Compute move direction
             Vector3 moveDirection = ComputeMoveDirection(target);
