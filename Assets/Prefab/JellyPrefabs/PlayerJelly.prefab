@@ -5346,6 +5346,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab9949d3c44870b47a9d379d9b894797, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RenderTextureTrailPainter
+  trailProtectionMaxAge: 10
   surfaceMask:
     serializedVersion: 2
     m_Bits: 64
@@ -5501,7 +5502,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailAnalyzer
   closureMaxDistance: 0.6
   minLoopIndexSeparation: 10
+  useEdgePairsForClosure: 1
+  consumeHistoryUpToClosurePoint: 1
+  ageConsumedTrailSection: 1
   minCornerSeparationMeters: 5
+  trailPainter: {fileID: 0}
+  paintSurface: {fileID: 0}
   debugLoop: 0
   debugLoopVerbose: 0
 --- !u!114 &8519175273987129019
@@ -5522,10 +5528,16 @@ MonoBehaviour:
   rayDistance: 10
   useWorldDown: 1
   minSampleDistance: 1
+  useForwardOffset: 1
+  forwardOffsetMultiplier: 0.5
+  recordEdgePairs: 1
   pointLifetimeSeconds: 10
   recordingEnabled: 1
+  trailPainter: {fileID: 0}
   debugRays: 0
   debugSampleNormals: 0
+  debugForwardOffset: 0
+  debugEdgePairs: 0
 --- !u!114 &7354045628762547625
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5540,6 +5552,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailVisualizer
   recorder: {fileID: 8519175273987129019}
   crossingDetector: {fileID: 1404102615547647441}
+  drawEdgePoints: 1
+  drawCenterPoints: 0
   normalColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   smallTurnColor: {r: 0, g: 1, b: 0, a: 1}
   mediumTurnColor: {r: 1, g: 0, b: 1, a: 1}
@@ -5585,12 +5599,14 @@ MonoBehaviour:
   painter: {fileID: 3338532106483729296}
   fillMode: 1
   useGpuPolygonFill: 1
-  progressiveTimeBudgetMsPerFrame: 1.5
-  progressiveMaxTotalSamples: 160000
+  useStrokeEdgeInnerOuter: 1
+  fillUsesOuterPolygon: 1
+  progressiveTimeBudgetMsPerFrame: 1
+  progressiveMaxTotalSamples: 120000
   progressiveBaseUvStep: 0.01
   progressiveRingCount: 50
   progressiveDynamicQuality: 1
-  progressiveDynamicStepMaxMultiplier: 2
+  progressiveDynamicStepMaxMultiplier: 1.5
   unevenFrontEnabled: 1
   unevenFrontStrength: 0.55
   unevenFrontNoiseScale: 6
@@ -5599,8 +5615,8 @@ MonoBehaviour:
   unevenFingerStrength: 0.55
   unevenFingerWidth: 0.35
   unevenSeed: 1337
-  liquidEnabled: 1
-  liquidBaseSizeMultiplier: 1
+  liquidEnabled: 0
+  liquidBaseSizeMultiplier: 2
   liquidSizeVariance: 0.55
   liquidJitterRadiusUv: 0.0045
   liquidNoiseScale: 40
