@@ -52,6 +52,20 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         [SerializeField] private float steeringDisableDistance = 0.8f;
         [SerializeField] private float maxSteeringAngle = 45f;
 
+        [Header("Animation Parameters (Optional)")]
+        [Tooltip("Parameter name for walking/jumping animation. Leave empty to use default 'reg_walking'.")]
+        [SerializeField] private string walkingParamName = "reg_walking";
+        [Tooltip("Parameter name for idle animation. Leave empty to use default 'reg_idle'.")]
+        [SerializeField] private string idleParamName = "reg_idle";
+        [Tooltip("Parameter name for attack animation. Leave empty to use default 'reg_attac'.")]
+        [SerializeField] private string attackParamName = "reg_attac";
+
+        [Header("Animation Speed-Based (Optional)")]
+        [Tooltip("If true, use speed threshold to determine animation state instead of movement logic.")]
+        [SerializeField] private bool useSpeedBasedAnimation = false;
+        [Tooltip("Speed threshold (YZ plane - vertical + depth). Above this = jump/walk, below = idle.")]
+        [SerializeField] private float speedThreshold = 0.3f;
+
         [Header("Debug")]
         [SerializeField] private bool drawSensorRays = false;
         [SerializeField] private bool drawBestDirection = true;
@@ -69,6 +83,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         private IObstacleAvoidance _obstacleAvoidance;
         private SimplifiedSurfaceHandler _surfaceHandler;
         private Animator _animator;
+        private Rigidbody _rigidbody;
+        
+        // For speed-based animation calculation
+        private Vector3 _lastPosition;
+        private float _horizontalSpeed;
 
         #endregion
 
@@ -113,6 +132,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             {
                 _animator = GetComponent<Animator>();
             }
+            
+            // Get Rigidbody for speed calculation (if exists)
+            _rigidbody = GetComponent<Rigidbody>();
+            _lastPosition = transform.position;
         }
 
         private void Update()
@@ -120,7 +143,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             // If stopped or no target, set to idle
             if (_isStopped || _currentTarget == null)
             {
-                UpdateAnimationState(false);
+                UpdateAnimationState(false, true);
                 return;
             }
 
@@ -150,7 +173,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                     {
                         _locomotion.Stop();
                         _surfaceHandler.EnsureGrounded();
-                        UpdateAnimationState(false);
+                        UpdateAnimationState(false, false);
                         return;
                     }
 
@@ -177,8 +200,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 _locomotion.Move(moveDirection, dt, _speedMultiplier);
             }
             
+            // Calculate horizontal speed for speed-based animation
+            if (useSpeedBasedAnimation)
+            {
+                CalculateHorizontalSpeed(dt);
+            }
+            
             // Update animation state
-            UpdateAnimationState(isMoving);
+            UpdateAnimationState(isMoving, hasReachedDestination);
         }
 
         #endregion
@@ -226,7 +255,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _locomotion?.Stop();
             _surfaceHandler?.ResetTransition();
             
-            UpdateAnimationState(false);
+            UpdateAnimationState(false, true);
             
             if (_hoppingLocomotion != null)
             {
@@ -385,23 +414,83 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             return enableSurfaceAlignment ? transform.up : Vector3.up;
         }
 
-        private void UpdateAnimationState(bool isMoving)
+        private void CalculateHorizontalSpeed(float deltaTime)
+        {
+            if (deltaTime <= 0f) return;
+
+            Vector3 currentPosition = transform.position;
+            Vector3 deltaPosition = currentPosition - _lastPosition;
+            
+            // Always calculate speed in YZ plane (vertical + depth) - for walls
+            Vector3 yzDelta = new Vector3(0f, deltaPosition.y, deltaPosition.z);
+            _horizontalSpeed = yzDelta.magnitude / deltaTime;
+            
+            _lastPosition = currentPosition;
+        }
+
+        private void UpdateAnimationState(bool isMoving, bool hasReachedDestination)
         {
             if (_animator == null) return;
 
+            // Use custom parameter names if provided, otherwise use defaults
+            string walkingParam = string.IsNullOrEmpty(walkingParamName) ? "reg_walking" : walkingParamName;
+            string idleParam = string.IsNullOrEmpty(idleParamName) ? "reg_idle" : idleParamName;
+            string attackParam = string.IsNullOrEmpty(attackParamName) ? "reg_attac" : attackParamName;
+
             // Don't update walking/idle animations if currently attacking
             // Attack animation has priority
-            bool isAttacking = _animator.GetBool("reg_attac");
+            bool isAttacking = _animator.GetBool(attackParam);
             if (isAttacking)
                 return;
 
-            _animator.SetBool("reg_walking", isMoving);
-            _animator.SetBool("reg_idle", !isMoving);
+            // Determine animation state based on speed or movement logic
+            bool shouldShowMovingAnimation;
+            
+            if (useSpeedBasedAnimation)
+            {
+                // Use speed threshold (YZ plane): above threshold = jump/walk, below = idle
+                shouldShowMovingAnimation = _horizontalSpeed >= speedThreshold;
+                
+                if (debugLogs && Time.frameCount % 60 == 0)
+                {
+                    Debug.Log($"[SteeringNavigator] Speed-based animation (YZ plane) - Speed: {_horizontalSpeed:F2}, Threshold: {speedThreshold}, ShouldMove: {shouldShowMovingAnimation}", this);
+                }
+            }
+            else
+            {
+                // Use movement logic (original behavior)
+                // For hopping locomotion, show jump animation when:
+                // 1. Actually hopping (IsInMotion), OR
+                // 2. Has destination but hasn't reached it yet (preparing to jump)
+                // This ensures the jump animation plays longer and starts before the actual jump
+                // For continuous locomotion, use isMoving directly
+                shouldShowMovingAnimation = isMoving;
+                if (locomotionType == LocomotionType.Hopping && _locomotion != null)
+                {
+                    // For hopping: show jump animation when hopping OR when moving toward destination
+                    // This makes the animation start earlier and last longer
+                    bool isActuallyHopping = _locomotion.IsInMotion;
+                    bool hasDestinationButNotReached = isMoving && !hasReachedDestination;
+                    shouldShowMovingAnimation = isActuallyHopping || hasDestinationButNotReached;
+                }
+            }
+
+            // Set animation parameters
+            // For spider: only reg_walking is needed (spider_idle/spider_jump transitions use reg_walking)
+            if (!string.IsNullOrEmpty(walkingParam))
+            {
+                _animator.SetBool(walkingParam, shouldShowMovingAnimation);
+            }
+            // Only set idle param if it's not empty (some enemies might not use it)
+            if (!string.IsNullOrEmpty(idleParam))
+            {
+                _animator.SetBool(idleParam, !shouldShowMovingAnimation);
+            }
             
             // Debug log (remove after testing)
             if (debugLogs && Time.frameCount % 60 == 0)
             {
-                Debug.Log($"[SteeringNavigator] Animation state - isMoving: {isMoving}, reg_walking: {_animator.GetBool("reg_walking")}, reg_idle: {_animator.GetBool("reg_idle")}, reg_attac: {isAttacking}", this);
+                Debug.Log($"[SteeringNavigator] Animation state - isMoving: {isMoving}, IsInMotion: {(_locomotion?.IsInMotion ?? false)}, {walkingParam}: {_animator.GetBool(walkingParam)}, {attackParam}: {isAttacking}", this);
             }
         }
 
