@@ -214,14 +214,9 @@ namespace JellyGame.GamePlay.Player
 
         private void HandleDeathStarted()
         {
-            // Mark dead immediately so no more damage/heal/scale changes happen.
             _dead = true;
 
-            // Hide visuals immediately so player won't see post-death movement
-            if (hideVisualsOnDeath)
-            {
-                HideAllVisuals();
-            }
+            if (hideVisualsOnDeath) HideAllVisuals();
 
             if (SoundManager.Instance != null)
             {
@@ -229,7 +224,29 @@ namespace JellyGame.GamePlay.Player
                 SoundManager.Instance.PlaySound("Lose", this.transform);
             }
 
-            StartCoroutine(Die());
+            // --- FIXED LOGIC ---
+            // 1. Create data with a callback.
+            var deathData = new EventManager.PreDeathEventData
+            {
+                deathPosition = transform.position,
+                onSequenceComplete = () => 
+                {
+                    // 2. This runs ONLY after the camera zoom is completely finished.
+                    
+                    // Trigger the actual death event now
+                    EventManager.TriggerEvent(
+                        EventManager.GameEvent.EntityDied,
+                        new EntityDiedEventData(gameObject, gameObject.layer)
+                    );
+
+                    // Finally destroy
+                    if (destroyOnDeath && this != null)
+                        Destroy(gameObject);
+                }
+            };
+
+            // 3. Trigger the Pre-Death event to start the camera zoom.
+            EventManager.TriggerEvent(EventManager.GameEvent.PreDeathSequence, deathData);
         }
 
         private void HideAllVisuals()

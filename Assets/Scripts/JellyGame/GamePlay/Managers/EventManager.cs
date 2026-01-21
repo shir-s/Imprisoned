@@ -38,6 +38,7 @@ namespace JellyGame.GamePlay.Managers
             EnemyKilled,         // data: GameObject or Transform (the enemy that died)
 
             // Universal
+            PreDeathSequence,
             EntityDied,          // data: EntityDiedEventData
 
             // Win/Lose
@@ -54,7 +55,12 @@ namespace JellyGame.GamePlay.Managers
             EnemyDied            // data: Vector3 (enemy position)
         }
 
-        // NEW: event payload (optional but useful)
+        public class PreDeathEventData
+        {
+            public Vector3 deathPosition;
+            public System.Action onSequenceComplete; // Callback to run when camera finishes
+        }
+        
         public struct AreaClosedEventData
         {
             public Object source;              // detector / sender (UnityEngine.Object)
