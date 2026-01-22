@@ -137,6 +137,21 @@ namespace JellyGame.UI.Tutorial
             [Header("Visibility")]
             [Tooltip("If true, forces target.gameObject active BEFORE the intro move so it is visible while moving.")]
             public bool forceTargetActiveBeforeMove = true;
+            
+            [Header("Temporary Script Disable (During Intro Move)")]
+            [Tooltip("A script to temporarily disable so it doesn't interfere with the intro move (e.g. surface movement).")]
+            public Behaviour temporarilyDisableBehaviour;
+
+            [Tooltip("Delay after disabling the script before starting the intro move.")]
+            public float disableDelaySeconds = 0.05f;
+            
+            [Header("Visibility / Activation")]
+            [Tooltip("If set, this GameObject will be activated BEFORE the intro move (recommended: enemy root/spawner). If null, uses target.root.gameObject.")]
+            public GameObject activateBeforeMove;
+
+            [Tooltip("Wait a frame after activating so renderers/particles initialize before moving.")]
+            public bool waitOneFrameAfterActivate = true;
+
         }
 
         [Header("Per-Window Intro Moves (run AFTER window is completed/skipped)")]
@@ -582,68 +597,109 @@ namespace JellyGame.UI.Tutorial
         }
 
         // ===================== Per-window intro move playback =====================
-        private IEnumerator PlayWindowIntroMovesOnCompleteIfAny(int windowIndex)
-        {
-            if (windowIntroMovesOnComplete == null || windowIntroMovesOnComplete.Count == 0) yield break;
-
-            for (int i = 0; i < windowIntroMovesOnComplete.Count; i++)
+            private IEnumerator PlayWindowIntroMovesOnCompleteIfAny(int windowIndex)
             {
-                var a = windowIntroMovesOnComplete[i];
-                if (a == null) continue;
-                if (a.windowIndex != windowIndex) continue;
-                if (a.target == null) continue;
+                if (windowIntroMovesOnComplete == null || windowIntroMovesOnComplete.Count == 0)
+                    yield break;
 
-                // Ensure target is visible BEFORE moving
-                if (a.forceTargetActiveBeforeMove && !a.target.gameObject.activeInHierarchy)
-                    a.target.gameObject.SetActive(true);
-
-                // Unpause so the move is visible
-                bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
-                if (wasPaused) ResumeGame();
-
-                if (debugLogs)
-                    Debug.Log($"[Tutorial] Per-window intro move after window {windowIndex} on '{a.target.name}'.", this);
-
-                if (a.useGlobalSettings)
+                for (int i = 0; i < windowIntroMovesOnComplete.Count; i++)
                 {
-                    yield return PlayIntroMoveForTarget(
-                        a.target,
-                        introDirectionMode,
-                        introWorldDirection,
-                        introDirectionReference,
-                        introDistance,
-                        introDuration,
-                        introStartSpeed,
-                        introMaxSpeed,
-                        introSpeedProfile,
-                        introWobbleAmplitude,
-                        introWobbleCycles,
-                        introMoveTransformDirectly,
-                        introForceKinematicIfRigidBody
-                    );
-                }
-                else
-                {
-                    yield return PlayIntroMoveForTarget(
-                        a.target,
-                        a.directionMode,
-                        a.worldDirection,
-                        a.directionReference,
-                        a.distance,
-                        a.duration,
-                        a.startSpeed,
-                        a.maxSpeed,
-                        a.speedProfile,
-                        a.wobbleAmplitude,
-                        a.wobbleCycles,
-                        a.moveTransformDirectly,
-                        a.forceKinematicIfRigidBody
-                    );
-                }
+                    var a = windowIntroMovesOnComplete[i];
+                    if (a == null || a.windowIndex != windowIndex || a.target == null)
+                        continue;
 
-                if (wasPaused && pauseGameWhileActive) PauseGame();
+                    // --- NEW: ensure the enemy is ACTIVE (including parents) BEFORE moving ---
+                    // If you added "activateBeforeMove" use it; otherwise we activate target.root.
+                    GameObject goToActivate =
+                        a.activateBeforeMove != null
+                            ? a.activateBeforeMove
+                            : a.target.root != null ? a.target.root.gameObject : a.target.gameObject;
+
+                    if (goToActivate != null && !goToActivate.activeSelf)
+                    {
+                        goToActivate.SetActive(true);
+
+                        if (debugLogs)
+                            Debug.Log($"[Tutorial] Activated '{goToActivate.name}' before intro move (target='{a.target.name}').", this);
+
+                        if (a.waitOneFrameAfterActivate)
+                            yield return null; // let renderers/animators initialize so it's visible before movement starts
+                    }
+
+                    // Resume time so the intro is visible
+                    bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
+                    if (wasPaused) ResumeGame();
+
+                    // --- Temporarily disable interfering script ---
+                    bool hadDisabledScript = false;
+                    bool prevEnabledState = false;
+
+                    if (a.temporarilyDisableBehaviour != null)
+                    {
+                        prevEnabledState = a.temporarilyDisableBehaviour.enabled;
+                        a.temporarilyDisableBehaviour.enabled = false;
+                        hadDisabledScript = true;
+
+                        if (debugLogs)
+                            Debug.Log($"[Tutorial] Disabled '{a.temporarilyDisableBehaviour.GetType().Name}' before intro move.", this);
+
+                        float delay = Mathf.Max(0f, a.disableDelaySeconds);
+                        if (delay > 0f)
+                            yield return new WaitForSecondsRealtime(delay);
+                    }
+
+                    // --- Play intro move ---
+                    if (a.useGlobalSettings)
+                    {
+                        yield return PlayIntroMoveForTarget(
+                            a.target,
+                            introDirectionMode,
+                            introWorldDirection,
+                            introDirectionReference,
+                            introDistance,
+                            introDuration,
+                            introStartSpeed,
+                            introMaxSpeed,
+                            introSpeedProfile,
+                            introWobbleAmplitude,
+                            introWobbleCycles,
+                            introMoveTransformDirectly,
+                            introForceKinematicIfRigidBody
+                        );
+                    }
+                    else
+                    {
+                        yield return PlayIntroMoveForTarget(
+                            a.target,
+                            a.directionMode,
+                            a.worldDirection,
+                            a.directionReference,
+                            a.distance,
+                            a.duration,
+                            a.startSpeed,
+                            a.maxSpeed,
+                            a.speedProfile,
+                            a.wobbleAmplitude,
+                            a.wobbleCycles,
+                            a.moveTransformDirectly,
+                            a.forceKinematicIfRigidBody
+                        );
+                    }
+
+                    // --- Restore disabled script ---
+                    if (hadDisabledScript && a.temporarilyDisableBehaviour != null)
+                    {
+                        a.temporarilyDisableBehaviour.enabled = prevEnabledState;
+
+                        if (debugLogs)
+                            Debug.Log($"[Tutorial] Re-enabled '{a.temporarilyDisableBehaviour.GetType().Name}' after intro move.", this);
+                    }
+
+                    if (wasPaused && pauseGameWhileActive)
+                        PauseGame();
+                }
             }
-        }
+
 
         private void PauseGame()
         {
