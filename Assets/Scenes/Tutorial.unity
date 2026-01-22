@@ -44425,6 +44425,8 @@ MonoBehaviour:
   requiredDeaths: 1
   meshOnThisObject: {fileID: 626032606}
   meshOnChildObject: {fileID: 1694447433}
+  additionalRenderers: []
+  gameObjectsToToggle: []
   winFxRoot: {fileID: 1035857133}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -94023,6 +94025,8 @@ MonoBehaviour:
   requiredDeaths: 1
   meshOnThisObject: {fileID: 1087490803}
   meshOnChildObject: {fileID: 806039155}
+  additionalRenderers: []
+  gameObjectsToToggle: []
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -140422,7 +140426,7 @@ MonoBehaviour:
   collectorLayers:
     serializedVersion: 2
     m_Bits: 128
-  healAmount: 2
+  healAmount: 1
   destroyOnCollect: 1
   debugLogs: 1
 --- !u!23 &2122285913544219675
