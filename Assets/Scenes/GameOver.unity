@@ -77834,8 +77834,8 @@ MonoBehaviour:
   fillMode: 1
   useGpuPolygonFill: 1
   useStrokeEdgeInnerOuter: 1
-  fillUsesOuterPolygon: 0
-  progressiveTimeBudgetMsPerFrame: 1.5
+  fillUsesOuterPolygon: 1
+  progressiveTimeBudgetMsPerFrame: 1.2
   progressiveMaxTotalSamples: 160000
   progressiveBaseUvStep: 0.01
   progressiveRingCount: 50
@@ -77849,8 +77849,8 @@ MonoBehaviour:
   unevenFingerStrength: 0.55
   unevenFingerWidth: 0.35
   unevenSeed: 1337
-  liquidEnabled: 1
-  liquidBaseSizeMultiplier: 1
+  liquidEnabled: 0
+  liquidBaseSizeMultiplier: 2
   liquidSizeVariance: 0.55
   liquidJitterRadiusUv: 0.0045
   liquidNoiseScale: 40
@@ -78350,7 +78350,7 @@ MonoBehaviour:
   brushHardness: 0.5
   opacityPerMeter: 0.85
   brushColor: {r: 0, g: 0, b: 0, a: 1}
-  cornerRadius: 0.2
+  cornerRadius: 1
   timeBrushBlitMaterial: {fileID: 2100000, guid: 994dbc08558d46841864cc935a70af00, type: 2}
   timePolygonFillMaterial: {fileID: 2100000, guid: 53f9461c8723bfa459e8a235d0980f40, type: 2}
   polygonFillMaterial: {fileID: 2100000, guid: da8a2fdbe722336499139597f601881a, type: 2}
