@@ -1036,7 +1036,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.5633506, z: -0, w: 0.82621795}
   m_LocalPosition: {x: -18.3, y: 1.59, z: 20.3}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalScale: {x: 2.6, y: 2.6, z: 2.6}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 6264449690354094753}
@@ -1283,6 +1283,11 @@ MonoBehaviour:
   directApproachDistance: 1.5
   steeringDisableDistance: 0.8
   maxSteeringAngle: 45
+  walkingParamName: reg_walking
+  idleParamName: reg_idle
+  attackParamName: reg_attac
+  useSpeedBasedAnimation: 0
+  speedThreshold: 0.5
   drawSensorRays: 1
   drawBestDirection: 1
   drawSurfaceRays: 0

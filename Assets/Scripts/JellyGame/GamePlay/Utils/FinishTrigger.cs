@@ -1,5 +1,4 @@
 // FILEPATH: Assets/Scripts/World/Finish/FinishTrigger.cs
-
 using System.Collections;
 using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
@@ -9,13 +8,7 @@ namespace JellyGame.GamePlay.World.Finish
 {
     /// <summary>
     /// Triggers GameWin when player enters the trigger AND all enemies are dead.
-    /// Uses the same logic as DoorByDeaths - listens to EventManager.GameEvent.EntityDied.
-    ///
-    /// Usage:
-    /// - Attach to a GameObject with a Collider set as Trigger.
-    /// - Set Allowed Layers to the player layer.
-    /// - Set Count Layers to the enemy layers you want to track.
-    /// - Set Required Deaths to the number of enemies that must die.
+    /// Listens to EventManager.GameEvent.EntityDied.
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -29,7 +22,7 @@ namespace JellyGame.GamePlay.World.Finish
         [SerializeField] private bool triggerOnce = true;
 
         [Header("Win Condition")]
-        [Tooltip("Only deaths on these layers will be counted (like DoorByDeaths).")]
+        [Tooltip("Only deaths on these layers will be counted.")]
         [SerializeField] private LayerMask countLayers = ~0;
 
         [Tooltip("Number of enemy deaths required before trigger can activate GameWin.")]
@@ -38,7 +31,17 @@ namespace JellyGame.GamePlay.World.Finish
         [Header("Finish Visuals")]
         [SerializeField] private Renderer meshOnThisObject;
         [SerializeField] private Renderer meshOnChildObject;
-        
+
+        [Header("Win FX (optional)")]
+        [Tooltip("Root object that contains particle systems to play on win. Will be SetActive(true) before GameWin.")]
+        [SerializeField] private GameObject winFxRoot;
+
+        [Tooltip("Delay (seconds) after activating Win FX before triggering GameWin.")]
+        [SerializeField] private float winFxDelaySeconds = 0.35f;
+
+        [Tooltip("If true, tries to Play() all ParticleSystems under winFxRoot when activated.")]
+        [SerializeField] private bool playParticleSystemsOnWin = true;
+
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
@@ -51,7 +54,7 @@ namespace JellyGame.GamePlay.World.Finish
             if (c != null)
                 c.isTrigger = true;
         }
-        
+
         private void UpdateFinishMeshes(bool enabled)
         {
             if (meshOnThisObject != null)
@@ -60,7 +63,6 @@ namespace JellyGame.GamePlay.World.Finish
             if (meshOnChildObject != null)
                 meshOnChildObject.enabled = enabled;
         }
-
 
         private void Awake()
         {
@@ -71,6 +73,10 @@ namespace JellyGame.GamePlay.World.Finish
 
             // Hide meshes until win condition is met
             UpdateFinishMeshes(_deathCount >= requiredDeaths);
+
+            // Optional: keep FX off until win
+            if (winFxRoot != null)
+                winFxRoot.SetActive(false);
 
             if (debugLogs)
             {
@@ -83,13 +89,9 @@ namespace JellyGame.GamePlay.World.Finish
 
         private void OnEnable()
         {
-            // Listen to EntityDied event (same as DoorByDeaths)
             EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
 
-            // CATCH-UP:
-            // If this FinishTrigger was inactive while enemies were dying, it missed the events.
-            // EnemyDeathCounter is already in your project and is the thing that activated this object,
-            // so we use it as the authoritative current count.
+            // Catch-up from EnemyDeathCounter
             var counter = FindObjectOfType<JellyGame.GamePlay.Utils.EnemyDeathCounter>();
             if (counter != null)
             {
@@ -98,17 +100,14 @@ namespace JellyGame.GamePlay.World.Finish
                     _deathCount = counterDeaths;
             }
 
-            // Ensure correct visual state
             UpdateFinishMeshes(_deathCount >= requiredDeaths);
 
             if (debugLogs)
                 Debug.Log($"[FinishTrigger] OnEnable catch-up: deaths={_deathCount}/{requiredDeaths} (allowedLayers={allowedLayers.value}, countLayers={countLayers.value})", this);
         }
-        
-        
+
         private void OnDisable()
         {
-            // Unsubscribe to prevent memory leaks
             EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDied);
         }
 
@@ -122,7 +121,6 @@ namespace JellyGame.GamePlay.World.Finish
 
             int layer = e.VictimLayer;
 
-            // Only count deaths on specified layers
             if ((countLayers.value & (1 << layer)) == 0)
             {
                 if (debugLogs)
@@ -139,7 +137,6 @@ namespace JellyGame.GamePlay.World.Finish
                 UpdateFinishMeshes(true);
         }
 
-
         private void OnTriggerEnter(Collider other)
         {
             if (debugLogs)
@@ -152,10 +149,6 @@ namespace JellyGame.GamePlay.World.Finish
                 return;
             }
 
-            // Check multiple possible layers:
-            // - the collider's layer
-            // - the rigidbody owner (common for player controllers)
-            // - the root object (common for character hierarchies)
             int layerA = other.gameObject.layer;
             int layerB = other.attachedRigidbody != null ? other.attachedRigidbody.gameObject.layer : layerA;
             int layerC = other.transform.root != null ? other.transform.root.gameObject.layer : layerA;
@@ -183,7 +176,7 @@ namespace JellyGame.GamePlay.World.Finish
             _triggered = true;
 
             if (debugLogs)
-                Debug.Log($"[FinishTrigger] ✓ GameWin triggered by {other.name} ({_deathCount}/{requiredDeaths} enemies dead)", this);
+                Debug.Log($"[FinishTrigger] ✓ Win sequence started by {other.name} ({_deathCount}/{requiredDeaths} enemies dead)", this);
 
             SoundManager.Instance.StopAllSounds();
             SoundManager.Instance.PlaySound("Win", this.transform);
@@ -191,11 +184,35 @@ namespace JellyGame.GamePlay.World.Finish
             StartCoroutine(GameWinEvent(other));
         }
 
-
         private IEnumerator GameWinEvent(Collider other)
         {
-            yield return new WaitForSeconds(0);
+            // 1) Activate FX
+            if (winFxRoot != null)
+            {
+                winFxRoot.SetActive(true);
 
+                if (playParticleSystemsOnWin)
+                {
+                    var ps = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
+                    for (int i = 0; i < ps.Length; i++)
+                    {
+                        ps[i].Clear(true);
+                        ps[i].Play(true);
+                    }
+                }
+
+                if (debugLogs)
+                    Debug.Log($"[FinishTrigger] Win FX activated: '{winFxRoot.name}', delay={winFxDelaySeconds:0.###}s", this);
+            }
+
+            // 2) Delay (real time, even if timescale changes elsewhere)
+            float delay = Mathf.Max(0f, winFxDelaySeconds);
+            if (delay > 0f)
+                yield return new WaitForSecondsRealtime(delay);
+            else
+                yield return null;
+
+            // 3) Trigger GameWin
             EventManager.TriggerEvent(EventManager.GameEvent.GameWin, other.gameObject);
         }
 

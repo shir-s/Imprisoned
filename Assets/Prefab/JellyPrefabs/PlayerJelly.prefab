@@ -5359,6 +5359,7 @@ MonoBehaviour:
   brushHardness: 0.5
   opacityPerMeter: 0.85
   brushColor: {r: 0, g: 0, b: 0, a: 1}
+  cornerRadius: 1
   timeBrushBlitMaterial: {fileID: 0}
   timePolygonFillMaterial: {fileID: 0}
   polygonFillMaterial: {fileID: 2100000, guid: da8a2fdbe722336499139597f601881a, type: 2}
@@ -5601,12 +5602,12 @@ MonoBehaviour:
   useGpuPolygonFill: 1
   useStrokeEdgeInnerOuter: 1
   fillUsesOuterPolygon: 1
-  progressiveTimeBudgetMsPerFrame: 1
-  progressiveMaxTotalSamples: 120000
+  progressiveTimeBudgetMsPerFrame: 1.2
+  progressiveMaxTotalSamples: 160000
   progressiveBaseUvStep: 0.01
   progressiveRingCount: 50
   progressiveDynamicQuality: 1
-  progressiveDynamicStepMaxMultiplier: 1.5
+  progressiveDynamicStepMaxMultiplier: 2
   unevenFrontEnabled: 1
   unevenFrontStrength: 0.55
   unevenFrontNoiseScale: 6
