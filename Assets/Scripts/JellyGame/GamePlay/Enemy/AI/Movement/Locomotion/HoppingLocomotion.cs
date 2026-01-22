@@ -82,6 +82,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         {
             _nextHopTime = 0f;
             _currentSurfaceUp = transform.up;
+            _hopEndUp = _currentSurfaceUp; // Initialize to current surface
+            _hopStartUp = _currentSurfaceUp;
         }
 
         public void SetDestination(Vector3? destination)
@@ -104,6 +106,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                 ContinueHop(deltaTime);
                 return;
             }
+
+            // v12: Run periodic safety check even between hops
+            PeriodicUnderSurfaceCheck();
 
             if (Time.time < _nextHopTime)
                 return;
@@ -151,6 +156,33 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
             _isTransitionHop = false;
             _targetSurface = null;
             _hopProgress = 0f;
+        }
+        
+        // Periodic safety check state
+        private float _lastSafetyCheckTime = 0f;
+        private const float SAFETY_CHECK_INTERVAL = 0.5f; // Check every 0.5 seconds
+        
+        /// <summary>
+        /// v12: Lightweight periodic check to catch if spider drifted under surface
+        /// </summary>
+        private void PeriodicUnderSurfaceCheck()
+        {
+            if (Time.time - _lastSafetyCheckTime < SAFETY_CHECK_INTERVAL)
+                return;
+                
+            _lastSafetyCheckTime = Time.time;
+            
+            Vector3 pos = transform.position;
+            Vector3 correctedPos = AbsoluteFloorSafetyCheck(pos);
+            
+            if (correctedPos != pos)
+            {
+                transform.position = correctedPos;
+                AlignToSurface(_hopEndUp);
+                
+                if (_debugLogs)
+                    Debug.LogWarning($"[HoppingLoco] Periodic safety check corrected position!");
+            }
         }
 
         private void StartBasicHop(Vector3 direction, float speedMultiplier)
@@ -741,6 +773,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
                     pos = ValidateAndCorrectSurfaceSide(pos, _hopEndUp);
                 }
                 
+                // v12 ABSOLUTE FINAL SAFEGUARD: Check if we ended up under a floor
+                pos = AbsoluteFloorSafetyCheck(pos);
+                
                 _currentSurfaceUp = _hopEndUp;
                 _lastLandingDistance = MeasureDistanceFromSurface(pos, _currentSurfaceUp);
                 
@@ -1105,5 +1140,120 @@ namespace JellyGame.GamePlay.Enemy.AI.Movement
         }
         
         private string V(Vector3 v) => $"({v.x:F2},{v.y:F2},{v.z:F2})";
+        
+        /// <summary>
+        /// v12 ABSOLUTE FINAL SAFEGUARD
+        /// This is the "nuclear option" - catches any case where spider ended up under a surface.
+        /// Simply raycasts UP from spider position. If we hit something, we're UNDER it = wrong!
+        /// </summary>
+        private Vector3 AbsoluteFloorSafetyCheck(Vector3 position)
+        {
+            LayerMask surfaceLayers = GetSurfaceLayers();
+            
+            // Check 1: Raycast WORLD UP - if we hit something, we're under it
+            if (Physics.Raycast(position, Vector3.up, out RaycastHit upHit, 5f, 
+                surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                // We're under a surface! Check if this surface is floor-like (normal pointing down at us)
+                bool surfaceIsAboveUs = upHit.normal.y < -0.5f; // Normal points down = floor above us
+                
+                if (surfaceIsAboveUs)
+                {
+                    // We're under a floor! This should never happen for normal floor walking.
+                    // Teleport to TOP of this surface
+                    
+                    // Raycast from ABOVE the hit point going DOWN to find the top surface
+                    Vector3 abovePoint = upHit.point + Vector3.up * 0.5f;
+                    if (Physics.Raycast(abovePoint, Vector3.down, out RaycastHit topHit, 2f,
+                        surfaceLayers, QueryTriggerInteraction.Ignore))
+                    {
+                        Vector3 correctedPos = topHit.point + topHit.normal * 0.05f;
+                        _hopEndUp = topHit.normal.normalized;
+                        
+                        if (_debugLogs)
+                            Debug.LogWarning($"[HoppingLoco] ABSOLUTE SAFEGUARD: Spider was UNDER floor! " +
+                                $"Teleporting from {V(position)} to {V(correctedPos)}");
+                        
+                        return correctedPos;
+                    }
+                    else
+                    {
+                        // Fallback: just put spider on top of the hit point
+                        Vector3 correctedPos = upHit.point + Vector3.up * 0.1f;
+                        _hopEndUp = Vector3.up;
+                        
+                        if (_debugLogs)
+                            Debug.LogWarning($"[HoppingLoco] ABSOLUTE SAFEGUARD (fallback): Spider was UNDER floor! " +
+                                $"Teleporting from {V(position)} to {V(correctedPos)}");
+                        
+                        return correctedPos;
+                    }
+                }
+            }
+            
+            // Check 2: Raycast in current "up" direction - if we hit something close, we might be under it
+            if (Physics.Raycast(position, _hopEndUp, out RaycastHit currentUpHit, 2f,
+                surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                // Hit something in our "up" direction very close - we might be clipping through
+                float dotWithOurUp = Vector3.Dot(currentUpHit.normal, _hopEndUp);
+                
+                // If the surface normal is opposite to our up (pointing at us), we're on wrong side
+                if (dotWithOurUp < -0.5f)
+                {
+                    // Surface is facing down at us while we think up is... up. Wrong!
+                    // Find the correct surface
+                    Vector3 searchOrigin = currentUpHit.point + _hopEndUp * 1.0f;
+                    if (Physics.Raycast(searchOrigin, -_hopEndUp, out RaycastHit correctHit, 3f,
+                        surfaceLayers, QueryTriggerInteraction.Ignore))
+                    {
+                        Vector3 correctedPos = correctHit.point + correctHit.normal * 0.05f;
+                        _hopEndUp = correctHit.normal.normalized;
+                        
+                        if (_debugLogs)
+                            Debug.LogWarning($"[HoppingLoco] ABSOLUTE SAFEGUARD: Spider under surface (current-up check)! " +
+                                $"Teleporting from {V(position)} to {V(correctedPos)}");
+                        
+                        return correctedPos;
+                    }
+                }
+            }
+            
+            // Check 3: Simple world sanity check - raycast down and verify we're above the hit
+            if (Physics.Raycast(position + Vector3.up * 0.1f, Vector3.down, out RaycastHit downHit, 5f,
+                surfaceLayers, QueryTriggerInteraction.Ignore))
+            {
+                // If the hit point is ABOVE us, we're under the floor
+                if (downHit.point.y > position.y + 0.05f)
+                {
+                    // Wait, we raycast DOWN and hit something ABOVE us? 
+                    // This means we're inside/under geometry
+                    Vector3 correctedPos = downHit.point + downHit.normal * 0.05f;
+                    _hopEndUp = downHit.normal.normalized;
+                    
+                    if (_debugLogs)
+                        Debug.LogWarning($"[HoppingLoco] ABSOLUTE SAFEGUARD: Geometry confusion detected! " +
+                            $"Teleporting from {V(position)} to {V(correctedPos)}");
+                    
+                    return correctedPos;
+                }
+                
+                // Additional check: if our Y is significantly below the surface, correct it
+                float distBelowSurface = downHit.point.y - position.y;
+                if (distBelowSurface > 0.1f) // We're more than 10cm below where down-raycast hit
+                {
+                    Vector3 correctedPos = downHit.point + downHit.normal * 0.05f;
+                    _hopEndUp = downHit.normal.normalized;
+                    
+                    if (_debugLogs)
+                        Debug.LogWarning($"[HoppingLoco] ABSOLUTE SAFEGUARD: Spider {distBelowSurface:F2}m below surface! " +
+                            $"Teleporting from {V(position)} to {V(correctedPos)}");
+                    
+                    return correctedPos;
+                }
+            }
+            
+            return position;
+        }
     }
 }
