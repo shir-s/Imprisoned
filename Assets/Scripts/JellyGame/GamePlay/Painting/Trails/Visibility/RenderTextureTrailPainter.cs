@@ -31,6 +31,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         [SerializeField, Range(0f, 1f)] private float brushHardness = 0.5f;
         [SerializeField] private float opacityPerMeter = 5.0f;
         [SerializeField] private Color brushColor = Color.black;
+        [SerializeField, Range(0f, 1f)] private float cornerRadius = 0.2f;
 
         [Header("Time Painting (for aging)")]
         [Tooltip("Material using TimeBrushBlit.shader")]
@@ -183,7 +184,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             timeBrushBlitMaterial.SetFloat("_PaintTime", currentTime);
             timeBrushBlitMaterial.SetFloat("_IsFill", isFill ? 1f : 0f);
             timeBrushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
-            timeBrushBlitMaterial.SetFloat("_CornerRadius", 0.2f);
+            timeBrushBlitMaterial.SetFloat("_CornerRadius", cornerRadius);
             
             EnsureTemp(timeRT, ref _tempTimeRT);
             timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
@@ -277,7 +278,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
             brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
-            brushBlitMaterial.SetFloat("_CornerRadius", 0.2f);
+            brushBlitMaterial.SetFloat("_CornerRadius", cornerRadius);
             
             brushBlitMaterial.SetTexture("_TimeTex", timeRT); // קריטי!
             brushBlitMaterial.SetFloat("_PaintTime", currentTime);
