@@ -2,16 +2,12 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 
 namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
-    /// Preloads a target scene and activates it ONLY when a key is pressed (default: Space).
-    ///
-    /// - No UI
-    /// - No Visual Scripting
-    /// - No Timeline hooks
-    /// - Designer-proof
+    /// Preloads a target scene and activates it ONLY when a key is pressed (Space or Controller A).
     /// </summary>
     [DisallowMultipleComponent]
     public class CutsceneSceneTransition : MonoBehaviour
@@ -24,7 +20,15 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private string nextSceneName = "";
 
         [Header("Skip Input")]
+        [Tooltip("Keyboard key to skip.")]
         [SerializeField] private KeyCode skipKey = KeyCode.Space;
+
+        [Tooltip("Controller buttons to skip (Auto-filled for PC/Mac support).")]
+        [SerializeField] private List<KeyCode> controllerSkipButtons = new List<KeyCode>
+        {
+            KeyCode.JoystickButton0, // A on Windows
+            KeyCode.JoystickButton1  // A on Mac
+        };
 
         [Header("Preload")]
         [Tooltip("If true, preload starts immediately on Start.")]
@@ -44,10 +48,29 @@ namespace JellyGame.GamePlay.Managers
 
         private void Update()
         {
-            if (!_skipRequested && Input.GetKeyDown(skipKey))
+            if (_skipRequested) return;
+
+            // 1. Check Keyboard
+            bool inputDetected = Input.GetKeyDown(skipKey);
+
+            // 2. Check Controller Buttons (only if keyboard wasn't pressed)
+            if (!inputDetected && controllerSkipButtons != null)
+            {
+                for (int i = 0; i < controllerSkipButtons.Count; i++)
+                {
+                    if (Input.GetKeyDown(controllerSkipButtons[i]))
+                    {
+                        inputDetected = true;
+                        break;
+                    }
+                }
+            }
+
+            // 3. Action
+            if (inputDetected)
             {
                 if (debugLogs)
-                    Debug.Log($"[CutsceneSceneTransition] Skip key pressed ({skipKey}).", this);
+                    Debug.Log($"[CutsceneSceneTransition] Skip input detected.", this);
 
                 _skipRequested = true;
 
