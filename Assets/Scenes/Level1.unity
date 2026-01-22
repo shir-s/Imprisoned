@@ -12549,7 +12549,7 @@ Transform:
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 971792922}
-  - {fileID: 699266541}
+  - {fileID: 543450653034320391}
   - {fileID: 1404436847}
   m_Father: {fileID: 3793594676184193298}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -12575,6 +12575,9 @@ MonoBehaviour:
   requiredDeaths: 5
   meshOnThisObject: {fileID: 443225181}
   meshOnChildObject: {fileID: 971792923}
+  additionalRenderers: []
+  gameObjectsToToggle:
+  - {fileID: 919132148779239613}
   winFxRoot: {fileID: 1233512572}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -28499,11 +28502,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
---- !u!4 &699266541 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
-  m_PrefabInstance: {fileID: 699266540}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &702041422
 GameObject:
   m_ObjectHideFlags: 0
@@ -64981,6 +64979,8 @@ MonoBehaviour:
   requiredDeaths: 5
   meshOnThisObject: {fileID: 1604427324014506475}
   meshOnChildObject: {fileID: 8978657641268886434}
+  additionalRenderers: []
+  gameObjectsToToggle: []
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -65001,6 +65001,11 @@ Transform:
   - {fileID: 7841247787599675597}
   m_Father: {fileID: 3793594676184193298}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &543450653034320391 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
+  m_PrefabInstance: {fileID: 699266540}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &551939694220420390
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -65165,6 +65170,11 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2186528266329314058}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &919132148779239613 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
+  m_PrefabInstance: {fileID: 699266540}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &956151077223206974
 GameObject:
   m_ObjectHideFlags: 0

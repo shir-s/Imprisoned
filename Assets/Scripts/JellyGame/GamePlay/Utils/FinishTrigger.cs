@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/World/Finish/FinishTrigger.cs
 using System.Collections;
+using System.Collections.Generic;
 using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
 using UnityEngine;
@@ -31,6 +32,12 @@ namespace JellyGame.GamePlay.World.Finish
         [Header("Finish Visuals")]
         [SerializeField] private Renderer meshOnThisObject;
         [SerializeField] private Renderer meshOnChildObject;
+        
+        [Tooltip("Additional renderers to show/hide (e.g., key, multiple objects). Leave empty if not needed.")]
+        [SerializeField] private List<Renderer> additionalRenderers = new List<Renderer>();
+        
+        [Tooltip("GameObjects to activate/deactivate (e.g., key parent object with many child renderers). More efficient than managing many renderers separately.")]
+        [SerializeField] private List<GameObject> gameObjectsToToggle = new List<GameObject>();
 
         [Header("Win FX (optional)")]
         [Tooltip("Root object that contains particle systems to play on win. Will be SetActive(true) before GameWin.")]
@@ -62,6 +69,26 @@ namespace JellyGame.GamePlay.World.Finish
 
             if (meshOnChildObject != null)
                 meshOnChildObject.enabled = enabled;
+            
+            // Update additional renderers (e.g., key parts)
+            if (additionalRenderers != null)
+            {
+                for (int i = 0; i < additionalRenderers.Count; i++)
+                {
+                    if (additionalRenderers[i] != null)
+                        additionalRenderers[i].enabled = enabled;
+                }
+            }
+            
+            // Update GameObjects (activate/deactivate entire objects - more efficient for complex objects like keys)
+            if (gameObjectsToToggle != null)
+            {
+                for (int i = 0; i < gameObjectsToToggle.Count; i++)
+                {
+                    if (gameObjectsToToggle[i] != null)
+                        gameObjectsToToggle[i].SetActive(enabled);
+                }
+            }
         }
 
         private void Awake()
