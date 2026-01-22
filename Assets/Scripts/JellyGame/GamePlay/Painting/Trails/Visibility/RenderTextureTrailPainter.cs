@@ -14,6 +14,11 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
     [DisallowMultipleComponent]
     public class RenderTextureTrailPainter : MonoBehaviour, IMovementPainter
     {
+        // Clear colors (set these in inspector if you want)
+        [Header("Clear / Reset")]
+        [SerializeField] private Color clearPaintColor = new Color(0f, 0f, 0f, 0f); // transparent
+        [SerializeField] private Color clearTimeColor  = new Color(0f, 0f, 0f, 0f); // time=0, fillFlag=0
+        
         [Header("Trail Protection")]
         [Tooltip("When filling, don't paint over trails younger than this (seconds). Should match MaxAge in Shader Graph.")]
         [SerializeField] private float trailProtectionMaxAge = 10f;
@@ -672,5 +677,45 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         {
             return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
         }
+        
+        public void ClearAllPaint()
+        {
+            // Clears ALL paint surfaces in the scene
+            SimplePaintSurface[] surfaces = FindObjectsOfType<SimplePaintSurface>(includeInactive: true);
+
+            for (int i = 0; i < surfaces.Length; i++)
+            {
+                ClearSurfacePaint(surfaces[i]);
+            }
+
+            // Also clear any cached current surface reference
+            ClearSurface();
+        }
+
+        public void ClearSurfacePaint(SimplePaintSurface surface)
+        {
+            if (surface == null)
+                return;
+
+            if (surface.PaintRT != null)
+                ClearRenderTexture(surface.PaintRT, clearPaintColor);
+
+            if (surface.EnableTimeAging && surface.PaintTimeRT != null)
+                ClearRenderTexture(surface.PaintTimeRT, clearTimeColor);
+        }
+
+        private static void ClearRenderTexture(RenderTexture rt, Color clearColor)
+        {
+            if (rt == null)
+                return;
+
+            RenderTexture prev = RenderTexture.active;
+            RenderTexture.active = rt;
+
+            GL.Clear(true, true, clearColor);
+
+            RenderTexture.active = prev;
+        }
+
     }
 }

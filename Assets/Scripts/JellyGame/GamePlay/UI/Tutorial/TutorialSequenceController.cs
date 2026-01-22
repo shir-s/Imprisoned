@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 using JellyGame.GamePlay.Managers;
+using JellyGame.GamePlay.Painting.Trails.Visibility;
 
 namespace JellyGame.UI.Tutorial
 {
@@ -40,6 +41,14 @@ namespace JellyGame.UI.Tutorial
         [Header("Flow")]
         [SerializeField] private bool autoStart = false;
         [SerializeField] private bool endImmediatelyIfNoWindows = true;
+        
+        [Header("Random Window Mode")]
+        [SerializeField] private bool showOnlyOneRandomWindow = false;
+
+        [Tooltip("If true, re-rolls the random window each time StartTutorial() is called. If false, keeps the same roll while this component lives.")]
+        [SerializeField] private bool rerollRandomWindowEachStart = true;
+
+        private int _randomSingleWindowIndex = -1;
 
         // ===================== Script enabling/disabling =====================
         [Header("Script Locks (Disabled During Tutorial)")]
@@ -105,6 +114,30 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private float introWobbleCycles = 2.0f;
         [SerializeField] private bool introMoveTransformDirectly = true;
         [SerializeField] private bool introForceKinematicIfRigidBody = true;
+        
+        /*
+        // --- Painting / Surface reset on skip ---
+        [Header("Surface Reset (Optional)")]
+        [SerializeField] private bool resetSurfacesOnSpecificWindowSkip = false;
+
+        [Tooltip("If current window index is in this list, we will trigger a reset when it is skipped.")]
+        [SerializeField] private List<int> resetOnSkippedWindowIndices = new List<int>();
+
+        [Tooltip("Objects that know how to clear trails/fill. We'll SendMessage() to them.")]
+        [SerializeField] private List<GameObject> resetReceivers = new List<GameObject>();
+
+        [Tooltip("Method name to call on receivers (via SendMessage). Example: ClearAll, ResetSurface, ClearPaint.")]
+        [SerializeField] private string resetMessageName = "ClearAllPaint";
+        */
+        
+        [Header("Reset Paint On Skip (Optional)")]
+        [SerializeField] private RenderTextureTrailPainter trailPainter;
+
+        [SerializeField] private bool clearPaintWhenSkippingSpecificWindows = false;
+
+        [SerializeField] private List<int> clearPaintOnSkippedWindowIndices = new List<int>();
+
+
 
         // ===================== Per-window intro moves (after window complete) =====================
         [Serializable]
@@ -225,6 +258,45 @@ namespace JellyGame.UI.Tutorial
             HideAllWindows();
             if (autoStart) StartTutorial();
         }
+        
+        /*
+        private void TryResetSurfacesForSkippedWindow(int completedIndex)
+        {
+            if (!resetSurfacesOnSpecificWindowSkip)
+                return;
+
+            if (resetOnSkippedWindowIndices == null || resetOnSkippedWindowIndices.Count == 0)
+                return;
+
+            bool shouldReset = false;
+            for (int i = 0; i < resetOnSkippedWindowIndices.Count; i++)
+            {
+                if (resetOnSkippedWindowIndices[i] == completedIndex)
+                {
+                    shouldReset = true;
+                    break;
+                }
+            }
+
+            if (!shouldReset)
+                return;
+
+            if (debugLogs)
+                Debug.Log($"[Tutorial] ResetSurfaces triggered by skipping windowIndex={completedIndex}. Message='{resetMessageName}' receivers={resetReceivers?.Count ?? 0}", this);
+
+            if (resetReceivers == null) return;
+
+            for (int i = 0; i < resetReceivers.Count; i++)
+            {
+                GameObject r = resetReceivers[i];
+                if (r == null) continue;
+
+                // Doesn't throw if receiver doesn't implement it.
+                r.SendMessage(resetMessageName, SendMessageOptions.DontRequireReceiver);
+            }
+        }
+        */
+
 
         private void Update()
         {
@@ -274,6 +346,20 @@ namespace JellyGame.UI.Tutorial
                 if (endImmediatelyIfNoWindows) FinishTutorial();
                 yield break;
             }
+            
+            if (showOnlyOneRandomWindow)
+            {
+                bool needRoll = _randomSingleWindowIndex < 0 || _randomSingleWindowIndex >= WindowCount || rerollRandomWindowEachStart;
+                if (needRoll)
+                    _randomSingleWindowIndex = UnityEngine.Random.Range(0, WindowCount);
+
+                if (debugLogs)
+                    Debug.Log($"[Tutorial] Random window mode ON. Chosen windowIndex={_randomSingleWindowIndex}/{WindowCount - 1}", this);
+            }
+            else
+            {
+                _randomSingleWindowIndex = -1;
+            }
 
             if (playIntroMoveBeforeTutorial) yield return PlayIntroMove();
             StartTutorialSequenceOnly();
@@ -284,7 +370,8 @@ namespace JellyGame.UI.Tutorial
             if (_state != FlowState.Idle) return;
             _state = FlowState.ShowingWindow;
             if (pauseGameWhileActive) PauseGame();
-            ShowWindowAtIndex(0);
+            int startIndex = showOnlyOneRandomWindow ? _randomSingleWindowIndex : 0;
+            ShowWindowAtIndex(startIndex);
         }
 
         public void SkipCurrentWindow()
@@ -305,7 +392,9 @@ namespace JellyGame.UI.Tutorial
 
             // Apply "complete" actions (this is where you might activate the enemy, enable scripts, etc.)
             ApplyWindowCompleteScriptActions(completedIndex);
-
+            
+            TryClearPaintForSkippedWindow(completedIndex);
+            
             // FIX #2: make sure enemy is active BEFORE moving so it is visible while moving
             yield return PlayWindowIntroMovesOnCompleteIfAny(completedIndex);
 
@@ -430,6 +519,12 @@ namespace JellyGame.UI.Tutorial
         // ===================== Helpers =====================
         private void AdvanceToNextWindowOrFinish()
         {
+            if (showOnlyOneRandomWindow)
+            {
+                FinishTutorial();
+                return;
+            }
+
             HideWindowAtIndex(_currentIndex);
             int next = _currentIndex + 1;
             if (next >= WindowCount) { FinishTutorial(); return; }
@@ -922,6 +1017,30 @@ namespace JellyGame.UI.Tutorial
             if (seq == null) yield break;
             seq.StartSequence();
             while (!seq.Completed) yield return null;
+        }
+        
+        private void TryClearPaintForSkippedWindow(int completedIndex)
+        {
+            if (!clearPaintWhenSkippingSpecificWindows)
+                return;
+
+            if (trailPainter == null)
+                return;
+
+            if (clearPaintOnSkippedWindowIndices == null || clearPaintOnSkippedWindowIndices.Count == 0)
+                return;
+
+            for (int i = 0; i < clearPaintOnSkippedWindowIndices.Count; i++)
+            {
+                if (clearPaintOnSkippedWindowIndices[i] == completedIndex)
+                {
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Clearing paint due to skipping windowIndex={completedIndex}", this);
+
+                    trailPainter.ClearAllPaint();
+                    break;
+                }
+            }
         }
     }
 }

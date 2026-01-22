@@ -25,6 +25,17 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Build indices of your playable levels in order: Tutorial, Level1, Level2, ...")]
         [SerializeField] private int[] levelSceneBuildIndices = new int[] { 0 };
 
+        [Header("Win Cutscenes (Per Level)")]
+        [Tooltip("Build indices of win cutscene scenes in the SAME order as Levels. If empty, falls back to Win scene.")]
+        [SerializeField] private int[] winCutsceneSceneBuildIndices = new int[] { };
+        
+        [Tooltip("If a level has no win cutscene configured, load the NEXT playable level instead of the Win scene.")]
+        [SerializeField] private bool ifNoWinCutsceneLoadNextLevel = true;
+
+
+        [Tooltip("If true, we load the per-level win cutscene scene on win (if configured). If false, uses Win scene as before.")]
+        
+        [SerializeField] private bool usePerLevelWinCutsceneScenes = true;
         [Tooltip("If true, when NextLevel is pressed on the last level, it loops back to the first level.")]
         [SerializeField] private bool loopToFirstLevelIfNoNext = false;
 
@@ -228,6 +239,34 @@ namespace JellyGame.GamePlay.Managers
             if (debugLogs)
                 Debug.Log("[GameSceneManager] Win sequence started.", this);
 
+            // SPECIAL CASE: Win triggered inside the GameOver scene (portal).
+            // Always go to the FIRST playable level (index 0 in levels list).
+            if (IsInGameOverScene())
+            {
+                if (levelSceneBuildIndices == null || levelSceneBuildIndices.Length == 0)
+                {
+                    Debug.LogError("[GameSceneManager] Cannot leave GameOver: levelSceneBuildIndices is empty.", this);
+                    yield break;
+                }
+
+                int firstLevelBuildIndex = levelSceneBuildIndices[0];
+                if (!IsValidBuildIndex(firstLevelBuildIndex))
+                {
+                    Debug.LogError($"[GameSceneManager] Cannot leave GameOver: first level buildIndex={firstLevelBuildIndex} is invalid.", this);
+                    yield break;
+                }
+
+                // Reset "current level" to 0 so future NextLevel logic is consistent.
+                SetCurrentLevelIndex(0);
+
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Win in GameOver scene -> loading FIRST level buildIndex={firstLevelBuildIndex}.", this);
+
+                SceneManager.LoadScene(firstLevelBuildIndex);
+                yield break;
+            }
+
+            
             // Store current level from the WINNING scene (this object still exists there).
             if (autoDetectCurrentLevelFromActiveScene)
                 TryDetectAndStoreCurrentLevelFromActiveScene();
@@ -277,8 +316,45 @@ namespace JellyGame.GamePlay.Managers
 
             if (pauseGameplayOnWin)
                 Time.timeScale = 1f;
+            
+            if (usePerLevelWinCutsceneScenes && TryGetWinCutsceneBuildIndexForCurrentLevel(out int cutsceneBuildIndex))
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Loading WIN CUTSCENE scene buildIndex={cutsceneBuildIndex} for current level.", this);
+
+                SceneManager.LoadScene(cutsceneBuildIndex);
+                yield break;
+            }
+            
+            if (usePerLevelWinCutsceneScenes && ifNoWinCutsceneLoadNextLevel)
+            {
+                if (debugLogs)
+                    Debug.Log("[GameSceneManager] No win cutscene configured for this level -> loading NEXT level.", this);
+
+                LoadNextLevel();
+                yield break;
+            }
 
             LoadWinScene();
+        }
+        
+        private bool TryGetWinCutsceneBuildIndexForCurrentLevel(out int buildIndex)
+        {
+            buildIndex = -1;
+
+            if (winCutsceneSceneBuildIndices == null || winCutsceneSceneBuildIndices.Length == 0)
+                return false;
+
+            int levelIdx = GetCurrentLevelIndex();
+            if (levelIdx < 0 || levelIdx >= winCutsceneSceneBuildIndices.Length)
+                return false;
+
+            int candidate = winCutsceneSceneBuildIndices[levelIdx];
+            if (!IsValidBuildIndex(candidate))
+                return false;
+
+            buildIndex = candidate;
+            return true;
         }
 
 
@@ -457,5 +533,12 @@ namespace JellyGame.GamePlay.Managers
             PlayerPrefs.SetInt(PlayerPrefsLevelKey, Mathf.Max(0, idx));
             PlayerPrefs.Save();
         }
+        
+        private bool IsInGameOverScene()
+        {
+            int active = SceneManager.GetActiveScene().buildIndex;
+            return active == gameOverSceneBuildIndex;
+        }
+
     }
 }

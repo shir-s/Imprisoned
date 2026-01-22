@@ -68,11 +68,9 @@ namespace JellyGame.GamePlay.World.Finish
         {
             EnsureKinematicRigidbody();
 
-            if (requiredDeaths < 1)
-                requiredDeaths = 1;
-
             // Hide meshes until win condition is met
-            UpdateFinishMeshes(_deathCount >= requiredDeaths);
+            UpdateFinishMeshes(IsWinConditionMet());
+
 
             // Optional: keep FX off until win
             if (winFxRoot != null)
@@ -100,7 +98,8 @@ namespace JellyGame.GamePlay.World.Finish
                     _deathCount = counterDeaths;
             }
 
-            UpdateFinishMeshes(_deathCount >= requiredDeaths);
+            UpdateFinishMeshes(IsWinConditionMet());
+
 
             if (debugLogs)
                 Debug.Log($"[FinishTrigger] OnEnable catch-up: deaths={_deathCount}/{requiredDeaths} (allowedLayers={allowedLayers.value}, countLayers={countLayers.value})", this);
@@ -133,8 +132,9 @@ namespace JellyGame.GamePlay.World.Finish
             if (debugLogs)
                 Debug.Log($"[FinishTrigger] Counted death {_deathCount}/{requiredDeaths} (layer={layer} '{LayerMask.LayerToName(layer)}') Victim={e.Victim?.name}", this);
 
-            if (_deathCount >= requiredDeaths)
+            if (IsWinConditionMet())
                 UpdateFinishMeshes(true);
+
         }
 
         private void OnTriggerEnter(Collider other)
@@ -166,12 +166,13 @@ namespace JellyGame.GamePlay.World.Finish
                 return;
             }
 
-            if (_deathCount < requiredDeaths)
+            if (!IsWinConditionMet())
             {
                 if (debugLogs)
                     Debug.Log($"[FinishTrigger] Player entered trigger, but only {_deathCount}/{requiredDeaths} enemies are dead. Waiting...", this);
                 return;
             }
+
 
             _triggered = true;
 
@@ -183,6 +184,16 @@ namespace JellyGame.GamePlay.World.Finish
 
             StartCoroutine(GameWinEvent(other));
         }
+        
+        private bool IsWinConditionMet()
+        {
+            // requiredDeaths == 0 means: no kills required, but still must enter the trigger.
+            if (requiredDeaths <= 0)
+                return true;
+
+            return _deathCount >= requiredDeaths;
+        }
+
 
         private IEnumerator GameWinEvent(Collider other)
         {

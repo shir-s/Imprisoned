@@ -29603,7 +29603,7 @@ ParticleSystemRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
-  m_RenderMode: 0
+  m_RenderMode: 3
   m_MeshDistribution: 0
   m_SortMode: 0
   m_MinParticleSize: 0
@@ -35999,6 +35999,8 @@ MonoBehaviour:
   requireKeyDown: 1
   autoStart: 1
   endImmediatelyIfNoWindows: 1
+  showOnlyOneRandomWindow: 0
+  rerollRandomWindowEachStart: 1
   disableOnTutorialStart:
   - {fileID: 5032915102478349644}
   - {fileID: 2478737630829881642}
@@ -36075,6 +36077,7 @@ MonoBehaviour:
   introWobbleCycles: 3
   introMoveTransformDirectly: 1
   introForceKinematicIfRigidBody: 1
+  windowIntroMovesOnComplete: []
   windowGates:
   - enabled: 0
     requirement: 0
@@ -59062,7 +59065,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &811306142
 Transform:
   m_ObjectHideFlags: 0
@@ -65783,6 +65786,9 @@ MonoBehaviour:
   requiredDeaths: 1
   meshOnThisObject: {fileID: 1087490803}
   meshOnChildObject: {fileID: 806039155}
+  winFxRoot: {fileID: 0}
+  winFxDelaySeconds: 0.35
+  playParticleSystemsOnWin: 1
   debugLogs: 1
 --- !u!135 &1087490802
 SphereCollider:
@@ -83500,6 +83506,33 @@ MonoBehaviour:
   useBounds: 1
   boundsMin: {x: -30, y: -100, z: -40}
   boundsMax: {x: 25, y: 100, z: 30}
+  zoomDuration: 1.5
+  zoomEndDistance: 6
+  zoomEndHeight: 5
+  zoomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1344658598
 GameObject:
   m_ObjectHideFlags: 0
@@ -120221,6 +120254,8 @@ MonoBehaviour:
   painter: {fileID: 8045036301634720403}
   fillMode: 1
   useGpuPolygonFill: 1
+  useStrokeEdgeInnerOuter: 1
+  fillUsesOuterPolygon: 0
   progressiveTimeBudgetMsPerFrame: 1.5
   progressiveMaxTotalSamples: 160000
   progressiveBaseUvStep: 0.01
@@ -120734,6 +120769,7 @@ MonoBehaviour:
   brushHardness: 0.5
   opacityPerMeter: 0.85
   brushColor: {r: 0, g: 0, b: 0, a: 1}
+  cornerRadius: 0.2
   timeBrushBlitMaterial: {fileID: 2100000, guid: 994dbc08558d46841864cc935a70af00, type: 2}
   timePolygonFillMaterial: {fileID: 2100000, guid: 53f9461c8723bfa459e8a235d0980f40, type: 2}
   polygonFillMaterial: {fileID: 2100000, guid: da8a2fdbe722336499139597f601881a, type: 2}
