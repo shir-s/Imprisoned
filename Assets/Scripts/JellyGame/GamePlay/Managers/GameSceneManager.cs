@@ -249,7 +249,7 @@ namespace JellyGame.GamePlay.Managers
                     yield break;
                 }
 
-                int firstLevelBuildIndex = levelSceneBuildIndices[0];
+                int firstLevelBuildIndex = levelSceneBuildIndices[1];
                 if (!IsValidBuildIndex(firstLevelBuildIndex))
                 {
                     Debug.LogError($"[GameSceneManager] Cannot leave GameOver: first level buildIndex={firstLevelBuildIndex} is invalid.", this);
