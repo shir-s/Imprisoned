@@ -65188,6 +65188,7 @@ GameObject:
   - component: {fileID: 1604427324014506475}
   - component: {fileID: 3887782709238130331}
   - component: {fileID: 403243633962139246}
+  - component: {fileID: 3887782709238130332}
   m_Layer: 0
   m_Name: Level finish
   m_TagString: Untagged
@@ -65739,6 +65740,28 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.63744557
   m_Center: {x: -0.008728165, y: 0.012844357, z: 0.027305868}
+--- !u!95 &3887782709238130332
+Animator:
+  serializedVersion: 7
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 956151077223206974}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!4 &3996131942960180629
 Transform:
   m_ObjectHideFlags: 0
@@ -66639,7 +66662,7 @@ MonoBehaviour:
   rightKey: 275
   horizontalAxisName: Horizontal
   verticalAxisName: Vertical
-  responseCurve: 2
+  responseCurve: 2.5
   controllerSensitivity: 1.5
   controllerDeadzone: 0.1
   invertVertical: 0
@@ -66661,7 +66684,7 @@ Transform:
   m_GameObject: {fileID: 7465391473731705463}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
-  m_LocalPosition: {x: 0.00343716, y: 0, z: 0.060269456}
+  m_LocalPosition: {x: 0.009, y: 0, z: 0.05}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 1
   m_Children: []
