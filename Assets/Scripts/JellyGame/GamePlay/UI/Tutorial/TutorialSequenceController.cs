@@ -40,6 +40,14 @@ namespace JellyGame.UI.Tutorial
         [Header("Flow")]
         [SerializeField] private bool autoStart = false;
         [SerializeField] private bool endImmediatelyIfNoWindows = true;
+        
+        [Header("Random Window Mode")]
+        [SerializeField] private bool showOnlyOneRandomWindow = false;
+
+        [Tooltip("If true, re-rolls the random window each time StartTutorial() is called. If false, keeps the same roll while this component lives.")]
+        [SerializeField] private bool rerollRandomWindowEachStart = true;
+
+        private int _randomSingleWindowIndex = -1;
 
         // ===================== Script enabling/disabling =====================
         [Header("Script Locks (Disabled During Tutorial)")]
@@ -274,6 +282,20 @@ namespace JellyGame.UI.Tutorial
                 if (endImmediatelyIfNoWindows) FinishTutorial();
                 yield break;
             }
+            
+            if (showOnlyOneRandomWindow)
+            {
+                bool needRoll = _randomSingleWindowIndex < 0 || _randomSingleWindowIndex >= WindowCount || rerollRandomWindowEachStart;
+                if (needRoll)
+                    _randomSingleWindowIndex = UnityEngine.Random.Range(0, WindowCount);
+
+                if (debugLogs)
+                    Debug.Log($"[Tutorial] Random window mode ON. Chosen windowIndex={_randomSingleWindowIndex}/{WindowCount - 1}", this);
+            }
+            else
+            {
+                _randomSingleWindowIndex = -1;
+            }
 
             if (playIntroMoveBeforeTutorial) yield return PlayIntroMove();
             StartTutorialSequenceOnly();
@@ -284,7 +306,8 @@ namespace JellyGame.UI.Tutorial
             if (_state != FlowState.Idle) return;
             _state = FlowState.ShowingWindow;
             if (pauseGameWhileActive) PauseGame();
-            ShowWindowAtIndex(0);
+            int startIndex = showOnlyOneRandomWindow ? _randomSingleWindowIndex : 0;
+            ShowWindowAtIndex(startIndex);
         }
 
         public void SkipCurrentWindow()
@@ -430,6 +453,12 @@ namespace JellyGame.UI.Tutorial
         // ===================== Helpers =====================
         private void AdvanceToNextWindowOrFinish()
         {
+            if (showOnlyOneRandomWindow)
+            {
+                FinishTutorial();
+                return;
+            }
+
             HideWindowAtIndex(_currentIndex);
             int next = _currentIndex + 1;
             if (next >= WindowCount) { FinishTutorial(); return; }
