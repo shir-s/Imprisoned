@@ -1,5 +1,7 @@
 // FILEPATH: Assets/Scripts/Camera/EdgeFollowCamera.cs
 using UnityEngine;
+using System.Collections;
+using JellyGame.GamePlay.Managers; // Added for EventManager
 
 [DisallowMultipleComponent]
 public class EdgeFollowCamera : MonoBehaviour
@@ -9,36 +11,27 @@ public class EdgeFollowCamera : MonoBehaviour
     [SerializeField] private Transform target;
 
     [Header("Start / Safety")]
-    [Tooltip("On Start/Enable, reposition camera so target is centered (prevents initial jump / losing the target).")]
+    [Tooltip("On Start/Enable, reposition camera so target is centered.")]
     [SerializeField] private bool snapToTargetOnStart = true;
-
     [Tooltip("If the target somehow ends up behind the camera, snap to recover view.")]
     [SerializeField] private bool snapIfTargetBehindCamera = true;
 
     [Header("Edge Follow")]
     [Tooltip("Screen margin (0..0.45). 0.15 means 15% from each side.")]
     [SerializeField, Range(0f, 0.45f)] private float screenMargin = 0.15f;
-
-    [Tooltip("Overall strength of the edge push.")]
     [SerializeField] private float followStrength = 1.0f;
 
     [Header("Dead Zone Easing")]
-    [Tooltip("How the push ramps up after leaving the safe area. 1 = smooth, 2-3 = gentler start.")]
     [SerializeField, Range(0.5f, 4f)] private float easingPower = 2.0f;
-
-    [Tooltip("Extra softness near the edge (0 = more direct, 1 = very soft start).")]
     [SerializeField, Range(0f, 1f)] private float easingSoftness = 0.6f;
 
     [Header("Smoothing")]
-    [Tooltip("Time to smooth toward the desired position. Smaller = snappier.")]
     [SerializeField] private float smoothTime = 0.18f;
-
-    [Tooltip("Optional max speed for SmoothDamp (units/sec).")]
     [SerializeField] private float maxSpeed = 30f;
 
     [Header("Movement Axes")]
     [SerializeField] private bool moveOnX = true;
-    [SerializeField] private bool moveOnY = false; // usually false for top-down
+    [SerializeField] private bool moveOnY = false; 
     [SerializeField] private bool moveOnZ = true;
 
     [Header("Optional World Bounds")]
@@ -46,7 +39,16 @@ public class EdgeFollowCamera : MonoBehaviour
     [SerializeField] private Vector3 boundsMin = new Vector3(-100f, -100f, -100f);
     [SerializeField] private Vector3 boundsMax = new Vector3(100f, 100f, 100f);
 
+    [Header("Death Zoom Settings")]
+    [SerializeField] private float zoomDuration = 1.5f;
+    [Tooltip("How far back (horizontally) from the death point the camera should end up.")]
+    [SerializeField] private float zoomEndDistance = 6.0f; 
+    [Tooltip("How high (vertically) above the death point the camera should end up.")]
+    [SerializeField] private float zoomEndHeight = 5.0f;   
+    [SerializeField] private AnimationCurve zoomCurve = AnimationCurve.EaseInOut(0, 0, 1, 1);
+
     private Vector3 _velocity;
+    private bool _inDeathSequence = false;
 
     private void Reset()
     {
@@ -63,6 +65,12 @@ public class EdgeFollowCamera : MonoBehaviour
     private void OnEnable()
     {
         _velocity = Vector3.zero;
+        EventManager.StartListening(EventManager.GameEvent.PreDeathSequence, OnPreDeathSequence);
+    }
+
+    private void OnDisable()
+    {
+        EventManager.StopListening(EventManager.GameEvent.PreDeathSequence, OnPreDeathSequence);
     }
 
     private void Start()
@@ -73,7 +81,8 @@ public class EdgeFollowCamera : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (cam == null || target == null)
+        // STOP updating if we are missing refs OR if we are in the middle of the death zoom
+        if (cam == null || target == null || _inDeathSequence)
             return;
 
         Vector3 vp = cam.WorldToViewportPoint(target.position);
@@ -91,8 +100,8 @@ public class EdgeFollowCamera : MonoBehaviour
         float maxY = 1f - screenMargin;
 
         float dx = 0f;
-        if (vp.x < minX) dx = vp.x - minX;         // negative
-        else if (vp.x > maxX) dx = vp.x - maxX;    // positive
+        if (vp.x < minX) dx = vp.x - minX;         
+        else if (vp.x > maxX) dx = vp.x - maxX;    
 
         float dy = 0f;
         if (vp.y < minY) dy = vp.y - minY;
@@ -107,8 +116,6 @@ public class EdgeFollowCamera : MonoBehaviour
         float depth = vp.z;
 
         Vector3 worldAtVp = cam.ViewportToWorldPoint(new Vector3(vp.x, vp.y, depth));
-
-        // FIX: use + (not -) so the camera moves in the correct direction
         Vector3 worldAtVpShifted = cam.ViewportToWorldPoint(new Vector3(vp.x + easedDx, vp.y + easedDy, depth));
 
         Vector3 neededWorldDelta = (worldAtVpShifted - worldAtVp) * followStrength;
@@ -140,13 +147,12 @@ public class EdgeFollowCamera : MonoBehaviour
     private float ApplyDeadZoneEasing(float deltaOutside)
     {
         float abs = Mathf.Abs(deltaOutside);
-        if (abs <= 0f)
-            return 0f;
+        if (abs <= 0f) return 0f;
 
         float denom = Mathf.Max(0.0001f, screenMargin);
         float t = Mathf.Clamp01(abs / denom);
 
-        float smooth = t * t * (3f - 2f * t); // SmoothStep
+        float smooth = t * t * (3f - 2f * t); 
         float softer = Mathf.Pow(smooth, Mathf.Max(0.5f, easingPower));
         float eased = Mathf.Lerp(smooth, softer, easingSoftness);
 
@@ -155,8 +161,7 @@ public class EdgeFollowCamera : MonoBehaviour
 
     private void SnapTargetToViewportCenter()
     {
-        if (cam == null || target == null)
-            return;
+        if (cam == null || target == null) return;
 
         Vector3 vp = cam.WorldToViewportPoint(target.position);
         float depth = Mathf.Max(0.01f, vp.z);
@@ -186,8 +191,61 @@ public class EdgeFollowCamera : MonoBehaviour
     {
         target = newTarget;
         _velocity = Vector3.zero;
-
         if (snapToTargetOnStart && isActiveAndEnabled)
             SnapTargetToViewportCenter();
+    }
+
+    // --- Death Zoom Logic ---
+
+    private void OnPreDeathSequence(object data)
+    {
+        if (data is EventManager.PreDeathEventData deathData)
+        {
+            StartCoroutine(ZoomToDeathRoutine(deathData.deathPosition, deathData.onSequenceComplete));
+        }
+    }
+
+    private IEnumerator ZoomToDeathRoutine(Vector3 deathPos, System.Action onComplete)
+    {
+        _inDeathSequence = true;
+        _velocity = Vector3.zero; // Stop any SmoothDamp momentum
+
+        Vector3 startPos = transform.position;
+        Quaternion startRot = transform.rotation;
+
+        // Determine "Backward" direction relative to the camera to know where to zoom FROM
+        Vector3 camFwdXZ = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+        if (camFwdXZ.sqrMagnitude < 0.01f) camFwdXZ = Vector3.forward; // Default if looking straight down
+        
+        Vector3 camBackXZ = -camFwdXZ;
+
+        // End position: at deathPos, but pulled back and up
+        Vector3 endPos = deathPos + (camBackXZ * zoomEndDistance) + (Vector3.up * zoomEndHeight);
+
+        // Rotation: Look directly at the death spot
+        Quaternion endRot = Quaternion.LookRotation(deathPos - endPos);
+
+        float elapsed = 0f;
+        while (elapsed < zoomDuration)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.Clamp01(elapsed / zoomDuration);
+            float curveT = zoomCurve.Evaluate(t);
+
+            transform.position = Vector3.Lerp(startPos, endPos, curveT);
+            transform.rotation = Quaternion.Slerp(startRot, endRot, curveT);
+
+            yield return null;
+        }
+
+        // Ensure we land exactly at the end
+        transform.position = endPos;
+        transform.rotation = endRot;
+
+        // IMPORTANT: We do NOT set _inDeathSequence to false here.
+        // We want the camera to stay frozen on the death spot until the scene reloads or game restarts.
+
+        // Notify the caller (CubeScaler) that zoom is done, so it can destroy the object / trigger GameOver
+        onComplete?.Invoke();
     }
 }
