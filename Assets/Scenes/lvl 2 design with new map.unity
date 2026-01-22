@@ -18467,7 +18467,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: progressiveTimeBudgetMsPerFrame
-      value: 1.2
+      value: 1.5
       objectReference: {fileID: 0}
     - target: {fileID: 3338532106483729296, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: timeBrushBlitMaterial
@@ -18785,6 +18785,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   levelSceneBuildIndices: 020000000300000004000000
   winCutsceneSceneBuildIndices: 050000000500000006000000
+  ifNoWinCutsceneLoadNextLevel: 1
   usePerLevelWinCutsceneScenes: 1
   loopToFirstLevelIfNoNext: 0
   autoDetectCurrentLevelFromActiveScene: 1
