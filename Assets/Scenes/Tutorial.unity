@@ -17093,31 +17093,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -9.83
+      value: -19.21
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 4.46
+      value: 4.14
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.43
+      value: -0.48
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9825734
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0.18587527
+      value: 0.7071068
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -17125,7 +17125,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 68.576
+      value: 90
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -30790,7 +30790,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &409934585
 RectTransform:
   m_ObjectHideFlags: 0
@@ -31989,6 +31989,55 @@ MonoBehaviour:
   introWobbleCycles: 3
   introMoveTransformDirectly: 1
   introForceKinematicIfRigidBody: 1
+  windowIntroMovesOnComplete:
+  - windowIndex: 10
+    target: {fileID: 177299742}
+    useGlobalSettings: 0
+    directionMode: 1
+    worldDirection: {x: 1, y: 0, z: 0}
+    directionReference: {fileID: 605363058}
+    distance: 6
+    duration: 2
+    startSpeed: 100
+    maxSpeed: 10000
+    speedProfile:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 0.49443972
+        value: 0.99366
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    wobbleAmplitude: 0.1
+    wobbleCycles: 3
+    moveTransformDirectly: 1
+    forceKinematicIfRigidBody: 1
+    forceTargetActiveBeforeMove: 1
   windowGates:
   - enabled: 0
     requirement: 0
@@ -32032,26 +32081,13 @@ MonoBehaviour:
   - enabled: 1
     requirement: 1
     afterCompleteCountdownSeconds: 2
-    activateObjectOnGateStart: {fileID: 1820748832}
-    orderedTriggerSequence: {fileID: 1820748834}
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
     deactivateObjectOnGateComplete: 1
     enemyLayerName: Enemy
     onGateStart:
       m_PersistentCalls:
-        m_Calls:
-        - m_Target: {fileID: 1820748834}
-          m_TargetAssemblyTypeName: JellyGame.UI.Tutorial.OrderedTriggerSequence,
-            Assembly-CSharp
-          m_MethodName: StartSequence
-          m_Mode: 1
-          m_Arguments:
-            m_ObjectArgument: {fileID: 0}
-            m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-            m_IntArgument: 0
-            m_FloatArgument: 0
-            m_StringArgument: 
-            m_BoolArgument: 0
-          m_CallState: 2
+        m_Calls: []
     onGateComplete:
       m_PersistentCalls:
         m_Calls: []
@@ -32121,9 +32157,9 @@ MonoBehaviour:
       m_PersistentCalls:
         m_Calls: []
   - enabled: 0
-    requirement: 0
-    afterCompleteCountdownSeconds: 0
-    activateObjectOnGateStart: {fileID: 0}
+    requirement: 3
+    afterCompleteCountdownSeconds: 2
+    activateObjectOnGateStart: {fileID: 1291572107}
     orderedTriggerSequence: {fileID: 0}
     deactivateObjectOnGateComplete: 0
     enemyLayerName: Enemy
@@ -39451,7 +39487,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &636945454
 RectTransform:
   m_ObjectHideFlags: 0
@@ -44794,7 +44830,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &682704278
 RectTransform:
   m_ObjectHideFlags: 0
@@ -51911,7 +51947,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &854833248
 RectTransform:
   m_ObjectHideFlags: 0
@@ -53273,7 +53309,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &964219294
 RectTransform:
   m_ObjectHideFlags: 0
@@ -71075,7 +71111,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1198235052
 RectTransform:
   m_ObjectHideFlags: 0
@@ -77784,6 +77820,33 @@ MonoBehaviour:
   useBounds: 1
   boundsMin: {x: -30, y: -100, z: -40}
   boundsMax: {x: 25, y: 100, z: 30}
+  zoomDuration: 1.5
+  zoomEndDistance: 6
+  zoomEndHeight: 5
+  zoomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &1344658598
 GameObject:
   m_ObjectHideFlags: 0
@@ -80197,7 +80260,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1509872224
 RectTransform:
   m_ObjectHideFlags: 0
@@ -80311,7 +80374,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1527292676
 RectTransform:
   m_ObjectHideFlags: 0
@@ -89590,7 +89653,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &1835009555
 RectTransform:
   m_ObjectHideFlags: 0
@@ -99549,7 +99612,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2105794888
 RectTransform:
   m_ObjectHideFlags: 0
@@ -103355,6 +103418,8 @@ MonoBehaviour:
   painter: {fileID: 8045036301634720403}
   fillMode: 1
   useGpuPolygonFill: 1
+  useStrokeEdgeInnerOuter: 1
+  fillUsesOuterPolygon: 0
   progressiveTimeBudgetMsPerFrame: 1.5
   progressiveMaxTotalSamples: 160000
   progressiveBaseUvStep: 0.01

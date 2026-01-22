@@ -1,3 +1,4 @@
+// FILEPATH: Assets/Scripts/JellyGame/UI/Tutorial/TutorialSequenceController.cs
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,15 +23,15 @@ namespace JellyGame.UI.Tutorial
         // ===================== Skip =====================
         [Header("Skip")]
         [SerializeField] private float skipCooldownSeconds = 0.75f;
-        
+
         [Tooltip("Keyboard key to skip/advance.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
 
         [Tooltip("Controller buttons to skip/advance. Add JoystickButton0 (PC) AND JoystickButton1 (Mac).")]
-        [SerializeField] private List<KeyCode> gamepadSkipButtons = new List<KeyCode> 
-        { 
-            KeyCode.JoystickButton0, 
-            KeyCode.JoystickButton1 
+        [SerializeField] private List<KeyCode> gamepadSkipButtons = new List<KeyCode>
+        {
+            KeyCode.JoystickButton0,
+            KeyCode.JoystickButton1
         };
 
         [SerializeField] private bool requireKeyDown = true;
@@ -45,7 +46,7 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private List<Component> disableOnTutorialStart = new List<Component>();
 
         [SerializeField] private bool restoreDisabledScriptsOnFinish = true;
-        
+
         [Header("GameObject Locks (Deactivated During Tutorial)")]
         [SerializeField] private List<GameObject> deactivateOnTutorialStart = new List<GameObject>();
 
@@ -81,7 +82,6 @@ namespace JellyGame.UI.Tutorial
             public List<GameObject> deactivateOnComplete = new List<GameObject>();
         }
 
-
         [Header("Per-Window Script Actions")]
         [SerializeField] private List<WindowScriptActions> windowScriptActions = new List<WindowScriptActions>();
 
@@ -106,9 +106,44 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private bool introMoveTransformDirectly = true;
         [SerializeField] private bool introForceKinematicIfRigidBody = true;
 
+        // ===================== Per-window intro moves (after window complete) =====================
+        [Serializable]
+        private class WindowIntroMoveAction
+        {
+            [Tooltip("Which window index triggers this intro move when the window is completed (skipped).")]
+            public int windowIndex = 0;
+
+            [Tooltip("The unit/enemy transform that will do the intro move.")]
+            public Transform target;
+
+            [Tooltip("If true, uses the global Intro Move settings (direction/distance/duration/etc).")]
+            public bool useGlobalSettings = true;
+
+            [Header("Overrides (only if useGlobalSettings = false)")]
+            public IntroMoveDirectionMode directionMode = IntroMoveDirectionMode.WorldVector;
+            public Vector3 worldDirection = Vector3.forward;
+            public Transform directionReference;
+
+            public float distance = 2.0f;
+            public float duration = 0.35f;
+            public float startSpeed = 0.0f;
+            public float maxSpeed = 12.0f;
+            public AnimationCurve speedProfile = new AnimationCurve(new Keyframe(0f, 0f), new Keyframe(0.35f, 1f), new Keyframe(1f, 0f));
+            public float wobbleAmplitude = 0.08f;
+            public float wobbleCycles = 2.0f;
+            public bool moveTransformDirectly = true;
+            public bool forceKinematicIfRigidBody = true;
+
+            [Header("Visibility")]
+            [Tooltip("If true, forces target.gameObject active BEFORE the intro move so it is visible while moving.")]
+            public bool forceTargetActiveBeforeMove = true;
+        }
+
+        [Header("Per-Window Intro Moves (run AFTER window is completed/skipped)")]
+        [SerializeField] private List<WindowIntroMoveAction> windowIntroMovesOnComplete = new List<WindowIntroMoveAction>();
+
         // ===================== Gates =====================
         private enum RequirementType { PressAllArrowKeysOnce, AreaClosedOnce, PickupCollectedOnce, EnemyKilledOnce, OrderedTriggerSequenceOnce }
-
 
         [Serializable]
         private class WindowGate
@@ -127,7 +162,6 @@ namespace JellyGame.UI.Tutorial
             public UnityEvent onGateComplete;
         }
 
-
         [Header("Window Gates")]
         [SerializeField] private List<WindowGate> windowGates = new List<WindowGate>();
 
@@ -136,8 +170,8 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private KeyCode gateDownKey = KeyCode.DownArrow;
         [SerializeField] private KeyCode gateLeftKey = KeyCode.LeftArrow;
         [SerializeField] private KeyCode gateRightKey = KeyCode.RightArrow;
-        
-        // --- NEW: Controller Axes Support for Gates ---
+
+        // --- Controller Axes Support for Gates ---
         [Header("Gate Input (Controller Axes)")]
         [Tooltip("Axis name for Up/Down check (e.g. Vertical).")]
         [SerializeField] private string gateVerticalAxis = "Vertical";
@@ -145,7 +179,6 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private string gateHorizontalAxis = "Horizontal";
         [Tooltip("How far the stick needs to be pushed to count as a 'press' (0.5 is half-way).")]
         [SerializeField] private float axisThreshold = 0.5f;
-
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
@@ -161,6 +194,8 @@ namespace JellyGame.UI.Tutorial
         private Coroutine _flowRoutine;
         private Coroutine _gateRoutine;
 
+        private Coroutine _skipFlowRoutine;
+
         private struct BehaviourState
         {
             public Behaviour b;
@@ -169,8 +204,6 @@ namespace JellyGame.UI.Tutorial
         }
 
         private readonly List<BehaviourState> _startDisabledSnapshot = new List<BehaviourState>();
-        
-
 
         private void Start()
         {
@@ -208,6 +241,8 @@ namespace JellyGame.UI.Tutorial
         {
             if (_flowRoutine != null) StopCoroutine(_flowRoutine);
             if (_gateRoutine != null) { StopCoroutine(_gateRoutine); _gateRoutine = null; }
+            if (_skipFlowRoutine != null) { StopCoroutine(_skipFlowRoutine); _skipFlowRoutine = null; }
+
             _flowRoutine = StartCoroutine(BeginFlow());
         }
 
@@ -242,21 +277,41 @@ namespace JellyGame.UI.Tutorial
             if (_state != FlowState.ShowingWindow) return;
             if (_currentIndex < 0 || _currentIndex >= WindowCount) return;
 
-            ApplyWindowCompleteScriptActions(_currentIndex);
+            if (_skipFlowRoutine != null) StopCoroutine(_skipFlowRoutine);
+            _skipFlowRoutine = StartCoroutine(SkipCurrentWindowFlow());
+        }
 
-            if (TryStartGateForCurrentWindow()) return;
+        private IEnumerator SkipCurrentWindowFlow()
+        {
+            int completedIndex = _currentIndex;
+
+            // FIX #1: hide the window immediately (so intro move doesn't happen "behind" the window)
+            HideWindowAtIndex(completedIndex);
+
+            // Apply "complete" actions (this is where you might activate the enemy, enable scripts, etc.)
+            ApplyWindowCompleteScriptActions(completedIndex);
+
+            // FIX #2: make sure enemy is active BEFORE moving so it is visible while moving
+            yield return PlayWindowIntroMovesOnCompleteIfAny(completedIndex);
+
+            // Continue the normal flow
+            if (TryStartGateForCurrentWindow()) { _skipFlowRoutine = null; yield break; }
             AdvanceToNextWindowOrFinish();
+
+            _skipFlowRoutine = null;
         }
 
         private bool TryStartGateForCurrentWindow()
         {
-            if (true)
+            if (debugLogs)
                 Debug.Log($"[Tutorial] TryStartGateForCurrentWindow index={_currentIndex} gateEnabled={(GetGate(_currentIndex)?.enabled ?? false)} activate={(GetGate(_currentIndex)?.activateObjectOnGateStart ? GetGate(_currentIndex).activateObjectOnGateStart.name : "null")}", this);
 
             WindowGate gate = GetGate(_currentIndex);
             if (gate == null || !gate.enabled) return false;
 
+            // window already hidden in SkipCurrentWindowFlow, but keep this safe
             HideWindowAtIndex(_currentIndex);
+
             if (gate.activateObjectOnGateStart != null) gate.activateObjectOnGateStart.SetActive(true);
             if (pauseGameWhileActive) ResumeGame();
 
@@ -276,7 +331,6 @@ namespace JellyGame.UI.Tutorial
                 case RequirementType.AreaClosedOnce: yield return WaitForAreaClosedOnce(); break;
                 case RequirementType.PickupCollectedOnce: yield return WaitForPickupCollectedOnce(); break;
                 case RequirementType.EnemyKilledOnce: yield return WaitForEnemyKilledOnce(gate.enemyLayerName); break;
-
                 case RequirementType.OrderedTriggerSequenceOnce:
                     yield return WaitForOrderedTriggerSequenceOnce(gate.orderedTriggerSequence);
                     break;
@@ -305,21 +359,16 @@ namespace JellyGame.UI.Tutorial
         {
             bool up = false, down = false, left = false, right = false;
 
-            // Loop until ALL directions have been triggered at least once
             while (!(up && down && left && right))
             {
-                // 1. Check Keyboard
                 if (!up && Input.GetKeyDown(gateUpKey)) up = true;
                 if (!down && Input.GetKeyDown(gateDownKey)) down = true;
                 if (!left && Input.GetKeyDown(gateLeftKey)) left = true;
                 if (!right && Input.GetKeyDown(gateRightKey)) right = true;
-                
-                // 2. Check Controller Stick (Axes)
-                // We use GetAxisRaw or GetAxis. Raw is snappier for checks.
+
                 float v = Input.GetAxis(gateVerticalAxis);
                 float h = Input.GetAxis(gateHorizontalAxis);
 
-                // Threshold check (e.g. if stick pushed more than 50%)
                 if (!up && v > axisThreshold) up = true;
                 if (!down && v < -axisThreshold) down = true;
                 if (!right && h > axisThreshold) right = true;
@@ -377,7 +426,10 @@ namespace JellyGame.UI.Tutorial
             HideAllWindows();
             _state = FlowState.Idle;
             _currentIndex = -1;
+
             if (_gateRoutine != null) { StopCoroutine(_gateRoutine); _gateRoutine = null; }
+            if (_skipFlowRoutine != null) { StopCoroutine(_skipFlowRoutine); _skipFlowRoutine = null; }
+
             if (pauseGameWhileActive && restorePreviousTimeScaleOnFinish) ResumeGame();
             RestoreStartScriptsIfNeeded();
         }
@@ -387,8 +439,10 @@ namespace JellyGame.UI.Tutorial
             if (windows == null || windows.Count == 0) return;
             index = Mathf.Clamp(index, 0, windows.Count - 1);
             _currentIndex = index;
+
             ApplyWindowShowScriptActions(_currentIndex);
             if (windows[_currentIndex] != null) windows[_currentIndex].SetActive(true);
+
             _canSkipAtUnscaledTime = Time.unscaledTime + Mathf.Max(0f, skipCooldownSeconds);
         }
 
@@ -432,7 +486,6 @@ namespace JellyGame.UI.Tutorial
                 }
             }
 
-            // NEW: deactivate GameObjects
             _startDeactivatedSnapshot.Clear();
             if (deactivateOnTutorialStart == null) return;
 
@@ -462,7 +515,6 @@ namespace JellyGame.UI.Tutorial
                 _startDisabledSnapshot.Clear();
             }
 
-            // NEW: restore GameObjects
             if (!restoreDeactivatedObjectsOnFinish)
             {
                 _startDeactivatedSnapshot.Clear();
@@ -477,7 +529,6 @@ namespace JellyGame.UI.Tutorial
             _startDeactivatedSnapshot.Clear();
         }
 
-
         private void ApplyWindowShowScriptActions(int windowIndex)
         {
             WindowScriptActions a = GetWindowScriptActions(windowIndex);
@@ -486,7 +537,6 @@ namespace JellyGame.UI.Tutorial
             SetEnabled(a.disableOnShow, false);
             SetEnabled(a.enableOnShow, true);
 
-            // NEW:
             SetActive(a.deactivateOnShow, false);
             SetActive(a.activateOnShow, true);
         }
@@ -499,25 +549,28 @@ namespace JellyGame.UI.Tutorial
             SetEnabled(a.disableOnComplete, false);
             SetEnabled(a.enableOnComplete, true);
 
-            // NEW:
             SetActive(a.deactivateOnComplete, false);
             SetActive(a.activateOnComplete, true);
         }
 
-
         private WindowScriptActions GetWindowScriptActions(int windowIndex)
         {
             if (windowScriptActions == null) return null;
-            for (int i = 0; i < windowScriptActions.Count; i++) if (windowScriptActions[i].windowIndex == windowIndex) return windowScriptActions[i];
+            for (int i = 0; i < windowScriptActions.Count; i++)
+                if (windowScriptActions[i].windowIndex == windowIndex) return windowScriptActions[i];
             return null;
         }
 
         private static void SetEnabled(List<Component> list, bool enabled)
         {
             if (list == null) return;
-            for (int i = 0; i < list.Count; i++) { Component c = list[i]; if (c is Behaviour b) b.enabled = enabled; }
+            for (int i = 0; i < list.Count; i++)
+            {
+                Component c = list[i];
+                if (c is Behaviour b) b.enabled = enabled;
+            }
         }
-        
+
         private static void SetActive(List<GameObject> list, bool active)
         {
             if (list == null) return;
@@ -528,6 +581,69 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
+        // ===================== Per-window intro move playback =====================
+        private IEnumerator PlayWindowIntroMovesOnCompleteIfAny(int windowIndex)
+        {
+            if (windowIntroMovesOnComplete == null || windowIntroMovesOnComplete.Count == 0) yield break;
+
+            for (int i = 0; i < windowIntroMovesOnComplete.Count; i++)
+            {
+                var a = windowIntroMovesOnComplete[i];
+                if (a == null) continue;
+                if (a.windowIndex != windowIndex) continue;
+                if (a.target == null) continue;
+
+                // Ensure target is visible BEFORE moving
+                if (a.forceTargetActiveBeforeMove && !a.target.gameObject.activeInHierarchy)
+                    a.target.gameObject.SetActive(true);
+
+                // Unpause so the move is visible
+                bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
+                if (wasPaused) ResumeGame();
+
+                if (debugLogs)
+                    Debug.Log($"[Tutorial] Per-window intro move after window {windowIndex} on '{a.target.name}'.", this);
+
+                if (a.useGlobalSettings)
+                {
+                    yield return PlayIntroMoveForTarget(
+                        a.target,
+                        introDirectionMode,
+                        introWorldDirection,
+                        introDirectionReference,
+                        introDistance,
+                        introDuration,
+                        introStartSpeed,
+                        introMaxSpeed,
+                        introSpeedProfile,
+                        introWobbleAmplitude,
+                        introWobbleCycles,
+                        introMoveTransformDirectly,
+                        introForceKinematicIfRigidBody
+                    );
+                }
+                else
+                {
+                    yield return PlayIntroMoveForTarget(
+                        a.target,
+                        a.directionMode,
+                        a.worldDirection,
+                        a.directionReference,
+                        a.distance,
+                        a.duration,
+                        a.startSpeed,
+                        a.maxSpeed,
+                        a.speedProfile,
+                        a.wobbleAmplitude,
+                        a.wobbleCycles,
+                        a.moveTransformDirectly,
+                        a.forceKinematicIfRigidBody
+                    );
+                }
+
+                if (wasPaused && pauseGameWhileActive) PauseGame();
+            }
+        }
 
         private void PauseGame()
         {
@@ -607,6 +723,93 @@ namespace JellyGame.UI.Tutorial
             if (introMoveTransformDirectly && hadRb && introForceKinematicIfRigidBody) rb.isKinematic = prevKinematic;
         }
 
+        private IEnumerator PlayIntroMoveForTarget(
+            Transform target,
+            IntroMoveDirectionMode directionMode,
+            Vector3 worldDirection,
+            Transform directionReference,
+            float distance,
+            float duration,
+            float startSpeed,
+            float maxSpeed,
+            AnimationCurve speedProfile,
+            float wobbleAmplitude,
+            float wobbleCycles,
+            bool moveTransformDirectly,
+            bool forceKinematicIfRigidBody
+        )
+        {
+            if (target == null) yield break;
+
+            Vector3 dir = ResolveIntroDirectionFor(target, directionMode, worldDirection, directionReference);
+            if (dir.sqrMagnitude < 0.0001f) yield break;
+            dir.Normalize();
+
+            Vector3 up = Vector3.up;
+            Vector3 side = Vector3.Cross(up, dir);
+            if (side.sqrMagnitude < 0.0001f) { up = Vector3.forward; side = Vector3.Cross(up, dir); }
+            side.Normalize();
+
+            float dur = Mathf.Max(0.01f, duration);
+            float dist = Mathf.Max(0f, distance);
+            Vector3 startPos = target.position;
+
+            Rigidbody rb = target.GetComponent<Rigidbody>();
+            bool hadRb = rb != null;
+            bool prevKinematic = false;
+
+            if (moveTransformDirectly && hadRb && forceKinematicIfRigidBody)
+            {
+                prevKinematic = rb.isKinematic;
+                rb.isKinematic = true;
+                rb.angularVelocity = Vector3.zero;
+#if UNITY_6000_0_OR_NEWER
+                rb.linearVelocity = Vector3.zero;
+#else
+                rb.velocity = Vector3.zero;
+#endif
+            }
+
+            float s0 = Mathf.Max(0f, startSpeed);
+            float s1 = Mathf.Max(s0, maxSpeed);
+
+            float curveArea = ComputeCurveArea01(speedProfile, 200);
+            float curveAvg = Mathf.Max(0.0001f, curveArea);
+            float unscaledDistancePerK = dur * (s0 + (s1 - s0) * curveAvg);
+            float k = (unscaledDistancePerK > 0.0001f) ? (dist / unscaledDistancePerK) : 0f;
+
+            float traveled = 0f;
+            float t = 0f;
+
+            while (t < dur && traveled < dist - 1e-4f)
+            {
+                float u01 = Mathf.Clamp01(t / dur);
+                float profile = speedProfile != null ? speedProfile.Evaluate(u01) : u01;
+                float speed = (s0 + (s1 - s0) * profile) * k;
+
+                float dt = Time.unscaledDeltaTime;
+                float step = speed * dt;
+                if (traveled + step > dist) step = dist - traveled;
+                traveled += step;
+
+                Vector3 basePos = startPos + dir * traveled;
+
+                float wob = 0f;
+                if (wobbleAmplitude > 0f && wobbleCycles > 0f)
+                {
+                    float wobPhase = u01 * Mathf.PI * 2f * wobbleCycles;
+                    wob = Mathf.Sin(wobPhase) * wobbleAmplitude * (1f - Mathf.SmoothStep(0.6f, 1f, u01));
+                }
+
+                ApplyIntroPositionWithSettings(target, rb, basePos + side * wob, moveTransformDirectly);
+                t += dt;
+                yield return null;
+            }
+
+            ApplyIntroPositionWithSettings(target, rb, startPos + dir * dist, moveTransformDirectly);
+            if (moveTransformDirectly && hadRb && forceKinematicIfRigidBody) rb.isKinematic = prevKinematic;
+        }
+
         private Vector3 ResolveIntroDirection(Transform target)
         {
             switch (introDirectionMode)
@@ -620,9 +823,28 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
+        private Vector3 ResolveIntroDirectionFor(Transform target, IntroMoveDirectionMode directionMode, Vector3 worldDirection, Transform directionReference)
+        {
+            switch (directionMode)
+            {
+                case IntroMoveDirectionMode.TargetForward: return target.forward;
+                case IntroMoveDirectionMode.TargetRight: return target.right;
+                case IntroMoveDirectionMode.TargetUp: return target.up;
+                case IntroMoveDirectionMode.ReferenceTransformForward: return directionReference != null ? directionReference.forward : Vector3.zero;
+                case IntroMoveDirectionMode.ReferenceTransformRight: return directionReference != null ? directionReference.right : Vector3.zero;
+                default: return worldDirection;
+            }
+        }
+
         private void ApplyIntroPosition(Transform target, Rigidbody rb, Vector3 pos)
         {
             if (!introMoveTransformDirectly && rb != null && !rb.isKinematic) rb.MovePosition(pos);
+            else target.position = pos;
+        }
+
+        private void ApplyIntroPositionWithSettings(Transform target, Rigidbody rb, Vector3 pos, bool moveTransformDirectly)
+        {
+            if (!moveTransformDirectly && rb != null && !rb.isKinematic) rb.MovePosition(pos);
             else target.position = pos;
         }
 
@@ -638,17 +860,12 @@ namespace JellyGame.UI.Tutorial
             }
             return area;
         }
-        
+
         private IEnumerator WaitForOrderedTriggerSequenceOnce(OrderedTriggerSequence seq)
         {
             if (seq == null) yield break;
-
-            // ensure it starts clean
             seq.StartSequence();
-
-            while (!seq.Completed)
-                yield return null;
+            while (!seq.Completed) yield return null;
         }
-
     }
 }
