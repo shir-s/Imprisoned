@@ -24023,6 +24023,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   levelSceneBuildIndices: 020000000300000004000000
+  winCutsceneSceneBuildIndices: 
+  ifNoWinCutsceneLoadNextLevel: 1
+  usePerLevelWinCutsceneScenes: 1
   loopToFirstLevelIfNoNext: 0
   autoDetectCurrentLevelFromActiveScene: 1
   gameOverSceneBuildIndex: 0
@@ -24134,6 +24137,9 @@ MonoBehaviour:
   introWobbleCycles: 3
   introMoveTransformDirectly: 1
   introForceKinematicIfRigidBody: 1
+  trailPainter: {fileID: 0}
+  clearPaintWhenSkippingSpecificWindows: 0
+  clearPaintOnSkippedWindowIndices: 
   windowIntroMovesOnComplete: []
   windowGates:
   - enabled: 0
@@ -37906,7 +37912,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1087490800
 Transform:
   m_ObjectHideFlags: 0
@@ -78329,6 +78335,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ab9949d3c44870b47a9d379d9b894797, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RenderTextureTrailPainter
+  clearPaintColor: {r: 0, g: 0, b: 0, a: 0}
+  clearTimeColor: {r: 0, g: 0, b: 0, a: 0}
   trailProtectionMaxAge: 10
   surfaceMask:
     serializedVersion: 2
