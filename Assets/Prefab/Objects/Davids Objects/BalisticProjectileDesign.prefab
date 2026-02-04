@@ -4995,11 +4995,15 @@ MonoBehaviour:
   gravityMultiplier: 1
   extraDownwardAccel: 0
   lifetime: 10
+  damageLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  damageAmount: 2
   slowLayers:
     serializedVersion: 2
     m_Bits: 128
   slowMultiplier: 1
-  slowDurationSeconds: 2
+  slowDurationSeconds: 0
   debugLogs: 1
 --- !u!198 &4262662346098919367
 ParticleSystem:
