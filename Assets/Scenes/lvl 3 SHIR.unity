@@ -33650,7 +33650,7 @@ Transform:
   m_GameObject: {fileID: 1313533266}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.8707363, z: -0.49175033, w: 0}
-  m_LocalPosition: {x: -21.9, y: 39.3, z: 30.8}
+  m_LocalPosition: {x: -21.9, y: 47.7, z: 42.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -48255,6 +48255,8 @@ MonoBehaviour:
     waveSpawnPoints:
     - {fileID: 1935605581}
     - {fileID: 345817746}
+    randomSpawnOffsetRadius: 0
+    faceTargetAtSpawn: {fileID: 0}
   - waveName: Second Wave
     entries:
     - enemyPrefab: {fileID: 5238967278728871490, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
@@ -48264,6 +48266,8 @@ MonoBehaviour:
     waveSpawnPoints:
     - {fileID: 481149784}
     - {fileID: 2095624297}
+    randomSpawnOffsetRadius: 4
+    faceTargetAtSpawn: {fileID: 447884672298249009, guid: 14cf390bb2f976a42bf28daf5988b1ac, type: 3}
   startOnEnable: 1
   delayBeforeFirstWave: 2
   loopWaves: 1
@@ -62351,8 +62355,91 @@ PrefabInstance:
     - {fileID: 110240745974625901, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4089132948530843733}
+    - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4089132948530843732}
+    - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4089132948530843731}
   m_SourcePrefab: {fileID: 100100000, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+--- !u!1 &4089132948530843730 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+  m_PrefabInstance: {fileID: 4089132948530843729}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4089132948530843731
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4089132948530843730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56349487007eb5b4d951597220e768b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Combat.SimpleHealth
+  maxHp: 100
+  destroyOnDeath: 1
+  particleSystem: {fileID: 0}
+  debugLogs: 0
+--- !u!114 &4089132948530843732
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4089132948530843730}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f50945afcbc424baccf5e3e4fef1f1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
+  uniformScale: 1
+  minSize: 0.2
+  maxSize: 3
+  sizeLossPerDamage: 0.1
+  sizeGainPerHeal: 0.1
+  destroyOnDeath: 1
+  destroyDelaySeconds: 1
+  hideVisualsOnDeath: 1
+  renderersToHide: []
+  hideHealthUiOnDeath: 1
+  surfaceSlider: {fileID: 0}
+  hoverHeightAtSize1: 0.5
+  scaleHoverHeightWithSize: 1
+  particlesObject: {fileID: 0}
+  scaleParticlesWithSize: 1
+  particlesScaleMultiplier: 1
+  healthImageRect: {fileID: 0}
+  healthImageDownAtMinSize: 30
+  updateHealthUiOnAwake: 1
+  logChanges: 0
+--- !u!65 &4089132948530843733
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4089132948530843730}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!23 &4131236229516504171
 MeshRenderer:
   m_ObjectHideFlags: 0

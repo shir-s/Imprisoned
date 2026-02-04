@@ -19663,6 +19663,7 @@ GameObject:
   - component: {fileID: 615584845532550897}
   - component: {fileID: 9128047829047679608}
   - component: {fileID: 577908248117500114}
+  - component: {fileID: -8761618975343514230}
   m_Layer: 11
   m_Name: EnemyRangedThenMelee
   m_TagString: Untagged
@@ -19823,7 +19824,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.VolumeDamageOnTrigger
   targetLayers:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 16777344
   percentToRemovePerHit: 10
   damageCooldown: 3
 --- !u!114 &4432870401191425252
@@ -19977,7 +19978,7 @@ MonoBehaviour:
   priority: 25
   targetLayers:
     serializedVersion: 2
-    m_Bits: 128
+    m_Bits: 16777344
   detectionRadius: 18
   projectilePrefab: {fileID: -1035678633680084267, guid: cb1d81766176c4d28a4015dd9ae82a34, type: 3}
   muzzle: {fileID: 7546147100312820598}
@@ -20032,6 +20033,31 @@ MonoBehaviour:
   soundVolume: 1
   debugLogs: 0
   debugGizmos: 1
+--- !u!114 &-8761618975343514230
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5238967278728871490}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 914cf67e48278514280f6f100094a55d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 2048
+  skinWidth: 0.01
+  maxPushPerStep: 0.3
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
+  projectPushOnTrayPlane: 1
+  autoFindTray: 1
+  tray: {fileID: 0}
 --- !u!1001 &2012574783382830029
 PrefabInstance:
   m_ObjectHideFlags: 0
