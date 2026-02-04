@@ -26,8 +26,8 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Controller buttons to skip (Auto-filled for PC/Mac support).")]
         [SerializeField] private List<KeyCode> controllerSkipButtons = new List<KeyCode>
         {
-            KeyCode.JoystickButton0, // A on Windows
-            KeyCode.JoystickButton1  // A on Mac
+            KeyCode.JoystickButton2, // x on Windows
+            KeyCode.JoystickButton3  // x on Mac
         };
 
         [Header("Preload")]
