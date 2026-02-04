@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using JellyGame.GamePlay.Utils;
+using JellyGame.GamePlay.Enemy.AI.Behaviors;
 
 namespace JellyGame.GamePlay.Enemy
 {
@@ -71,6 +72,9 @@ namespace JellyGame.GamePlay.Enemy
         
         [Tooltip("Parent spawned enemies under this transform (null = no parent)")]
         [SerializeField] private Transform parentForSpawnedEnemies = null;
+
+        [Tooltip("Optional. If set, spawned enemies with SingleTargetBehavior will have their target set to this (e.g. empty at center of square). Fixes wrong location when target is a prefab.")]
+        [SerializeField] private Transform runtimeTargetForSingleTarget = null;
 
         [Header("Win Condition")]
         [Tooltip("If true and not looping, track spawned enemies and fire AllEnemiesDied when all waves are done AND all enemies are dead. When Loop Waves is on, win is never fired.")]
@@ -221,6 +225,14 @@ namespace JellyGame.GamePlay.Enemy
                     GameObject spawned = Instantiate(entry.enemyPrefab, spawnPoint.position, spawnPoint.rotation, parentForSpawnedEnemies);
                     
                     if (debugLogs) Debug.Log($"[WaveEnemySpawner] Spawned {entry.enemyPrefab.name} at {spawnPoint.position}", this);
+
+                    // Set runtime target for SingleTargetBehavior (so prefab doesn't need scene reference)
+                    if (runtimeTargetForSingleTarget != null)
+                    {
+                        var singleTarget = spawned.GetComponent<SingleTargetBehavior>();
+                        if (singleTarget != null)
+                            singleTarget.SetTarget(runtimeTargetForSingleTarget);
+                    }
 
                     // Track enemy for win condition
                     if (trackSpawnedEnemiesForWin)

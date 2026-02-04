@@ -6000,6 +6000,7 @@ GameObject:
   - component: {fileID: 2438636838096023596}
   - component: {fileID: 2882092459355259218}
   - component: {fileID: 9133765874063936527}
+  - component: {fileID: 985325830859914585}
   m_Layer: 11
   m_Name: EnemyWalking Var 1
   m_TagString: Untagged
@@ -6306,6 +6307,7 @@ MonoBehaviour:
   targetPoint: {fileID: 447884672298249009, guid: 14cf390bb2f976a42bf28daf5988b1ac, type: 3}
   arrivalThreshold: 1
   stopWhenReached: 1
+  stopAtSurface: 1
   debugLogs: 0
 --- !u!114 &9133765874063936527
 MonoBehaviour:
@@ -6323,6 +6325,31 @@ MonoBehaviour:
   destroyOnDeath: 1
   particleSystem: {fileID: 3455717042604462506}
   debugLogs: 1
+--- !u!114 &985325830859914585
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5256576084068294994}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 914cf67e48278514280f6f100094a55d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
+  collisionMask:
+    serializedVersion: 2
+    m_Bits: 16777216
+  skinWidth: 0.01
+  maxPushPerStep: 0.3
+  allowPushingOthers: 1
+  pushableMask:
+    serializedVersion: 2
+    m_Bits: 0
+  maxPushOtherPerStep: 0.3
+  projectPushOnTrayPlane: 1
+  autoFindTray: 1
+  tray: {fileID: 0}
 --- !u!1 &5572244863998015127
 GameObject:
   m_ObjectHideFlags: 0
