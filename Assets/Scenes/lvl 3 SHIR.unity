@@ -5424,6 +5424,37 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 470580001}
   m_Mesh: {fileID: -8078542630314544142, guid: 7c30029b5151a4461a1593f296c3bba3, type: 3}
+--- !u!1 &481149783
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 481149784}
+  m_Layer: 0
+  m_Name: SpawnPoint3
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &481149784
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 481149783}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -16.1, y: -9.40167, z: 41.9}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &487157275
 GameObject:
   m_ObjectHideFlags: 0
@@ -48745,19 +48776,32 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e459deb96f3bbe8449fb09fd408b101d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.WaveEnemySpawner
-  spawnPoints:
-  - {fileID: 1935605581}
-  - {fileID: 345817746}
   waves:
   - waveName: First Wave
     entries:
     - enemyPrefab: {fileID: 5256576084068294994, guid: cba993ad65d26ff46afd67a3374be0ab, type: 3}
       count: 5
-    delayBeforeWave: 10
+    delayBeforeWave: 5
     delayBetweenSpawns: 1
+    waveSpawnPoints:
+    - {fileID: 1935605581}
+    - {fileID: 345817746}
+    randomSpawnOffsetRadius: 0
+  - waveName: Second Wave
+    entries:
+    - enemyPrefab: {fileID: 5238967278728871490, guid: 23b0d902f0ddf554a87e5b68b7a1b54f, type: 3}
+      count: 5
+    delayBeforeWave: 5
+    delayBetweenSpawns: 1
+    waveSpawnPoints:
+    - {fileID: 481149784}
+    - {fileID: 2095624297}
+    randomSpawnOffsetRadius: 0
   startOnEnable: 1
-  delayBeforeFirstWave: 5
-  spawnPointMode: 0
+  delayBeforeFirstWave: 2
+  loopWaves: 1
+  delayBetweenCycles: 5
+  spawnPointMode: 1
   parentForSpawnedEnemies: {fileID: 0}
   trackSpawnedEnemiesForWin: 1
   debugLogs: 1
@@ -56585,6 +56629,37 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2091503077}
   m_CullTransparentMesh: 1
+--- !u!1 &2095624296
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2095624297}
+  m_Layer: 0
+  m_Name: SpawnPoint4
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2095624297
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2095624296}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -8.8, y: -9.40167, z: -39}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2098895675
 GameObject:
   m_ObjectHideFlags: 0
@@ -63402,4 +63477,6 @@ SceneRoots:
   - {fileID: 1586839703}
   - {fileID: 1935605581}
   - {fileID: 345817746}
+  - {fileID: 481149784}
+  - {fileID: 2095624297}
   - {fileID: 1813709816}

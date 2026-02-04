@@ -35,6 +35,9 @@ namespace JellyGame.GamePlay.Enemy
             
             [Tooltip("Seconds between each spawn within this wave (0 = spawn all at once)")]
             public float delayBetweenSpawns = 0.5f;
+
+            [Tooltip("Spawn points for this wave. Assign at least one per wave.")]
+            public Transform[] waveSpawnPoints = new Transform[0];
         }
 
         public enum SpawnPointMode
@@ -43,10 +46,6 @@ namespace JellyGame.GamePlay.Enemy
             Random,     // Pick random spawn point each time
             AllAtOnce   // Spawn all enemies at all spawn points simultaneously
         }
-
-        [Header("Spawn Points")]
-        [Tooltip("Marked points on the map where enemies will appear. Drag empty GameObjects here.")]
-        [SerializeField] private Transform[] spawnPoints = new Transform[0];
 
         [Header("Waves")]
         [Tooltip("Wave configurations. Each wave can have one or more enemy types.")]
@@ -59,6 +58,13 @@ namespace JellyGame.GamePlay.Enemy
         [Tooltip("Seconds to wait before starting the first wave")]
         [SerializeField] private float delayBeforeFirstWave = 1f;
 
+        [Header("Repeat Waves")]
+        [Tooltip("If true, after the last wave finishes we wait 'Delay Between Cycles' then start from the first wave again (endless loop).")]
+        [SerializeField] private bool loopWaves = false;
+        
+        [Tooltip("Seconds to wait between cycles when looping (after last wave, before first wave again).")]
+        [SerializeField] private float delayBetweenCycles = 10f;
+
         [Header("Spawn Settings")]
         [Tooltip("How to choose spawn points")]
         [SerializeField] private SpawnPointMode spawnPointMode = SpawnPointMode.Cycle;
@@ -67,7 +73,7 @@ namespace JellyGame.GamePlay.Enemy
         [SerializeField] private Transform parentForSpawnedEnemies = null;
 
         [Header("Win Condition")]
-        [Tooltip("If true, track all spawned enemies and fire AllEnemiesDied when all waves are done AND all enemies are dead")]
+        [Tooltip("If true and not looping, track spawned enemies and fire AllEnemiesDied when all waves are done AND all enemies are dead. When Loop Waves is on, win is never fired.")]
         [SerializeField] private bool trackSpawnedEnemiesForWin = true;
 
         [Header("Debug")]
@@ -79,6 +85,7 @@ namespace JellyGame.GamePlay.Enemy
         private bool _isSpawning = false;
         private bool _allWavesCompleted = false;
         private int _nextSpawnPointIndex = 0;
+        private Transform[] _currentWaveSpawnPoints;
 
         private void OnEnable()
         {
@@ -101,12 +108,6 @@ namespace JellyGame.GamePlay.Enemy
             if (_isSpawning)
             {
                 if (debugLogs) Debug.LogWarning("[WaveEnemySpawner] Already spawning waves!", this);
-                return;
-            }
-
-            if (spawnPoints == null || spawnPoints.Length == 0)
-            {
-                Debug.LogError("[WaveEnemySpawner] No spawn points assigned! Cannot spawn enemies.", this);
                 return;
             }
 
@@ -136,31 +137,47 @@ namespace JellyGame.GamePlay.Enemy
                 yield return new WaitForSeconds(delayBeforeFirstWave);
             }
 
-            // Spawn each wave
-            for (int i = 0; i < waves.Length; i++)
+            // Run waves (once or loop)
+            while (true)
             {
-                _currentWaveIndex = i;
-                WaveConfig wave = waves[i];
-
-                if (wave == null || wave.entries == null || wave.entries.Length == 0)
+                // Spawn each wave
+                for (int i = 0; i < waves.Length; i++)
                 {
-                    if (debugLogs) Debug.LogWarning($"[WaveEnemySpawner] Wave {i} is null or has no entries. Skipping.", this);
-                    continue;
+                    _currentWaveIndex = i;
+                    WaveConfig wave = waves[i];
+
+                    if (wave == null || wave.entries == null || wave.entries.Length == 0)
+                    {
+                        if (debugLogs) Debug.LogWarning($"[WaveEnemySpawner] Wave {i} is null or has no entries. Skipping.", this);
+                        continue;
+                    }
+
+                    // Wait before this wave
+                    if (wave.delayBeforeWave > 0f)
+                    {
+                        if (debugLogs) Debug.Log($"[WaveEnemySpawner] Waiting {wave.delayBeforeWave}s before wave {i + 1} ({wave.waveName})...", this);
+                        yield return new WaitForSeconds(wave.delayBeforeWave);
+                    }
+
+                    // Use this wave's spawn points
+                    _currentWaveSpawnPoints = wave.waveSpawnPoints;
+                    _nextSpawnPointIndex = 0;
+
+                    if (debugLogs)
+                        Debug.Log($"[WaveEnemySpawner] Starting wave {i + 1}/{waves.Length}: {wave.waveName} (spawn points: {(_currentWaveSpawnPoints != null ? _currentWaveSpawnPoints.Length : 0)})", this);
+
+                    // Spawn all entries in this wave
+                    yield return StartCoroutine(SpawnWaveEntries(wave));
+
+                    if (debugLogs) Debug.Log($"[WaveEnemySpawner] Wave {i + 1} ({wave.waveName}) completed.", this);
                 }
 
-                // Wait before this wave
-                if (wave.delayBeforeWave > 0f)
-                {
-                    if (debugLogs) Debug.Log($"[WaveEnemySpawner] Waiting {wave.delayBeforeWave}s before wave {i + 1} ({wave.waveName})...", this);
-                    yield return new WaitForSeconds(wave.delayBeforeWave);
-                }
+                if (!loopWaves)
+                    break;
 
-                if (debugLogs) Debug.Log($"[WaveEnemySpawner] Starting wave {i + 1}/{waves.Length}: {wave.waveName}", this);
-
-                // Spawn all entries in this wave
-                yield return StartCoroutine(SpawnWaveEntries(wave));
-
-                if (debugLogs) Debug.Log($"[WaveEnemySpawner] Wave {i + 1} ({wave.waveName}) completed.", this);
+                // Delay before starting the first wave again
+                if (debugLogs) Debug.Log($"[WaveEnemySpawner] Loop: waiting {delayBetweenCycles}s before next cycle...", this);
+                yield return new WaitForSeconds(delayBetweenCycles);
             }
 
             _allWavesCompleted = true;
@@ -168,7 +185,7 @@ namespace JellyGame.GamePlay.Enemy
 
             if (debugLogs) Debug.Log("[WaveEnemySpawner] All waves completed!", this);
 
-            // Check if we need to wait for enemies to die
+            // Check if we need to wait for enemies to die (only when not looping)
             if (trackSpawnedEnemiesForWin)
             {
                 yield return StartCoroutine(WaitForAllEnemiesDead());
@@ -177,6 +194,12 @@ namespace JellyGame.GamePlay.Enemy
 
         private IEnumerator SpawnWaveEntries(WaveConfig wave)
         {
+            if (_currentWaveSpawnPoints == null || _currentWaveSpawnPoints.Length == 0)
+            {
+                Debug.LogError("[WaveEnemySpawner] No spawn points assigned for this wave! Expand the wave in the Inspector and add at least one Transform to 'Wave Spawn Points'. Skipping this wave.", this);
+                yield break;
+            }
+
             foreach (WaveEntry entry in wave.entries)
             {
                 if (entry == null || entry.enemyPrefab == null)
@@ -221,7 +244,7 @@ namespace JellyGame.GamePlay.Enemy
 
         private Transform GetNextSpawnPoint()
         {
-            if (spawnPoints == null || spawnPoints.Length == 0)
+            if (_currentWaveSpawnPoints == null || _currentWaveSpawnPoints.Length == 0)
                 return null;
 
             Transform point = null;
@@ -229,19 +252,17 @@ namespace JellyGame.GamePlay.Enemy
             switch (spawnPointMode)
             {
                 case SpawnPointMode.Cycle:
-                    point = spawnPoints[_nextSpawnPointIndex];
-                    _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % spawnPoints.Length;
+                    point = _currentWaveSpawnPoints[_nextSpawnPointIndex];
+                    _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % _currentWaveSpawnPoints.Length;
                     break;
 
                 case SpawnPointMode.Random:
-                    point = spawnPoints[Random.Range(0, spawnPoints.Length)];
+                    point = _currentWaveSpawnPoints[Random.Range(0, _currentWaveSpawnPoints.Length)];
                     break;
 
                 case SpawnPointMode.AllAtOnce:
-                    // This mode is handled differently - spawns at all points simultaneously
-                    // For now, just cycle (you can extend this if needed)
-                    point = spawnPoints[_nextSpawnPointIndex];
-                    _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % spawnPoints.Length;
+                    point = _currentWaveSpawnPoints[_nextSpawnPointIndex];
+                    _nextSpawnPointIndex = (_nextSpawnPointIndex + 1) % _currentWaveSpawnPoints.Length;
                     break;
             }
 
@@ -283,11 +304,12 @@ namespace JellyGame.GamePlay.Enemy
 #if UNITY_EDITOR
         private void OnDrawGizmosSelected()
         {
-            // Draw spawn points in editor
-            if (spawnPoints != null)
+            if (waves == null) return;
+            for (int w = 0; w < waves.Length; w++)
             {
-                Gizmos.color = Color.red;
-                foreach (Transform point in spawnPoints)
+                if (waves[w]?.waveSpawnPoints == null) continue;
+                Gizmos.color = w == 0 ? Color.green : (w == 1 ? Color.blue : Color.yellow);
+                foreach (Transform point in waves[w].waveSpawnPoints)
                 {
                     if (point != null)
                     {
