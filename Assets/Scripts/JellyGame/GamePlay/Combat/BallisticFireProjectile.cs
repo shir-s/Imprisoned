@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/Combat/Projectiles/BallisticFireProjectile.cs
 using System;
+using JellyGame.GamePlay.Combat;
 using JellyGame.GamePlay.Enemy.AI.Movement;
 using UnityEngine;
 
@@ -19,6 +20,13 @@ namespace JellyGame.GamePlay.Combat.Projectiles
 
         [Header("Lifetime")]
         [SerializeField] private float lifetime = 6f;
+
+        [Header("Damage")]
+        [Tooltip("Only hits on these layers will receive damage. If 0 (Nothing), no damage will be applied.")]
+        [SerializeField] private LayerMask damageLayers;
+
+        [Tooltip("Damage applied via IDamageable.ApplyDamage(amount).")]
+        [SerializeField] private float damageAmount = 1f;
 
         [Header("Slow Effect")]
         [SerializeField] private LayerMask slowLayers;
@@ -95,11 +103,27 @@ namespace JellyGame.GamePlay.Combat.Projectiles
 
             if (debugLogs) Debug.Log($"[BallisticProjectile] Hit {other.name}", this);
 
+            // 1) Apply slow (existing mechanic)
             if ((slowLayers.value & (1 << other.gameObject.layer)) != 0)
             {
                 var receiver = other.GetComponentInParent<IMovementSpeedEffectReceiver>();
                 if (receiver != null)
                     receiver.ApplySpeedMultiplier(slowMultiplier, slowDurationSeconds);
+            }
+
+            // 2) Apply damage using the EXISTING system (IDamageable)
+            if (damageAmount > 0f && damageLayers.value != 0 && (damageLayers.value & (1 << other.gameObject.layer)) != 0)
+            {
+                var damageable = other.GetComponentInParent<IDamageable>();
+                if (damageable != null)
+                {
+                    if (debugLogs) Debug.Log($"[BallisticProjectile] Dealt {damageAmount} damage to {other.name}", this);
+                    damageable.ApplyDamage(damageAmount);
+                }
+                else if (debugLogs)
+                {
+                    Debug.Log($"[BallisticProjectile] Damage layer matched, but no IDamageable found on {other.name} (or parents).", this);
+                }
             }
 
             OnHit?.Invoke(other);
