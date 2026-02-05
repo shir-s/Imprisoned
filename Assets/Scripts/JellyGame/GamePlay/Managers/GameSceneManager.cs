@@ -12,6 +12,7 @@ namespace JellyGame.GamePlay.Managers
     /// Responsibilities:
     /// - Listen for GameWin event (triggered by FinishTrigger when player enters exit)
     /// - Load scenes via LoadingScreen (configured per level in winScenesToLoad)
+    /// - Handle post-level cutscenes that are already loaded (activate directly)
     /// - Play win FX before loading
     /// - Trigger GameOver when player dies
     /// 
@@ -24,7 +25,7 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private bool isMainMenu = false;
 
         [Tooltip("Which scene to load when user presses any key in Main Menu (usually Tutorial).")]
-        [SerializeField] private int mainMenuNextScene = 2; // Tutorial
+        [SerializeField] private int mainMenuNextScene = 4; // Tutorial
 
         [Tooltip("Text to display (optional). Leave empty to skip.")]
         [SerializeField] private string pressAnyKeyText = "Press Any Key to Start";
@@ -36,6 +37,9 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Build index of the GameOver scene.")]
         [SerializeField] private int gameOverSceneBuildIndex = 0;
 
+        [Tooltip("Use LoadingManager for GameOver transitions? If false, loads directly.")]
+        [SerializeField] private bool useLoadingScreenForGameOver = true;
+
         [Tooltip("If an EntityDied event is triggered with a victim layer in this mask => trigger GameOver.")]
         [SerializeField] private LayerMask gameOverOnVictimLayers;
 
@@ -45,14 +49,23 @@ namespace JellyGame.GamePlay.Managers
 
         [Tooltip("Scenes to load when player wins THIS level. Configure per level!\n" +
                  "Examples:\n" +
-                 "- Tutorial: [3] (just Level1)\n" +
-                 "- Level1: [5, 4] (Cutscene + Level2)\n" +
-                 "- Level2: [6, 1] (Cutscene + Win scene)")]
+                 "- Tutorial: [5, 6] (Level1 + Cutscene1)\n" +
+                 "- Level3: [3] (MainMenu)\n" +
+                 "NOTE: If postLevelCutsceneBuildIndex is set, this is ignored.")]
         [SerializeField] private int[] winScenesToLoad = new int[0];
 
+        [Header("Post-Level Cutscene (Already Loaded)")]
+        [Tooltip("If >= 0, this cutscene was loaded together with this level by LoadingManager.\n" +
+                 "On win, it will be activated directly (no loading screen).\n" +
+                 "Set to -1 if no cutscene follows this level.")]
+        [SerializeField] private int postLevelCutsceneBuildIndex = -1;
+
         [Header("Special Case: GameOver Portal")]
-        [Tooltip("When player enters portal in GameOver scene, which level to load? (Usually Level1)")]
-        [SerializeField] private int gameOverPortalDestination = 3; // Level1
+        [Tooltip("When player enters portal in GameOver scene, which scenes to load? (Level1 + Cutscene1)")]
+        [SerializeField] private int[] gameOverPortalScenesToLoad = new int[] { 5, 6 };
+
+        [Tooltip("Which scene to activate first from gameOverPortalScenesToLoad (0 = first scene).")]
+        [SerializeField] private int gameOverPortalFirstSceneIndex = 0;
 
         [Header("Win FX (Optional)")]
         [Tooltip("ROOT GameObject containing win particles (all ParticleSystems in children).")]
@@ -232,19 +245,27 @@ namespace JellyGame.GamePlay.Managers
                 Debug.Log("[GameSceneManager] Win sequence started.", this);
 
             // SPECIAL CASE: Win triggered in GameOver scene (portal)
-            // Always go to the configured destination (usually Level1)
+            // Always go to the configured destination (usually Level1 + Cutscene1)
             if (IsInGameOverScene())
             {
-                if (!IsValidBuildIndex(gameOverPortalDestination))
+                if (gameOverPortalScenesToLoad == null || gameOverPortalScenesToLoad.Length == 0)
                 {
-                    Debug.LogError($"[GameSceneManager] GameOver portal destination invalid: {gameOverPortalDestination}", this);
+                    Debug.LogError("[GameSceneManager] GameOver portal scenes not configured!", this);
                     yield break;
                 }
 
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Win in GameOver scene → loading Level buildIndex={gameOverPortalDestination}", this);
+                    Debug.Log($"[GameSceneManager] Win in GameOver scene → loading {gameOverPortalScenesToLoad.Length} scene(s)", this);
 
-                SceneManager.LoadScene(gameOverPortalDestination);
+                if (LoadingManager.Instance != null)
+                {
+                    LoadingManager.Instance.StartLoading(gameOverPortalScenesToLoad, gameOverPortalFirstSceneIndex);
+                }
+                else
+                {
+                    // Fallback: direct load first scene
+                    SceneManager.LoadScene(gameOverPortalScenesToLoad[0]);
+                }
                 yield break;
             }
 
@@ -301,7 +322,28 @@ namespace JellyGame.GamePlay.Managers
             if (pauseGameplayOnWin)
                 Time.timeScale = 1f;
 
-            // Load next scenes via LoadingManager (persistent)
+            // ==================== NEW: Post-Level Cutscene Logic ====================
+            // Check if there's a cutscene already loaded that should play after this level
+            if (postLevelCutsceneBuildIndex >= 0)
+            {
+                Scene cutsceneScene = SceneManager.GetSceneByBuildIndex(postLevelCutsceneBuildIndex);
+                
+                if (cutsceneScene.isLoaded)
+                {
+                    if (debugLogs)
+                        Debug.Log($"[GameSceneManager] Post-level cutscene (index {postLevelCutsceneBuildIndex}) is already loaded. Activating directly.", this);
+
+                    ActivatePostLevelCutscene(cutsceneScene);
+                    yield break;
+                }
+                else
+                {
+                    Debug.LogWarning($"[GameSceneManager] postLevelCutsceneBuildIndex={postLevelCutsceneBuildIndex} but scene is NOT loaded! " +
+                        "Falling back to winScenesToLoad.", this);
+                }
+            }
+
+            // ==================== Standard: Load via LoadingManager ====================
             if (useLoadingScreenForWin)
             {
                 if (winScenesToLoad != null && winScenesToLoad.Length > 0)
@@ -326,6 +368,105 @@ namespace JellyGame.GamePlay.Managers
             else
             {
                 Debug.LogWarning("[GameSceneManager] LoadingScreen disabled. Cannot load next scenes.", this);
+            }
+        }
+
+        // ===================== Post-Level Cutscene Activation =====================
+
+        /// <summary>
+        /// Activate a cutscene scene that was already loaded by LoadingManager (but deactivated).
+        /// This is used when Level wins and the cutscene should play without a loading screen.
+        /// </summary>
+        private void ActivatePostLevelCutscene(Scene cutsceneScene)
+        {
+            if (!cutsceneScene.isLoaded)
+            {
+                Debug.LogError($"[GameSceneManager] Cannot activate cutscene - scene not loaded!", this);
+                return;
+            }
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] Activating post-level cutscene: {cutsceneScene.name}", this);
+
+            // FIRST: Disable cameras and audio listeners in the CURRENT scene (level)
+            // This prevents "multiple audio listeners" warnings
+            Scene currentLevelScene = gameObject.scene;
+            if (currentLevelScene.isLoaded && currentLevelScene != cutsceneScene)
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Disabling cameras/audio in level scene: {currentLevelScene.name}", this);
+
+                GameObject[] levelObjects = currentLevelScene.GetRootGameObjects();
+                foreach (GameObject obj in levelObjects)
+                {
+                    UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
+                    foreach (UnityEngine.Camera cam in cameras)
+                    {
+                        cam.enabled = false;
+                    }
+
+                    AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
+                    foreach (AudioListener listener in listeners)
+                    {
+                        listener.enabled = false;
+                    }
+                }
+            }
+
+            // NOW: Activate the cutscene scene
+            GameObject[] rootObjects = cutsceneScene.GetRootGameObjects();
+
+            // Re-enable cameras and audio listeners FIRST
+            foreach (GameObject obj in rootObjects)
+            {
+                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
+                foreach (UnityEngine.Camera cam in cameras)
+                {
+                    cam.enabled = true;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[GameSceneManager] Re-enabled camera: {cam.name}", this);
+                }
+
+                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
+                foreach (AudioListener listener in listeners)
+                {
+                    listener.enabled = true;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[GameSceneManager] Re-enabled audio listener: {listener.name}", this);
+                }
+            }
+
+            // Now activate GameObjects
+            foreach (GameObject obj in rootObjects)
+            {
+                obj.SetActive(true);
+            }
+
+            // Set cutscene as active scene
+            SceneManager.SetActiveScene(cutsceneScene);
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] Activated cutscene scene {cutsceneScene.name}", this);
+
+            // Unload the current level scene
+            if (currentLevelScene.isLoaded && currentLevelScene != cutsceneScene)
+            {
+                StartCoroutine(UnloadSceneAfterDelay(currentLevelScene, 0.5f));
+            }
+        }
+
+        private IEnumerator UnloadSceneAfterDelay(Scene scene, float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            if (scene.isLoaded)
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Unloading level scene: {scene.name}", this);
+
+                SceneManager.UnloadSceneAsync(scene);
             }
         }
 
@@ -372,16 +513,25 @@ namespace JellyGame.GamePlay.Managers
 
         private void LoadGameOverScene()
         {
-            if (IsValidBuildIndex(gameOverSceneBuildIndex))
+            if (!IsValidBuildIndex(gameOverSceneBuildIndex))
+            {
+                Debug.LogError("[GameSceneManager] GameOver scene build index is invalid!", this);
+                return;
+            }
+
+            if (useLoadingScreenForGameOver && LoadingManager.Instance != null)
             {
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Loading GameOver scene: {gameOverSceneBuildIndex}", this);
+                    Debug.Log($"[GameSceneManager] Loading GameOver scene via LoadingManager: {gameOverSceneBuildIndex}", this);
 
-                SceneManager.LoadScene(gameOverSceneBuildIndex);
+                LoadingManager.Instance.StartLoading(new int[] { gameOverSceneBuildIndex });
             }
             else
             {
-                Debug.LogError("[GameSceneManager] GameOver scene build index is invalid!", this);
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Loading GameOver scene directly: {gameOverSceneBuildIndex}", this);
+
+                SceneManager.LoadScene(gameOverSceneBuildIndex);
             }
         }
 
