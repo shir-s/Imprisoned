@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using JellyGame.GamePlay.Utils;
+using JellyGame.GamePlay.Enemy.AI.Behaviors;
 
 namespace JellyGame.GamePlay.Enemy
 {
@@ -38,6 +39,13 @@ namespace JellyGame.GamePlay.Enemy
 
             [Tooltip("Spawn points for this wave. Assign at least one per wave.")]
             public Transform[] waveSpawnPoints = new Transform[0];
+
+            [Tooltip("If > 0, each enemy gets a random offset in XZ from the spawn point so they don't stack. Use for stationary enemies (e.g. 1–2).")]
+            [Min(0f)]
+            public float randomSpawnOffsetRadius = 0f;
+
+            [Tooltip("Optional. If set, spawned enemies will face this target (e.g. player or center). Use when spawn points are on different sides so all face the same way.")]
+            public Transform faceTargetAtSpawn = null;
         }
 
         public enum SpawnPointMode
@@ -71,6 +79,9 @@ namespace JellyGame.GamePlay.Enemy
         
         [Tooltip("Parent spawned enemies under this transform (null = no parent)")]
         [SerializeField] private Transform parentForSpawnedEnemies = null;
+
+        [Tooltip("Optional. If set, spawned enemies with SingleTargetBehavior will have their target set to this (e.g. empty at center of square). Fixes wrong location when target is a prefab.")]
+        [SerializeField] private Transform runtimeTargetForSingleTarget = null;
 
         [Header("Win Condition")]
         [Tooltip("If true and not looping, track spawned enemies and fire AllEnemiesDied when all waves are done AND all enemies are dead. When Loop Waves is on, win is never fired.")]
@@ -218,9 +229,25 @@ namespace JellyGame.GamePlay.Enemy
                         continue;
                     }
 
-                    GameObject spawned = Instantiate(entry.enemyPrefab, spawnPoint.position, spawnPoint.rotation, parentForSpawnedEnemies);
+                    Vector3 spawnPos = spawnPoint.position;
+                    if (wave.randomSpawnOffsetRadius > 0f)
+                    {
+                        Vector2 offset = Random.insideUnitCircle * wave.randomSpawnOffsetRadius;
+                        spawnPos += new Vector3(offset.x, 0f, offset.y);
+                    }
+
+                    Quaternion spawnRot = GetSpawnRotation(wave, spawnPoint, spawnPos);
+                    GameObject spawned = Instantiate(entry.enemyPrefab, spawnPos, spawnRot, parentForSpawnedEnemies);
                     
-                    if (debugLogs) Debug.Log($"[WaveEnemySpawner] Spawned {entry.enemyPrefab.name} at {spawnPoint.position}", this);
+                    if (debugLogs) Debug.Log($"[WaveEnemySpawner] Spawned {entry.enemyPrefab.name} at {spawnPos}", this);
+
+                    // Set runtime target for SingleTargetBehavior (so prefab doesn't need scene reference)
+                    if (runtimeTargetForSingleTarget != null)
+                    {
+                        var singleTarget = spawned.GetComponent<SingleTargetBehavior>();
+                        if (singleTarget != null)
+                            singleTarget.SetTarget(runtimeTargetForSingleTarget);
+                    }
 
                     // Track enemy for win condition
                     if (trackSpawnedEnemiesForWin)
@@ -240,6 +267,22 @@ namespace JellyGame.GamePlay.Enemy
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns spawn rotation: face wave.faceTargetAtSpawn (XZ plane) if set, else spawn point rotation.
+        /// </summary>
+        private Quaternion GetSpawnRotation(WaveConfig wave, Transform spawnPoint, Vector3 spawnPos)
+        {
+            if (wave.faceTargetAtSpawn == null)
+                return spawnPoint.rotation;
+
+            Vector3 toTarget = wave.faceTargetAtSpawn.position - spawnPos;
+            toTarget.y = 0f;
+            if (toTarget.sqrMagnitude < 0.001f)
+                return spawnPoint.rotation;
+            toTarget.Normalize();
+            return Quaternion.LookRotation(toTarget);
         }
 
         private Transform GetNextSpawnPoint()
