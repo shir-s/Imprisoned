@@ -16,6 +16,9 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("If true, timer starts on Enable. If false, call StartTimer() to begin.")]
         [SerializeField] private bool startOnEnable = true;
 
+        [Tooltip("If true, timer uses real time (unscaled). So 120 seconds = 2 real minutes even if Time.timeScale is 2. If false, timer follows game speed (pauses when game is paused).")]
+        [SerializeField] private bool useUnscaledTime = true;
+
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
 
@@ -57,7 +60,7 @@ namespace JellyGame.GamePlay.Managers
             if (!_running || _remaining <= 0f)
                 return;
 
-            _remaining -= Time.deltaTime;
+            _remaining -= useUnscaledTime ? Time.unscaledDeltaTime : Time.deltaTime;
             if (_remaining <= 0f)
             {
                 _remaining = 0f;
