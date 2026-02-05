@@ -12563,12 +12563,15 @@ MonoBehaviour:
   pressAnyKeyText: Press Any Key to Start
   playBackgroundMusic: 1
   gameOverSceneBuildIndex: 0
+  useLoadingScreenForGameOver: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
   useLoadingScreenForWin: 1
-  winScenesToLoad: 0600000007000000
-  gameOverPortalDestination: 5
+  winScenesToLoad: 
+  postLevelCutsceneBuildIndex: 6
+  gameOverPortalScenesToLoad: 0500000006000000
+  gameOverPortalFirstSceneIndex: 0
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1

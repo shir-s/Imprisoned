@@ -9,6 +9,8 @@ namespace JellyGame.GamePlay.Enemy
     /// <summary>
     /// Spawns waves of enemies at marked spawn points.
     /// Supports both single enemy type per wave and mixed enemy types per wave.
+    /// 
+    /// FIXED: Now properly resets state when disabled/re-enabled (for scene reactivation).
     /// </summary>
     public class WaveEnemySpawner : MonoBehaviour
     {
@@ -100,6 +102,9 @@ namespace JellyGame.GamePlay.Enemy
 
         private void OnEnable()
         {
+            if (debugLogs)
+                Debug.Log($"[WaveEnemySpawner] OnEnable called. startOnEnable={startOnEnable}, _isSpawning={_isSpawning}", this);
+
             if (startOnEnable)
             {
                 StartWaves();
@@ -108,7 +113,27 @@ namespace JellyGame.GamePlay.Enemy
 
         private void OnDisable()
         {
+            if (debugLogs)
+                Debug.Log($"[WaveEnemySpawner] OnDisable called. Stopping coroutines and resetting state.", this);
+
             StopAllCoroutines();
+            
+            // CRITICAL FIX: Reset spawning state so it can restart when re-enabled
+            // This handles the case where the scene is loaded but deactivated, then reactivated later
+            _isSpawning = false;
+            _allWavesCompleted = false;
+            _currentWaveIndex = -1;
+            _nextSpawnPointIndex = 0;
+            
+            // Unsubscribe from any remaining enemy death events to avoid memory leaks
+            foreach (var enemy in _spawnedEnemies)
+            {
+                if (enemy != null)
+                {
+                    enemy.EnemyDied -= OnSpawnedEnemyDied;
+                }
+            }
+            _spawnedEnemies.Clear();
         }
 
         /// <summary>

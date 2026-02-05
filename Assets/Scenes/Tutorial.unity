@@ -17569,14 +17569,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 187895506}
   serializedVersion: 2
-  m_LocalRotation: {x: -0.066797, y: -0.6156703, z: 0.04164377, w: 0.7840625}
+  m_LocalRotation: {x: -0.065883055, y: -0.6268982, z: 0.037965614, w: 0.77538157}
   m_LocalPosition: {x: -26.62204, y: 1.3709962, z: -3.1033154}
   m_LocalScale: {x: 1, y: 1.7711998, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1084254596}
   m_Father: {fileID: 3923426347369336396}
-  m_LocalEulerAnglesHint: {x: -180, y: 271.639, z: 180}
+  m_LocalEulerAnglesHint: {x: -176.872, y: 101.866, z: 188.146}
 --- !u!23 &187895508
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -36727,16 +36727,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   isMainMenu: 0
-  mainMenuNextScene: 2
+  mainMenuNextScene: 4
   pressAnyKeyText: Press Any Key to Start
   playBackgroundMusic: 1
   gameOverSceneBuildIndex: 0
+  useLoadingScreenForGameOver: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
   useLoadingScreenForWin: 1
-  winScenesToLoad: 0600000005000000
-  gameOverPortalDestination: 5
+  winScenesToLoad: 0500000006000000
+  postLevelCutsceneBuildIndex: -1
+  gameOverPortalScenesToLoad: 0500000006000000
+  gameOverPortalFirstSceneIndex: 0
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
@@ -140414,13 +140417,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6438207547436000846}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.16137609, y: -0, z: 0.98689306, w: -0.0000000055879354}
+  m_LocalRotation: {x: 0.16137601, y: -0.00013648064, z: 0.98689264, w: 0.00083463977}
   m_LocalPosition: {x: -5.9125996, y: -7.428814, z: -0.706201}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 7957343856251194958}
-  m_LocalEulerAnglesHint: {x: 0, y: 18.574, z: 180}
+  m_LocalEulerAnglesHint: {x: 0.031, y: 18.574, z: 179.908}
 --- !u!114 &2097036642495405342
 MonoBehaviour:
   m_ObjectHideFlags: 0

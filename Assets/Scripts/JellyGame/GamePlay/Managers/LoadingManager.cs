@@ -10,10 +10,8 @@ namespace JellyGame.GamePlay.Managers
     /// Persistent Loading Manager - stays loaded throughout the game.
     /// Shows/hides loading UI as needed without unloading the scene.
     /// 
-    /// Setup:
-    /// - LoadingScreen scene should be loaded additively at game start
-    /// - Canvas is hidden by default
-    /// - When loading is needed, canvas shows, scenes load, user presses E, canvas hides
+    /// UPDATED: Now properly unloads ALL non-essential scenes when loading new ones,
+    /// preventing duplicate scenes and memory leaks.
     /// </summary>
     [DisallowMultipleComponent]
     public class LoadingManager : MonoBehaviour
@@ -53,13 +51,17 @@ namespace JellyGame.GamePlay.Managers
         private List<AsyncOperation> _loadOperations = new List<AsyncOperation>();
         private float _loadStartTime;
         
-        // Track the scene we're leaving (to unload it)
-        private Scene _previousScene;
-        private bool _previousSceneUnloaded = false;
+        // Track scenes to unload (all scenes except LoadingScreen and the new ones)
+        private List<Scene> _scenesToUnload = new List<Scene>();
 
         // Singleton instance
         private static LoadingManager _instance;
         public static LoadingManager Instance => _instance;
+
+        /// <summary>
+        /// Get the build index of the LoadingScreen scene (for exclusion during unload).
+        /// </summary>
+        private int LoadingScreenBuildIndex => gameObject.scene.buildIndex;
 
         private void Awake()
         {
@@ -79,7 +81,6 @@ namespace JellyGame.GamePlay.Managers
             // CRITICAL: If Canvas is a separate root GameObject, it needs DontDestroyOnLoad too!
             if (loadingCanvas != null && loadingCanvas.transform.parent == null)
             {
-                // Canvas is a root GameObject, make it persistent too
                 DontDestroyOnLoad(loadingCanvas.gameObject);
                 
                 if (debugLogs)
@@ -90,17 +91,11 @@ namespace JellyGame.GamePlay.Managers
             if (loadingCanvas != null)
                 loadingCanvas.enabled = false;
 
-            // IMPORTANT: Disable any cameras in the LoadingScreen scene
-            // so they don't interfere with the active scene's camera
+            // Disable any cameras in the LoadingScreen scene
             DisableAllCamerasInScene();
-
-            // Also disable any audio listeners
             DisableAllAudioListenersInScene();
         }
 
-        /// <summary>
-        /// Disable all cameras in the LoadingScreen scene to prevent interference.
-        /// </summary>
         private void DisableAllCamerasInScene()
         {
             Scene loadingScene = gameObject.scene;
@@ -112,16 +107,12 @@ namespace JellyGame.GamePlay.Managers
                 foreach (UnityEngine.Camera cam in cameras)
                 {
                     cam.enabled = false;
-
                     if (debugLogs)
                         Debug.Log($"[LoadingManager] Disabled camera: {cam.name}", this);
                 }
             }
         }
 
-        /// <summary>
-        /// Disable all audio listeners in the LoadingScreen scene to prevent conflicts.
-        /// </summary>
         private void DisableAllAudioListenersInScene()
         {
             Scene loadingScene = gameObject.scene;
@@ -133,7 +124,6 @@ namespace JellyGame.GamePlay.Managers
                 foreach (AudioListener listener in listeners)
                 {
                     listener.enabled = false;
-
                     if (debugLogs)
                         Debug.Log($"[LoadingManager] Disabled audio listener: {listener.name}", this);
                 }
@@ -145,7 +135,6 @@ namespace JellyGame.GamePlay.Managers
             if (!_canContinue)
                 return;
 
-            // Check for input
             bool inputDetected = Input.GetKeyDown(continueKey);
 
             if (!inputDetected && continueControllerButtons != null)
@@ -170,7 +159,7 @@ namespace JellyGame.GamePlay.Managers
         }
 
         /// <summary>
-        /// Start loading scenes. Called by GameSceneManager or other triggers.
+        /// Start loading scenes. Called by GameSceneManager or CutsceneSceneTransition.
         /// </summary>
         public void StartLoading(int[] sceneIndices, int firstSceneToActivate = 0)
         {
@@ -189,15 +178,47 @@ namespace JellyGame.GamePlay.Managers
             if (debugLogs)
                 Debug.Log($"[LoadingManager] Starting load of {sceneIndices.Length} scene(s)", this);
 
-            // Store the current active scene so we can unload it later
-            _previousScene = SceneManager.GetActiveScene();
-            _previousSceneUnloaded = false; // Reset flag
-            
-            if (debugLogs)
-                Debug.Log($"[LoadingManager] Stored previous scene for unloading: {_previousScene.name}", this);
+            // Collect ALL scenes that need to be unloaded (everything except LoadingScreen)
+            CollectScenesToUnload(sceneIndices);
 
             SceneTransitionHelper.SetScenesToLoad(sceneIndices, firstSceneToActivate);
             StartCoroutine(LoadScenesCoroutine());
+        }
+
+        /// <summary>
+        /// Collect all currently loaded scenes that should be unloaded.
+        /// Excludes: LoadingScreen scene and the new scenes we're about to load.
+        /// </summary>
+        private void CollectScenesToUnload(int[] newSceneIndices)
+        {
+            _scenesToUnload.Clear();
+            
+            HashSet<int> newSceneSet = new HashSet<int>(newSceneIndices);
+            int loadingScreenIndex = LoadingScreenBuildIndex;
+
+            for (int i = 0; i < SceneManager.sceneCount; i++)
+            {
+                Scene scene = SceneManager.GetSceneAt(i);
+                
+                if (!scene.isLoaded)
+                    continue;
+
+                // Don't unload LoadingScreen
+                if (scene.buildIndex == loadingScreenIndex)
+                    continue;
+
+                // Don't unload scenes we're about to load (they might already be loaded additively)
+                if (newSceneSet.Contains(scene.buildIndex))
+                    continue;
+
+                _scenesToUnload.Add(scene);
+                
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Will unload scene: {scene.name} (buildIndex={scene.buildIndex})", this);
+            }
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Total scenes to unload: {_scenesToUnload.Count}", this);
         }
 
         private IEnumerator LoadScenesCoroutine()
@@ -211,30 +232,19 @@ namespace JellyGame.GamePlay.Managers
             // Show loading UI
             if (loadingCanvas != null)
             {
-                // CRITICAL: Enable the GameObject first (in case it was disabled)
                 if (!loadingCanvas.gameObject.activeSelf)
                 {
                     loadingCanvas.gameObject.SetActive(true);
-                    
                     if (debugLogs)
                         Debug.Log("[LoadingManager] ✓ Enabled Canvas GameObject", this);
                 }
                 
-                // Ensure canvas is in overlay mode (renders on top of everything)
                 loadingCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                
-                // Set high sort order to be on top
                 loadingCanvas.sortingOrder = canvasSortOrder;
-                
-                // Enable the canvas component
                 loadingCanvas.enabled = true;
                 
                 if (debugLogs)
                     Debug.Log($"[LoadingManager] ✓ Loading UI shown (sortOrder={canvasSortOrder})", this);
-            }
-            else
-            {
-                Debug.LogWarning("[LoadingManager] loadingCanvas is null! Cannot show loading UI.", this);
             }
 
             if (uiController != null)
@@ -243,13 +253,58 @@ namespace JellyGame.GamePlay.Managers
                 uiController.ShowContinuePrompt(false);
             }
 
-            // CRITICAL: Destroy the player in the previous scene FIRST
-            // This prevents singleton conflicts when new scene's player loads
-            DestroyPlayerInPreviousScene();
+            // STEP 1: Disable and destroy objects in scenes we're about to unload
+            // This prevents issues with singletons and event listeners
+            foreach (Scene sceneToUnload in _scenesToUnload)
+            {
+                if (!sceneToUnload.isLoaded)
+                    continue;
 
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Disabling objects in scene before unload: {sceneToUnload.name}", this);
+
+                // Destroy player first to prevent singleton conflicts
+                DestroyPlayerInScene(sceneToUnload);
+
+                // Disable all root objects
+                GameObject[] rootObjects = sceneToUnload.GetRootGameObjects();
+                foreach (GameObject obj in rootObjects)
+                {
+                    obj.SetActive(false);
+                }
+            }
+
+            // STEP 2: Unload old scenes
+            List<AsyncOperation> unloadOperations = new List<AsyncOperation>();
+            foreach (Scene sceneToUnload in _scenesToUnload)
+            {
+                if (!sceneToUnload.isLoaded)
+                    continue;
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] ⚠ Unloading scene: {sceneToUnload.name}", this);
+
+                AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(sceneToUnload);
+                if (unloadOp != null)
+                    unloadOperations.Add(unloadOp);
+            }
+
+            // Wait for all unloads to complete
+            while (unloadOperations.Count > 0)
+            {
+                unloadOperations.RemoveAll(op => op.isDone);
+                yield return null;
+            }
+
+            if (debugLogs)
+                Debug.Log("[LoadingManager] ✓ All old scenes unloaded", this);
+
+            // STEP 3: Load new scenes (or track already-loaded ones)
             int[] sceneIndices = SceneTransitionHelper.GetScenesToLoad();
+            
+            // Track which scenes are already loaded (need reactivation, not loading)
+            HashSet<int> alreadyLoadedScenes = new HashSet<int>();
 
-            // Start loading all scenes additively
             foreach (int buildIndex in sceneIndices)
             {
                 if (!IsValidBuildIndex(buildIndex))
@@ -258,15 +313,26 @@ namespace JellyGame.GamePlay.Managers
                     continue;
                 }
 
+                // Check if scene is already loaded (might happen if reloading same scene)
+                Scene existingScene = SceneManager.GetSceneByBuildIndex(buildIndex);
+                if (existingScene.isLoaded)
+                {
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Scene {buildIndex} already loaded - will reactivate", this);
+                    
+                    alreadyLoadedScenes.Add(buildIndex);
+                    continue;
+                }
+
                 if (debugLogs)
                     Debug.Log($"[LoadingManager] Loading scene index {buildIndex}", this);
 
                 AsyncOperation op = SceneManager.LoadSceneAsync(buildIndex, LoadSceneMode.Additive);
-                op.allowSceneActivation = true; // Let scenes load fully
+                op.allowSceneActivation = true;
                 _loadOperations.Add(op);
             }
 
-            if (_loadOperations.Count == 0)
+            if (_loadOperations.Count == 0 && alreadyLoadedScenes.Count == 0)
             {
                 Debug.LogError("[LoadingManager] No valid scenes to load!", this);
                 HideLoadingUI();
@@ -274,22 +340,18 @@ namespace JellyGame.GamePlay.Managers
                 yield break;
             }
 
-            // Monitor loading and configure scenes as they load
+            // STEP 4: Wait for all scenes to load and configure them
             int firstSceneIndex = SceneTransitionHelper.GetFirstSceneToActivate();
             bool[] sceneConfigured = new bool[sceneIndices.Length];
 
             while (!AllScenesLoadedAndConfigured(sceneConfigured))
             {
-                // Update progress
                 float totalProgress = CalculateTotalProgress();
 
                 if (uiController != null)
                     uiController.UpdateProgress(totalProgress);
 
-                if (debugLogs && Time.frameCount % 30 == 0)
-                    Debug.Log($"[LoadingManager] Progress: {totalProgress * 100f:F1}%", this);
-
-                // Configure scenes as they load
+                // Configure scenes as they load (or reactivate already-loaded ones)
                 for (int i = 0; i < sceneIndices.Length; i++)
                 {
                     if (sceneConfigured[i])
@@ -300,45 +362,31 @@ namespace JellyGame.GamePlay.Managers
                     if (!scene.isLoaded)
                         continue;
 
-                    Debug.Log($"[LoadingManager] 🔍 Scene loaded: {scene.name} (buildIndex={sceneIndices[i]}), i={i}, firstSceneIndex={firstSceneIndex}, isActive={i == firstSceneIndex}");
+                    bool wasAlreadyLoaded = alreadyLoadedScenes.Contains(sceneIndices[i]);
                     
-                    // Scene just loaded!
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] 🔍 Scene loaded: {scene.name} (buildIndex={sceneIndices[i]}), i={i}, firstSceneIndex={firstSceneIndex}, isActive={i == firstSceneIndex}, wasAlreadyLoaded={wasAlreadyLoaded}");
+
                     if (i == firstSceneIndex)
                     {
-                        // CRITICAL: Disable previous scene's objects BEFORE setting new scene active
-                        // This prevents singleton conflicts during the brief moment before unload completes
-                        if (!_previousSceneUnloaded && _previousScene.IsValid() && _previousScene.isLoaded && _previousScene != gameObject.scene)
+                        // This is the main scene - activate it
+                        // If it was already loaded (but deactivated), we need to reactivate its objects
+                        if (wasAlreadyLoaded)
                         {
                             if (debugLogs)
-                                Debug.Log($"[LoadingManager] Disabling objects in previous scene: {_previousScene.name}", this);
+                                Debug.Log($"[LoadingManager] Reactivating already-loaded scene: {scene.name}", this);
                             
-                            // Disable all root GameObjects in the previous scene
-                            GameObject[] previousSceneObjects = _previousScene.GetRootGameObjects();
-                            foreach (GameObject obj in previousSceneObjects)
-                            {
-                                obj.SetActive(false);
-                            }
+                            ReactivateSceneObjects(scene);
                         }
                         
-                        // Now set new scene as active (previous scene objects already disabled)
                         SceneManager.SetActiveScene(scene);
 
                         if (debugLogs)
                             Debug.Log($"[LoadingManager] ✓ Activated: {scene.name}", this);
-
-                        // Unload the previous scene (now safe - objects already disabled)
-                        if (!_previousSceneUnloaded && _previousScene.IsValid() && _previousScene.isLoaded && _previousScene != gameObject.scene)
-                        {
-                            if (debugLogs)
-                                Debug.Log($"[LoadingManager] ⚠ Unloading previous scene: {_previousScene.name}", this);
-
-                            SceneManager.UnloadSceneAsync(_previousScene);
-                            _previousSceneUnloaded = true;
-                        }
                     }
                     else
                     {
-                        // This scene should be hidden
+                        // This scene should be hidden (e.g., cutscene waiting to play after level)
                         DeactivateSceneObjects(scene);
                         SceneTransitionHelper.RegisterInactiveScene(sceneIndices[i]);
 
@@ -382,120 +430,33 @@ namespace JellyGame.GamePlay.Managers
         {
             _canContinue = false;
             _isLoading = false;
-
-            // Hide loading UI
             HideLoadingUI();
-
-            // Previous scene already unloaded at the start of loading
 
             if (debugLogs)
                 Debug.Log("[LoadingManager] User continued. Loading UI hidden.", this);
         }
 
         /// <summary>
-        /// Destroy the player character in the previous scene to prevent singleton conflicts.
-        /// Called BEFORE loading new scenes.
+        /// Destroy the player character in a specific scene to prevent singleton conflicts.
         /// </summary>
-        private void DestroyPlayerInPreviousScene()
+        private void DestroyPlayerInScene(Scene scene)
         {
-            if (!_previousScene.IsValid() || !_previousScene.isLoaded)
-            {
-                if (debugLogs)
-                    Debug.Log("[LoadingManager] No previous scene to clean up player from.", this);
+            if (!scene.IsValid() || !scene.isLoaded)
                 return;
-            }
 
-            if (_previousScene == gameObject.scene)
-            {
-                if (debugLogs)
-                    Debug.Log("[LoadingManager] Previous scene is LoadingScreen - no player to destroy.", this);
-                return;
-            }
-
-            // Find player by tag
-            GameObject player = GameObject.FindGameObjectWithTag("DrawingCube");
+            // Find all players by tag
+            GameObject[] players = GameObject.FindGameObjectsWithTag("DrawingCube");
             
-            if (player != null && player.scene == _previousScene)
+            foreach (GameObject player in players)
             {
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] 🗑️ Destroying player from previous scene: {_previousScene.name}", this);
-                
-                Destroy(player);
-            }
-            else if (debugLogs)
-            {
-                Debug.Log($"[LoadingManager] No player found in previous scene {_previousScene.name} (or already destroyed).", this);
-            }
-        }
-        /// Don't unload LoadingScreen or special scenes.
-        /// This is called BEFORE loading new scenes to prevent singleton conflicts.
-        /// </summary>
-        private IEnumerator UnloadPreviousSceneAsync()
-        {
-            Debug.Log($"[LoadingManager] === UnloadPreviousSceneAsync START ===", this);
-            Debug.Log($"[LoadingManager] _previousScene.IsValid() = {_previousScene.IsValid()}", this);
-            Debug.Log($"[LoadingManager] _previousScene.isLoaded = {_previousScene.isLoaded}", this);
-            
-            if (_previousScene.IsValid())
-            {
-                Debug.Log($"[LoadingManager] _previousScene.name = {_previousScene.name}", this);
-                Debug.Log($"[LoadingManager] _previousScene.buildIndex = {_previousScene.buildIndex}", this);
-            }
-            
-            if (!_previousScene.IsValid() || !_previousScene.isLoaded)
-            {
-                Debug.LogWarning("[LoadingManager] No valid previous scene to unload.", this);
-                yield break;
-            }
-
-            // Don't unload the LoadingScreen scene itself
-            Scene loadingScene = gameObject.scene;
-            Debug.Log($"[LoadingManager] LoadingScreen scene name = {loadingScene.name}", this);
-            Debug.Log($"[LoadingManager] LoadingScreen scene buildIndex = {loadingScene.buildIndex}", this);
-            
-            if (_previousScene == loadingScene)
-            {
-                Debug.LogWarning("[LoadingManager] Previous scene is LoadingScreen - not unloading.", this);
-                yield break;
-            }
-
-            Debug.Log($"[LoadingManager] ⚠⚠⚠ STARTING UNLOAD of scene: {_previousScene.name} (index {_previousScene.buildIndex})", this);
-
-            // Unload asynchronously
-            AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(_previousScene);
-            
-            if (unloadOp == null)
-            {
-                Debug.LogError("[LoadingManager] UnloadSceneAsync returned NULL!", this);
-                yield break;
-            }
-            
-            Debug.Log("[LoadingManager] UnloadSceneAsync operation started...", this);
-
-            // Wait for unload to complete
-            float timeout = 10f; // 10 second timeout
-            float elapsed = 0f;
-            
-            while (!unloadOp.isDone)
-            {
-                elapsed += Time.unscaledDeltaTime;
-                
-                if (elapsed > timeout)
+                if (player != null && player.scene == scene)
                 {
-                    Debug.LogError($"[LoadingManager] Unload TIMEOUT after {timeout}s! Progress: {unloadOp.progress}", this);
-                    yield break;
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] 🗑️ Destroying player from scene: {scene.name}", this);
+                    
+                    Destroy(player);
                 }
-                
-                if (debugLogs && Time.frameCount % 30 == 0)
-                {
-                    Debug.Log($"[LoadingManager] Unloading... progress: {unloadOp.progress}, isDone: {unloadOp.isDone}", this);
-                }
-                
-                yield return null;
             }
-
-            Debug.Log($"[LoadingManager] ✓✓✓ UNLOAD COMPLETE! Scene {_previousScene.name} unloaded successfully!", this);
-            Debug.Log($"[LoadingManager] === UnloadPreviousSceneAsync END ===", this);
         }
 
         private void HideLoadingUI()
@@ -521,7 +482,7 @@ namespace JellyGame.GamePlay.Managers
         private float CalculateTotalProgress()
         {
             if (_loadOperations.Count == 0)
-                return 0f;
+                return 1f;
 
             float sum = 0f;
             foreach (var op in _loadOperations)
@@ -530,6 +491,49 @@ namespace JellyGame.GamePlay.Managers
             }
 
             return sum / _loadOperations.Count;
+        }
+
+        /// <summary>
+        /// Reactivate all root GameObjects in a scene that was previously deactivated.
+        /// Used when a scene is already loaded (from a previous LoadingManager call) but needs to become active.
+        /// </summary>
+        private void ReactivateSceneObjects(Scene scene)
+        {
+            GameObject[] allObjects = scene.GetRootGameObjects();
+
+            // Enable cameras and audio listeners FIRST
+            foreach (GameObject obj in allObjects)
+            {
+                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
+                foreach (UnityEngine.Camera cam in cameras)
+                {
+                    cam.enabled = true;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Re-enabled camera: {cam.name}", this);
+                }
+
+                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
+                foreach (AudioListener listener in listeners)
+                {
+                    listener.enabled = true;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Re-enabled audio listener: {listener.name}", this);
+                }
+            }
+
+            // Activate all root objects
+            foreach (GameObject obj in allObjects)
+            {
+                if (!obj.activeSelf)
+                {
+                    obj.SetActive(true);
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager]   + Reactivated: {obj.name}", this);
+                }
+            }
         }
 
         /// <summary>
