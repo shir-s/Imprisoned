@@ -118,10 +118,10 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             if (debugLoopVerbose)
             {
-                Debug.Log(
+                /*Debug.Log(
                     $"[StrokeTrailAnalyzer] Best candidate: start={bestStart}, last={last}, " +
                     $"indexDiff={last - bestStart}, len≈{bestLoopLen:F3}, chord={bestChord:F3}, closureMax={closureMaxDistance:F3}"
-                );
+                );*/
             }
 
             if (bestChord > closureMaxDistance * 1.5f)

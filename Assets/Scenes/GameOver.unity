@@ -22337,6 +22337,8 @@ MonoBehaviour:
   requiredDeaths: 0
   meshOnThisObject: {fileID: 276270555}
   meshOnChildObject: {fileID: 681160702}
+  additionalRenderers: []
+  gameObjectsToToggle: []
   winFxRoot: {fileID: 1246189288}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -24022,28 +24024,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  levelSceneBuildIndices: 020000000300000004000000
-  winCutsceneSceneBuildIndices: 
-  ifNoWinCutsceneLoadNextLevel: 1
-  usePerLevelWinCutsceneScenes: 1
-  loopToFirstLevelIfNoNext: 0
-  autoDetectCurrentLevelFromActiveScene: 1
   gameOverSceneBuildIndex: 0
-  winSceneBuildIndex: 1
-  gameOverSceneName: GameOver
-  winSceneName: Win
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  listenToWinEvent: 1
+  loadingScreenBuildIndex: 2
+  useLoadingScreenForWin: 1
+  winScenesToLoad: 05000000
+  gameOverPortalDestination: 5
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
   winSceneLoadDelay: 2
   pauseGameplayOnWin: 0
+  debugLogs: 1
   gameOverKey: 114
   winKey: 116
-  debugLogs: 1
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -37951,6 +37947,8 @@ MonoBehaviour:
   requiredDeaths: 0
   meshOnThisObject: {fileID: 1087490803}
   meshOnChildObject: {fileID: 806039155}
+  additionalRenderers: []
+  gameObjectsToToggle: []
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
