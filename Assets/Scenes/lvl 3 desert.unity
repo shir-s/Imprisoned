@@ -2911,7 +2911,7 @@ Transform:
   m_GameObject: {fileID: 201752451}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 3.0599194, y: 0.00009918213, z: 37.668102}
+  m_LocalPosition: {x: 3.0599194, y: 0.00009918213, z: 40.4}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -6347,7 +6347,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.3999996
+      value: 1.8
       objectReference: {fileID: 0}
     - target: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
       propertyPath: m_LocalPosition.y
@@ -6355,7 +6355,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 6.4
+      value: 10.1
       objectReference: {fileID: 0}
     - target: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
       propertyPath: m_LocalRotation.w
@@ -24943,7 +24943,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 4.8
+      value: 9.8
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -24951,7 +24951,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 32.9
+      value: 38.4
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -33025,7 +33025,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -21.2
+      value: -17.5
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalPosition.y
@@ -33033,7 +33033,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 11.7
+      value: 15.7
       objectReference: {fileID: 0}
     - target: {fileID: 7686463576227766846, guid: 1af8e40933f3eef4e816991eed415e1b, type: 3}
       propertyPath: m_LocalRotation.w
@@ -43315,6 +43315,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
   durationSeconds: 120
   startOnEnable: 1
+  useUnscaledTime: 1
   debugLogs: 0
 --- !u!4 &1592128410
 Transform:
@@ -49455,8 +49456,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 4.063607, y: 3.593078, z: 2.9001758}
-  m_Center: {x: 0.65512335, y: 0.00000011920929, z: 0.45008692}
+  m_Size: {x: 0, y: 3.593078, z: 2.900176}
+  m_Center: {x: -1.3766822, y: 0.00000019073487, z: 0.45008686}
 --- !u!4 &1743450402 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
@@ -49660,7 +49661,7 @@ Transform:
   m_GameObject: {fileID: 1762942051}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 10.35992, y: 0.00009918213, z: -43.2319}
+  m_LocalPosition: {x: 10.35992, y: 0.00009918213, z: -43.1}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -68497,7 +68498,7 @@ MonoBehaviour:
     entries:
     - enemyPrefab: {fileID: 5256576084068294994, guid: cba993ad65d26ff46afd67a3374be0ab, type: 3}
       count: 4
-    delayBeforeWave: 10
+    delayBeforeWave: 6
     delayBetweenSpawns: 3
     waveSpawnPoints:
     - {fileID: 1371860217}
@@ -68508,7 +68509,7 @@ MonoBehaviour:
     entries:
     - enemyPrefab: {fileID: 5362417010035930921, guid: a0a6dc7c1843a6c44b7e7d6232817ca2, type: 3}
       count: 2
-    delayBeforeWave: 20
+    delayBeforeWave: 10
     delayBetweenSpawns: 3
     waveSpawnPoints:
     - {fileID: 201752452}
@@ -68516,7 +68517,7 @@ MonoBehaviour:
     randomSpawnOffsetRadius: 4
     faceTargetAtSpawn: {fileID: 447884672298249009, guid: 14cf390bb2f976a42bf28daf5988b1ac, type: 3}
   startOnEnable: 1
-  delayBeforeFirstWave: 10
+  delayBeforeFirstWave: 3
   loopWaves: 1
   delayBetweenCycles: 5
   spawnPointMode: 1
