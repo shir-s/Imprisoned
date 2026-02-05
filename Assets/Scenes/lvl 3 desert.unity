@@ -68069,6 +68069,69 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2091503077}
   m_CullTransparentMesh: 1
+--- !u!1 &2092624411
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2092624413}
+  - component: {fileID: 2092624412}
+  m_Layer: 0
+  m_Name: SceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2092624412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092624411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 2
+  pressAnyKeyText: Press Any Key to Start
+  playBackgroundMusic: 1
+  gameOverSceneBuildIndex: 1
+  gameOverOnVictimLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  useLoadingScreenForWin: 1
+  winScenesToLoad: 01000000
+  gameOverPortalDestination: 3
+  winFxRoot: {fileID: 0}
+  disableWinFxRootOnStart: 1
+  stopWinFxOnStart: 1
+  winSceneLoadDelay: 2
+  pauseGameplayOnWin: 0
+  debugLogs: 1
+  gameOverKey: 114
+  winKey: 116
+--- !u!4 &2092624413
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2092624411}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 22.02466, y: 0, z: 77.24139}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2098895675
 GameObject:
   m_ObjectHideFlags: 0
@@ -75203,3 +75266,4 @@ SceneRoots:
   - {fileID: 926447688}
   - {fileID: 1586839703}
   - {fileID: 1592128410}
+  - {fileID: 2092624413}
