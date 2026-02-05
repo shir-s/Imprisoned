@@ -36726,12 +36726,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 2
+  pressAnyKeyText: Press Any Key to Start
+  playBackgroundMusic: 1
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
   useLoadingScreenForWin: 1
-  winScenesToLoad: 05000000
+  winScenesToLoad: 0600000005000000
   gameOverPortalDestination: 5
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
@@ -140083,6 +140087,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f50945afcbc424baccf5e3e4fef1f1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
+  scaleTarget: {fileID: 0}
   uniformScale: 1
   minSize: 0.2
   maxSize: 5
