@@ -316,20 +316,9 @@ namespace JellyGame.GamePlay.Player
                 CacheParticlesOriginalScale();
 
             // Calculate new scale: original scale * player size * multiplier
+            // Always scale particles uniformly (all axes) so they shrink proportionally from the pivot, not skewed
             float scaleFactor = size * particlesScaleMultiplier;
-
-            if (uniformScale)
-            {
-                // Use original scale as base, multiply by player size and multiplier
-                particlesObject.transform.localScale = _particlesOriginalScale * scaleFactor;
-            }
-            else
-            {
-                // Only scale Y axis (like player)
-                Vector3 newScale = _particlesOriginalScale;
-                newScale.y = _particlesOriginalScale.y * scaleFactor;
-                particlesObject.transform.localScale = newScale;
-            }
+            particlesObject.transform.localScale = _particlesOriginalScale * scaleFactor;
 
             // Also scale ParticleSystem if it exists
             ParticleSystem ps = particlesObject.GetComponent<ParticleSystem>();

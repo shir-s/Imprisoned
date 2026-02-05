@@ -6002,7 +6002,7 @@ GameObject:
   - component: {fileID: 9133765874063936527}
   - component: {fileID: 985325830859914585}
   m_Layer: 11
-  m_Name: EnemyWalking Var 1
+  m_Name: Enemy Level3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6161,8 +6161,8 @@ MonoBehaviour:
   targetLayers:
     serializedVersion: 2
     m_Bits: 16777344
-  percentToRemovePerHit: 100
-  damageCooldown: 2
+  percentToRemovePerHit: 53.8
+  damageCooldown: 3
 --- !u!114 &1644002214068717080
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6272,18 +6272,18 @@ MonoBehaviour:
   targetPriorities:
   - layer:
       layerIndex: 7
-    attackPriority: 9
+    attackPriority: 10
     customDetectionRadius: 3
     customAttackRadius: 1
   - layer:
       layerIndex: 24
-    attackPriority: 10
+    attackPriority: 9
     customDetectionRadius: 3
     customAttackRadius: 1
   detectionRadius: 8
   attackRadius: 1
-  damagePerHit: 1.5
-  hitCooldownSeconds: 1.5
+  damagePerHit: 1
+  hitCooldownSeconds: 5
   attackObstacleLayers:
     serializedVersion: 2
     m_Bits: 1049088

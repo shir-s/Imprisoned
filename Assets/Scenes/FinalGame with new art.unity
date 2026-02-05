@@ -12558,6 +12558,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 2
+  pressAnyKeyText: Press Any Key to Start
+  playBackgroundMusic: 1
   gameOverSceneBuildIndex: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
@@ -23270,17 +23274,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1567261978}
   m_Mesh: {fileID: 1621659784132618411, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
---- !u!114 &1571972171 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3903073942102037414, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-  m_PrefabInstance: {fileID: 4751698548016042243}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b4ebc3a72c79443468a608b89f18d860, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StickySlider
 --- !u!1 &1587229368
 GameObject:
   m_ObjectHideFlags: 0
@@ -31412,6 +31405,10 @@ PrefabInstance:
       value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: paintSurfaces.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: 'paintSurfaces.Array.data[0]'
       value: 
       objectReference: {fileID: 3260622557042798612}
@@ -31440,25 +31437,9 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: maxSize
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: surfaceSlider
-      value: 
-      objectReference: {fileID: 1571972171}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: healthImageRect
       value: 
       objectReference: {fileID: 1953021156}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: sizeLossPerDamage
-      value: 0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: healthImageDownAtMinSize
-      value: 60
-      objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalScale.x
       value: 2
