@@ -18523,7 +18523,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -2.875481
+      value: -3.64
       objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.y
@@ -18531,7 +18531,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 20.71
+      value: 23.32
       objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalRotation.w
@@ -18783,11 +18783,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 4
+  pressAnyKeyText: Press Any Key to Start
+  playBackgroundMusic: 1
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  loadingScreenBuildIndex: 2
   useLoadingScreenForWin: 1
   winScenesToLoad: 0800000009000000
   gameOverPortalDestination: 5
@@ -64782,7 +64785,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 576351491070649677, guid: a0f5bf732bd6a0746a20f89d14c04799, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.2381983
+      value: 1.2
       objectReference: {fileID: 0}
     - target: {fileID: 576351491070649677, guid: a0f5bf732bd6a0746a20f89d14c04799, type: 3}
       propertyPath: m_LocalPosition.y
@@ -64790,7 +64793,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 576351491070649677, guid: a0f5bf732bd6a0746a20f89d14c04799, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 14.769456
+      value: 9.1
       objectReference: {fileID: 0}
     - target: {fileID: 576351491070649677, guid: a0f5bf732bd6a0746a20f89d14c04799, type: 3}
       propertyPath: m_LocalRotation.w

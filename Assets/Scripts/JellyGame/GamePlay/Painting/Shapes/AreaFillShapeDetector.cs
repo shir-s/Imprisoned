@@ -219,9 +219,27 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (debugMultiSurface)
                 Debug.Log($"[AreaFill] Shape closed across {surfaceFillDatas.Count} surface(s).", this);
 
-            // Play sound once for the whole fill operation
-            if (SoundManager.Instance != null)
-                SoundManager.Instance.PlaySound("CloseArea", this.transform);
+            // Play sound once for the whole fill operation (with safeguard)
+            try
+            {
+                if (SoundManager.Instance != null)
+                {
+                    var config = SoundManager.Instance.FindAudioConfig("CloseArea");
+                    if (config != null)
+                    {
+                        SoundManager.Instance.PlaySound("CloseArea", this.transform);
+                    }
+                    else if (debugFillFailures)
+                    {
+                        Debug.Log("[AreaFill] 'CloseArea' sound not found - skipping.", this);
+                    }
+                }
+            }
+            catch (System.Exception ex)
+            {
+                if (debugFillFailures)
+                    Debug.LogWarning($"[AreaFill] Could not play CloseArea sound: {ex.Message}", this);
+            }
 
             // Notify ability manager:
             // - Fill polygon (SMALL) is used for "filled area" cost (self-damage).

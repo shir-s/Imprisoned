@@ -300,6 +300,8 @@ namespace JellyGame.GamePlay.Managers
                     if (!scene.isLoaded)
                         continue;
 
+                    Debug.Log($"[LoadingManager] 🔍 Scene loaded: {scene.name} (buildIndex={sceneIndices[i]}), i={i}, firstSceneIndex={firstSceneIndex}, isActive={i == firstSceneIndex}");
+                    
                     // Scene just loaded!
                     if (i == firstSceneIndex)
                     {

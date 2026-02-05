@@ -93,19 +93,37 @@ public class KinematicSurfaceSlider : MonoBehaviour, ISpeedMultiplierSink, IMove
 
     private void StartMovementSound()
     {
+        // Early exit if already playing
         if (_movementSound != null)
             return;
 
-        var soundManager = SoundManager.Instance;
-        if (soundManager == null)
-            return;
+        // SAFEGUARD: Wrap in try-catch to prevent crashes
+        try
+        {
+            var soundManager = SoundManager.Instance;
+            if (soundManager == null)
+            {
+                Debug.LogWarning("[Movement] SoundManager.Instance is null - skipping sound.", this);
+                return;
+            }
 
-        var config = soundManager.GetType()
-            .GetMethod("PlaySound", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+            // Check if sound config exists BEFORE trying to play
+            var config = soundManager.FindAudioConfig("SlimeWalk");
+            if (config == null)
+            {
+                Debug.LogWarning("[Movement] 'SlimeWalk' audio not found - skipping sound.", this);
+                return;
+            }
 
-        _movementSound = SoundManager.Instance.PlayLoopingSound("SlimeWalk",
-            transform
-        );
+            // Now safe to play
+            _movementSound = soundManager.PlayLoopingSound("SlimeWalk", transform);
+        }
+        catch (System.Exception ex)
+        {
+            // SAFEGUARD: Catch any exceptions and continue gameplay
+            Debug.LogWarning($"[Movement] Could not play movement sound: {ex.Message}", this);
+            _movementSound = null; // Ensure it stays null
+        }
     }
 
     private void StopMovementSound()
