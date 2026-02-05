@@ -12572,7 +12572,7 @@ MonoBehaviour:
   countLayers:
     serializedVersion: 2
     m_Bits: 2048
-  requiredDeaths: 1
+  requiredDeaths: 5
   meshOnThisObject: {fileID: 443225181}
   meshOnChildObject: {fileID: 971792923}
   additionalRenderers: []
@@ -65545,6 +65545,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: knight idle anim
       objectReference: {fileID: 0}
+    - target: {fileID: 4668239965172672434, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5441257849065209096, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
       propertyPath: m_LocalPosition.x
       value: -1.1429063
@@ -66240,6 +66244,10 @@ PrefabInstance:
     - target: {fileID: 6895995244108116941, guid: 9cbf3ea97435e405d99a6cccfc24d77e, type: 3}
       propertyPath: m_Name
       value: mage attack
+      objectReference: {fileID: 0}
+    - target: {fileID: 6895995244108116941, guid: 9cbf3ea97435e405d99a6cccfc24d77e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

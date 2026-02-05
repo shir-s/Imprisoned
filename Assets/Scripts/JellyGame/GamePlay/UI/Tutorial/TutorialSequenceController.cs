@@ -114,30 +114,13 @@ namespace JellyGame.UI.Tutorial
         [SerializeField] private float introWobbleCycles = 2.0f;
         [SerializeField] private bool introMoveTransformDirectly = true;
         [SerializeField] private bool introForceKinematicIfRigidBody = true;
-        
-        /*
-        // --- Painting / Surface reset on skip ---
-        [Header("Surface Reset (Optional)")]
-        [SerializeField] private bool resetSurfacesOnSpecificWindowSkip = false;
 
-        [Tooltip("If current window index is in this list, we will trigger a reset when it is skipped.")]
-        [SerializeField] private List<int> resetOnSkippedWindowIndices = new List<int>();
-
-        [Tooltip("Objects that know how to clear trails/fill. We'll SendMessage() to them.")]
-        [SerializeField] private List<GameObject> resetReceivers = new List<GameObject>();
-
-        [Tooltip("Method name to call on receivers (via SendMessage). Example: ClearAll, ResetSurface, ClearPaint.")]
-        [SerializeField] private string resetMessageName = "ClearAllPaint";
-        */
-        
         [Header("Reset Paint On Skip (Optional)")]
         [SerializeField] private RenderTextureTrailPainter trailPainter;
 
         [SerializeField] private bool clearPaintWhenSkippingSpecificWindows = false;
 
         [SerializeField] private List<int> clearPaintOnSkippedWindowIndices = new List<int>();
-
-
 
         // ===================== Per-window intro moves (after window complete) =====================
         [Serializable]
@@ -184,7 +167,6 @@ namespace JellyGame.UI.Tutorial
 
             [Tooltip("Wait a frame after activating so renderers/particles initialize before moving.")]
             public bool waitOneFrameAfterActivate = true;
-
         }
 
         [Header("Per-Window Intro Moves (run AFTER window is completed/skipped)")]
@@ -253,50 +235,18 @@ namespace JellyGame.UI.Tutorial
 
         private readonly List<BehaviourState> _startDisabledSnapshot = new List<BehaviourState>();
 
+        // ===================== FIX: Track temporarily disabled behaviours during intro moves =====================
+        /// <summary>
+        /// Tracks behaviours that were temporarily disabled during intro moves.
+        /// This ensures they are ALWAYS restored, even if the coroutine is stopped mid-execution.
+        /// </summary>
+        private readonly List<BehaviourState> _introMoveDisabledBehaviours = new List<BehaviourState>();
+
         private void Start()
         {
             HideAllWindows();
             if (autoStart) StartTutorial();
         }
-        
-        /*
-        private void TryResetSurfacesForSkippedWindow(int completedIndex)
-        {
-            if (!resetSurfacesOnSpecificWindowSkip)
-                return;
-
-            if (resetOnSkippedWindowIndices == null || resetOnSkippedWindowIndices.Count == 0)
-                return;
-
-            bool shouldReset = false;
-            for (int i = 0; i < resetOnSkippedWindowIndices.Count; i++)
-            {
-                if (resetOnSkippedWindowIndices[i] == completedIndex)
-                {
-                    shouldReset = true;
-                    break;
-                }
-            }
-
-            if (!shouldReset)
-                return;
-
-            if (debugLogs)
-                Debug.Log($"[Tutorial] ResetSurfaces triggered by skipping windowIndex={completedIndex}. Message='{resetMessageName}' receivers={resetReceivers?.Count ?? 0}", this);
-
-            if (resetReceivers == null) return;
-
-            for (int i = 0; i < resetReceivers.Count; i++)
-            {
-                GameObject r = resetReceivers[i];
-                if (r == null) continue;
-
-                // Doesn't throw if receiver doesn't implement it.
-                r.SendMessage(resetMessageName, SendMessageOptions.DontRequireReceiver);
-            }
-        }
-        */
-
 
         private void Update()
         {
@@ -326,6 +276,9 @@ namespace JellyGame.UI.Tutorial
 
         public void StartTutorial()
         {
+            // FIX: Restore any temporarily disabled behaviours before stopping routines
+            RestoreIntroMoveDisabledBehaviours();
+            
             if (_flowRoutine != null) StopCoroutine(_flowRoutine);
             if (_gateRoutine != null) { StopCoroutine(_gateRoutine); _gateRoutine = null; }
             if (_skipFlowRoutine != null) { StopCoroutine(_skipFlowRoutine); _skipFlowRoutine = null; }
@@ -379,6 +332,9 @@ namespace JellyGame.UI.Tutorial
             if (_state != FlowState.ShowingWindow) return;
             if (_currentIndex < 0 || _currentIndex >= WindowCount) return;
 
+            // FIX: Restore any temporarily disabled behaviours before stopping the previous routine
+            RestoreIntroMoveDisabledBehaviours();
+            
             if (_skipFlowRoutine != null) StopCoroutine(_skipFlowRoutine);
             _skipFlowRoutine = StartCoroutine(SkipCurrentWindowFlow());
         }
@@ -387,7 +343,7 @@ namespace JellyGame.UI.Tutorial
         {
             int completedIndex = _currentIndex;
 
-            // FIX #1: hide the window immediately (so intro move doesn't happen "behind" the window)
+            // Hide the window immediately (so intro move doesn't happen "behind" the window)
             HideWindowAtIndex(completedIndex);
 
             // Apply "complete" actions (this is where you might activate the enemy, enable scripts, etc.)
@@ -395,7 +351,7 @@ namespace JellyGame.UI.Tutorial
             
             TryClearPaintForSkippedWindow(completedIndex);
             
-            // FIX #2: make sure enemy is active BEFORE moving so it is visible while moving
+            // Make sure enemy is active BEFORE moving so it is visible while moving
             yield return PlayWindowIntroMovesOnCompleteIfAny(completedIndex);
 
             // Continue the normal flow
@@ -536,6 +492,9 @@ namespace JellyGame.UI.Tutorial
             HideAllWindows();
             _state = FlowState.Idle;
             _currentIndex = -1;
+
+            // FIX: Restore any temporarily disabled behaviours before stopping routines
+            RestoreIntroMoveDisabledBehaviours();
 
             if (_gateRoutine != null) { StopCoroutine(_gateRoutine); _gateRoutine = null; }
             if (_skipFlowRoutine != null) { StopCoroutine(_skipFlowRoutine); _skipFlowRoutine = null; }
@@ -691,109 +650,193 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
-        // ===================== Per-window intro move playback =====================
-            private IEnumerator PlayWindowIntroMovesOnCompleteIfAny(int windowIndex)
+        // ===================== FIX: Methods to track and restore temporarily disabled behaviours =====================
+        
+        /// <summary>
+        /// Tracks a behaviour that was temporarily disabled during an intro move.
+        /// This allows it to be restored even if the coroutine is interrupted.
+        /// </summary>
+        private void TrackIntroMoveDisabledBehaviour(Behaviour b, bool wasEnabled)
+        {
+            if (b == null) return;
+            
+            // Avoid duplicates
+            for (int i = 0; i < _introMoveDisabledBehaviours.Count; i++)
             {
-                if (windowIntroMovesOnComplete == null || windowIntroMovesOnComplete.Count == 0)
-                    yield break;
+                if (_introMoveDisabledBehaviours[i].b == b)
+                    return;
+            }
+            
+            _introMoveDisabledBehaviours.Add(new BehaviourState(b, wasEnabled));
+            
+            if (debugLogs)
+                Debug.Log($"[Tutorial] Tracked disabled behaviour '{b.GetType().Name}' on '{b.gameObject.name}' (wasEnabled={wasEnabled})", this);
+        }
 
-                for (int i = 0; i < windowIntroMovesOnComplete.Count; i++)
+        /// <summary>
+        /// Removes a behaviour from tracking (called when it's successfully restored within the coroutine).
+        /// </summary>
+        private void UntrackIntroMoveDisabledBehaviour(Behaviour b)
+        {
+            if (b == null) return;
+            
+            for (int i = _introMoveDisabledBehaviours.Count - 1; i >= 0; i--)
+            {
+                if (_introMoveDisabledBehaviours[i].b == b)
                 {
-                    var a = windowIntroMovesOnComplete[i];
-                    if (a == null || a.windowIndex != windowIndex || a.target == null)
-                        continue;
-
-                    // --- NEW: ensure the enemy is ACTIVE (including parents) BEFORE moving ---
-                    // If you added "activateBeforeMove" use it; otherwise we activate target.root.
-                    GameObject goToActivate =
-                        a.activateBeforeMove != null
-                            ? a.activateBeforeMove
-                            : a.target.root != null ? a.target.root.gameObject : a.target.gameObject;
-
-                    if (goToActivate != null && !goToActivate.activeSelf)
-                    {
-                        goToActivate.SetActive(true);
-
-                        if (debugLogs)
-                            Debug.Log($"[Tutorial] Activated '{goToActivate.name}' before intro move (target='{a.target.name}').", this);
-
-                        if (a.waitOneFrameAfterActivate)
-                            yield return null; // let renderers/animators initialize so it's visible before movement starts
-                    }
-
-                    // Resume time so the intro is visible
-                    bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
-                    if (wasPaused) ResumeGame();
-
-                    // --- Temporarily disable interfering script ---
-                    bool hadDisabledScript = false;
-                    bool prevEnabledState = false;
-
-                    if (a.temporarilyDisableBehaviour != null)
-                    {
-                        prevEnabledState = a.temporarilyDisableBehaviour.enabled;
-                        a.temporarilyDisableBehaviour.enabled = false;
-                        hadDisabledScript = true;
-
-                        if (debugLogs)
-                            Debug.Log($"[Tutorial] Disabled '{a.temporarilyDisableBehaviour.GetType().Name}' before intro move.", this);
-
-                        float delay = Mathf.Max(0f, a.disableDelaySeconds);
-                        if (delay > 0f)
-                            yield return new WaitForSecondsRealtime(delay);
-                    }
-
-                    // --- Play intro move ---
-                    if (a.useGlobalSettings)
-                    {
-                        yield return PlayIntroMoveForTarget(
-                            a.target,
-                            introDirectionMode,
-                            introWorldDirection,
-                            introDirectionReference,
-                            introDistance,
-                            introDuration,
-                            introStartSpeed,
-                            introMaxSpeed,
-                            introSpeedProfile,
-                            introWobbleAmplitude,
-                            introWobbleCycles,
-                            introMoveTransformDirectly,
-                            introForceKinematicIfRigidBody
-                        );
-                    }
-                    else
-                    {
-                        yield return PlayIntroMoveForTarget(
-                            a.target,
-                            a.directionMode,
-                            a.worldDirection,
-                            a.directionReference,
-                            a.distance,
-                            a.duration,
-                            a.startSpeed,
-                            a.maxSpeed,
-                            a.speedProfile,
-                            a.wobbleAmplitude,
-                            a.wobbleCycles,
-                            a.moveTransformDirectly,
-                            a.forceKinematicIfRigidBody
-                        );
-                    }
-
-                    // --- Restore disabled script ---
-                    if (hadDisabledScript && a.temporarilyDisableBehaviour != null)
-                    {
-                        a.temporarilyDisableBehaviour.enabled = prevEnabledState;
-
-                        if (debugLogs)
-                            Debug.Log($"[Tutorial] Re-enabled '{a.temporarilyDisableBehaviour.GetType().Name}' after intro move.", this);
-                    }
-
-                    if (wasPaused && pauseGameWhileActive)
-                        PauseGame();
+                    _introMoveDisabledBehaviours.RemoveAt(i);
+                    
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Untracked behaviour '{b.GetType().Name}' on '{b.gameObject.name}' (normal restoration)", this);
+                    
+                    return;
                 }
             }
+        }
+
+        /// <summary>
+        /// Restores ALL temporarily disabled behaviours that were tracked.
+        /// Called before stopping coroutines to ensure no behaviours are left disabled.
+        /// </summary>
+        private void RestoreIntroMoveDisabledBehaviours()
+        {
+            if (_introMoveDisabledBehaviours.Count == 0)
+                return;
+
+            if (debugLogs)
+                Debug.Log($"[Tutorial] Restoring {_introMoveDisabledBehaviours.Count} temporarily disabled behaviour(s)", this);
+
+            for (int i = 0; i < _introMoveDisabledBehaviours.Count; i++)
+            {
+                var state = _introMoveDisabledBehaviours[i];
+                if (state.b != null)
+                {
+                    state.b.enabled = state.wasEnabled;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Restored '{state.b.GetType().Name}' on '{state.b.gameObject.name}' to enabled={state.wasEnabled}", this);
+                }
+            }
+
+            _introMoveDisabledBehaviours.Clear();
+        }
+
+        // ===================== Per-window intro move playback =====================
+        private IEnumerator PlayWindowIntroMovesOnCompleteIfAny(int windowIndex)
+        {
+            if (windowIntroMovesOnComplete == null || windowIntroMovesOnComplete.Count == 0)
+                yield break;
+
+            for (int i = 0; i < windowIntroMovesOnComplete.Count; i++)
+            {
+                var a = windowIntroMovesOnComplete[i];
+                if (a == null || a.windowIndex != windowIndex || a.target == null)
+                    continue;
+
+                // Ensure the enemy is ACTIVE (including parents) BEFORE moving
+                GameObject goToActivate =
+                    a.activateBeforeMove != null
+                        ? a.activateBeforeMove
+                        : a.target.root != null ? a.target.root.gameObject : a.target.gameObject;
+
+                if (goToActivate != null && !goToActivate.activeSelf)
+                {
+                    goToActivate.SetActive(true);
+
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Activated '{goToActivate.name}' before intro move (target='{a.target.name}').", this);
+
+                    if (a.waitOneFrameAfterActivate)
+                        yield return null; // let renderers/animators initialize so it's visible before movement starts
+                }
+
+                // Resume time so the intro is visible
+                bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
+                if (wasPaused) ResumeGame();
+
+                // --- FIX: Temporarily disable interfering script with tracking ---
+                if (a.temporarilyDisableBehaviour != null)
+                {
+                    bool prevEnabledState = a.temporarilyDisableBehaviour.enabled;
+                    
+                    // Track BEFORE disabling, so we can restore even if coroutine is stopped
+                    TrackIntroMoveDisabledBehaviour(a.temporarilyDisableBehaviour, prevEnabledState);
+                    
+                    a.temporarilyDisableBehaviour.enabled = false;
+
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Disabled '{a.temporarilyDisableBehaviour.GetType().Name}' before intro move.", this);
+
+                    float delay = Mathf.Max(0f, a.disableDelaySeconds);
+                    if (delay > 0f)
+                        yield return new WaitForSecondsRealtime(delay);
+                }
+
+                // --- Play intro move ---
+                if (a.useGlobalSettings)
+                {
+                    yield return PlayIntroMoveForTarget(
+                        a.target,
+                        introDirectionMode,
+                        introWorldDirection,
+                        introDirectionReference,
+                        introDistance,
+                        introDuration,
+                        introStartSpeed,
+                        introMaxSpeed,
+                        introSpeedProfile,
+                        introWobbleAmplitude,
+                        introWobbleCycles,
+                        introMoveTransformDirectly,
+                        introForceKinematicIfRigidBody
+                    );
+                }
+                else
+                {
+                    yield return PlayIntroMoveForTarget(
+                        a.target,
+                        a.directionMode,
+                        a.worldDirection,
+                        a.directionReference,
+                        a.distance,
+                        a.duration,
+                        a.startSpeed,
+                        a.maxSpeed,
+                        a.speedProfile,
+                        a.wobbleAmplitude,
+                        a.wobbleCycles,
+                        a.moveTransformDirectly,
+                        a.forceKinematicIfRigidBody
+                    );
+                }
+
+                // --- FIX: Restore disabled script and untrack it ---
+                if (a.temporarilyDisableBehaviour != null)
+                {
+                    // Find the original state from our tracking list
+                    bool restoredEnabled = true; // default to enabled if not found
+                    for (int j = 0; j < _introMoveDisabledBehaviours.Count; j++)
+                    {
+                        if (_introMoveDisabledBehaviours[j].b == a.temporarilyDisableBehaviour)
+                        {
+                            restoredEnabled = _introMoveDisabledBehaviours[j].wasEnabled;
+                            break;
+                        }
+                    }
+                    
+                    a.temporarilyDisableBehaviour.enabled = restoredEnabled;
+                    
+                    // Untrack since we successfully restored it
+                    UntrackIntroMoveDisabledBehaviour(a.temporarilyDisableBehaviour);
+
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Re-enabled '{a.temporarilyDisableBehaviour.GetType().Name}' after intro move (enabled={restoredEnabled}).", this);
+                }
+
+                if (wasPaused && pauseGameWhileActive)
+                    PauseGame();
+            }
+        }
 
 
         private void PauseGame()
@@ -1041,6 +1084,13 @@ namespace JellyGame.UI.Tutorial
                     break;
                 }
             }
+        }
+
+        // ===================== Safety: Ensure behaviours are restored on destroy =====================
+        private void OnDestroy()
+        {
+            // Make sure we don't leave any behaviours in a disabled state if the tutorial controller is destroyed
+            RestoreIntroMoveDisabledBehaviours();
         }
     }
 }
