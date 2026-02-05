@@ -21,6 +21,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [SerializeField] private bool stopWhenReached = true;
         [Tooltip("If true and target has a Collider, move toward the nearest surface point so the enemy stops at the collider instead of entering it.")]
         [SerializeField] private bool stopAtSurface = true;
+        [Tooltip("When using stop-at-surface: only use surface (ClosestPoint) when within this distance of the target. When farther, move toward target center first. Prevents enemies at spawn from getting a 'destination' right next to them on a large collider.")]
+        [SerializeField] private float useSurfaceWhenCloserThan = 10f;
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = false;
@@ -38,7 +40,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         public void SetTarget(Transform target)
         {
             targetPoint = target;
-            _targetCollider = target != null ? target.GetComponent<Collider>() : null;
+            _targetCollider = GetTargetCollider(target);
         }
 
         private void Awake()
@@ -56,7 +58,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _hasReachedTarget = false;
             if (targetPoint != null)
             {
-                _targetCollider = targetPoint.GetComponent<Collider>();
+                _targetCollider = GetTargetCollider(targetPoint);
                 Vector3 dest = GetDestination();
                 _navigator.SetDestination(dest);
                 if (debugLogs)
@@ -99,17 +101,33 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         }
 
         /// <summary>
-        /// Returns the position to move toward: nearest point on target's collider surface (so we stop at surface)
-        /// or target.position if no collider or stopAtSurface is false.
+        /// Collider to use for "stop at surface": on target, then parent, then children.
+        /// So if target is an empty in the center of the father, we use the father's collider.
+        /// </summary>
+        private Collider GetTargetCollider(Transform target)
+        {
+            if (target == null) return null;
+            return target.GetComponent<Collider>()
+                ?? target.GetComponentInParent<Collider>()
+                ?? target.GetComponentInChildren<Collider>();
+        }
+
+        /// <summary>
+        /// Returns the position to move toward. When far from target, use target center so enemies actually move toward it.
+        /// When close, use nearest surface point (stop at surface) so they don't walk into the collider.
         /// </summary>
         private Vector3 GetDestination()
         {
             if (targetPoint == null)
                 return transform.position;
 
-            if (stopAtSurface && _targetCollider != null)
-                return _targetCollider.ClosestPoint(transform.position);
-            return targetPoint.position;
+            if (!stopAtSurface || _targetCollider == null)
+                return targetPoint.position;
+
+            float distToCenter = Vector3.Distance(transform.position, targetPoint.position);
+            if (distToCenter > useSurfaceWhenCloserThan)
+                return targetPoint.position; // far: go toward center first so we don't get a "destination" on a nearby face and stay put
+            return _targetCollider.ClosestPoint(transform.position); // close: stop at surface
         }
 
 #if UNITY_EDITOR
