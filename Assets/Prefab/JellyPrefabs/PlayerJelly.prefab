@@ -326,13 +326,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5183894216813921977}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0.71158445, z: -0, w: 0.7026006}
-  m_LocalPosition: {x: 0, y: -0.315, z: -0.51999986}
+  m_LocalRotation: {x: 0, y: -0.7071068, z: 0, w: 0.7071068}
+  m_LocalPosition: {x: 0.053, y: -0.264, z: -0.16}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 6309118692845414369}
-  m_LocalEulerAnglesHint: {x: 0, y: -90.728, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -90, z: 0}
 --- !u!198 &1873535099272232776
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -416,7 +416,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 0.5
+      scalar: 3
       minScalar: 0.1
       maxCurve:
         serializedVersion: 2
@@ -586,9 +586,9 @@ ParticleSystem:
         m_NumAlphaKeys: 2
     startSize:
       serializedVersion: 2
-      minMaxState: 3
-      scalar: 0.08
-      minScalar: 0.86
+      minMaxState: 0
+      scalar: 3
+      minScalar: 5
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -639,8 +639,8 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeY:
       serializedVersion: 2
-      minMaxState: 3
-      scalar: 1
+      minMaxState: 0
+      scalar: 0.14
       minScalar: 1
       maxCurve:
         serializedVersion: 2
@@ -692,9 +692,9 @@ ParticleSystem:
         m_RotationOrder: 4
     startSizeZ:
       serializedVersion: 2
-      minMaxState: 3
-      scalar: 1
-      minScalar: 1
+      minMaxState: 0
+      scalar: 3
+      minScalar: 5
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -906,7 +906,7 @@ ParticleSystem:
     gravitySource: 0
     maxNumParticles: 100
     customEmitterVelocity: {x: 0, y: 0, z: 0}
-    size3D: 0
+    size3D: 1
     rotation3D: 0
     gravityModifier:
       serializedVersion: 2
@@ -1276,10 +1276,10 @@ ParticleSystem:
     m_BurstCount: 0
     m_Bursts: []
   SizeModule:
-    enabled: 0
+    enabled: 1
     curve:
       serializedVersion: 2
-      minMaxState: 3
+      minMaxState: 1
       scalar: 0.5
       minScalar: 3
       maxCurve:
@@ -1287,22 +1287,22 @@ ParticleSystem:
         m_Curve:
         - serializedVersion: 3
           time: 0
-          value: 0
-          inSlope: 0
-          outSlope: 1
-          tangentMode: 0
+          value: 1
+          inSlope: -1
+          outSlope: -1
+          tangentMode: 34
           weightedMode: 0
-          inWeight: 0.33333334
-          outWeight: 0.33333334
+          inWeight: 0
+          outWeight: 0
         - serializedVersion: 3
           time: 1
-          value: 1
-          inSlope: 1
-          outSlope: 0
-          tangentMode: 0
+          value: 0
+          inSlope: -1
+          outSlope: -1
+          tangentMode: 34
           weightedMode: 0
-          inWeight: 0.33333334
-          outWeight: 0.33333334
+          inWeight: 0
+          outWeight: 0
         m_PreInfinity: 2
         m_PostInfinity: 2
         m_RotationOrder: 4
@@ -1332,7 +1332,7 @@ ParticleSystem:
         m_RotationOrder: 4
     y:
       serializedVersion: 2
-      minMaxState: 3
+      minMaxState: 1
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -1385,7 +1385,7 @@ ParticleSystem:
         m_RotationOrder: 4
     z:
       serializedVersion: 2
-      minMaxState: 3
+      minMaxState: 1
       scalar: 1
       minScalar: 1
       maxCurve:
@@ -5214,7 +5214,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.875481, y: 1.64, z: 23.73514}
-  m_LocalScale: {x: 1.4, y: 1.4, z: 1.4}
+  m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 9010755508500600658}
@@ -5311,11 +5311,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1e84e16fa0beda4b99c2f5f0037e65a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.AreaFillSelfDamage
-  damagePerSquareMeter: 0.001
+  damagePerSquareMeter: 1
   minDamagePerFill: 0
-  maxDamagePerFill: 0.5
+  maxDamagePerFill: 3
   onlyWhenAbilityActive: 1
-  debugLogs: 1
+  debugLogs: 0
 --- !u!114 &8892700715739925041
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5362,8 +5362,8 @@ MonoBehaviour:
   opacityPerMeter: 0.85
   brushColor: {r: 0, g: 0, b: 0, a: 1}
   cornerRadius: 1
-  timeBrushBlitMaterial: {fileID: 0}
-  timePolygonFillMaterial: {fileID: 0}
+  timeBrushBlitMaterial: {fileID: 2100000, guid: 994dbc08558d46841864cc935a70af00, type: 2}
+  timePolygonFillMaterial: {fileID: 2100000, guid: 53f9461c8723bfa459e8a235d0980f40, type: 2}
   polygonFillMaterial: {fileID: 2100000, guid: da8a2fdbe722336499139597f601881a, type: 2}
   polygonFillOpacity: 1
   sanitizeFillPolygon: 1
@@ -5537,7 +5537,7 @@ MonoBehaviour:
   pointLifetimeSeconds: 10
   recordingEnabled: 1
   trailPainter: {fileID: 0}
-  debugRays: 0
+  debugRays: 1
   debugSampleNormals: 0
   debugForwardOffset: 0
   debugEdgePairs: 0
@@ -5578,7 +5578,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StrokeCrossingDetector
   recorder: {fileID: 8519175273987129019}
-  crossingRadius: 0.8
+  crossingRadius: 0.9
   minIndexSeparation: 3
   directionWindow: 2
   parallelAngleMax: 15
@@ -5634,8 +5634,8 @@ MonoBehaviour:
   fallbackMaxTotalSamples: 250000
   fallbackBaseUvStep: 0.0015
   clipPolygonToSurfaceBounds: 1
-  debugPolygon: 1
-  debugFillFailures: 1
+  debugPolygon: 0
+  debugFillFailures: 0
   debugMultiSurface: 0
 --- !u!114 &5857841112863270929
 MonoBehaviour:
@@ -5673,22 +5673,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
   uniformScale: 1
   minSize: 0.2
-  maxSize: 7
-  sizeLossPerDamage: 1
+  maxSize: 5
+  sizeLossPerDamage: 0.15
   sizeGainPerHeal: 1
   destroyOnDeath: 1
   destroyDelaySeconds: 1
   hideVisualsOnDeath: 1
   renderersToHide: []
   hideHealthUiOnDeath: 1
-  surfaceSlider: {fileID: 0}
+  surfaceSlider: {fileID: 3903073942102037414}
   hoverHeightAtSize1: 0.5
   scaleHoverHeightWithSize: 1
   particlesObject: {fileID: 5183894216813921977}
   scaleParticlesWithSize: 1
   particlesScaleMultiplier: 0.7
   healthImageRect: {fileID: 0}
-  healthImageDownAtMinSize: 30
+  healthImageDownAtMinSize: 60
   updateHealthUiOnAwake: 1
   logChanges: 0
 --- !u!114 &3903073942102037414
