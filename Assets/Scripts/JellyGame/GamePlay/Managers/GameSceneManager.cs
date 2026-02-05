@@ -19,6 +19,19 @@ namespace JellyGame.GamePlay.Managers
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
+        [Header("Main Menu")]
+        [Tooltip("Enable 'Press Any Key' to start from Main Menu.")]
+        [SerializeField] private bool isMainMenu = false;
+
+        [Tooltip("Which scene to load when user presses any key in Main Menu (usually Tutorial).")]
+        [SerializeField] private int mainMenuNextScene = 2; // Tutorial
+
+        [Tooltip("Text to display (optional). Leave empty to skip.")]
+        [SerializeField] private string pressAnyKeyText = "Press Any Key to Start";
+
+        [Tooltip("Play background music in Main Menu? Disable if you don't have SoundManager set up.")]
+        [SerializeField] private bool playBackgroundMusic = true;
+
         [Header("Game Over")]
         [Tooltip("Build index of the GameOver scene.")]
         [SerializeField] private int gameOverSceneBuildIndex = 0;
@@ -74,12 +87,29 @@ namespace JellyGame.GamePlay.Managers
 
         private void Start()
         {
-            // Background music
-            if (SoundManager.Instance != null)
+            // Background music (optional - can be disabled)
+            if (playBackgroundMusic && SoundManager.Instance != null)
             {
-                SoundManager.Instance.StopAllSounds();
-                if (SoundManager.Instance.FindAudioConfig("Background") != null)
-                    SoundManager.Instance.PlaySound("Background", this.transform);
+                try
+                {
+                    SoundManager.Instance.StopAllSounds();
+                    
+                    // Only play if "Background" audio exists
+                    if (SoundManager.Instance.FindAudioConfig("Background") != null)
+                    {
+                        SoundManager.Instance.PlaySound("Background", this.transform);
+                    }
+                    else if (debugLogs)
+                    {
+                        Debug.Log("[GameSceneManager] No 'Background' audio config found - skipping background music.", this);
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    // Silently catch any audio errors (common in Main Menu without SoundManager)
+                    if (debugLogs)
+                        Debug.LogWarning($"[GameSceneManager] Background music error (safe to ignore): {ex.Message}", this);
+                }
             }
         }
 
@@ -102,6 +132,16 @@ namespace JellyGame.GamePlay.Managers
 
         private void Update()
         {
+            // Main Menu: Press any key to start
+            if (isMainMenu && Input.anyKeyDown)
+            {
+                if (debugLogs)
+                    Debug.Log("[GameSceneManager] Main Menu: Any key pressed, loading next scene.", this);
+
+                LoadFromMainMenu();
+                return; // Don't check cheat codes after starting
+            }
+
             // Cheat codes
             if (gameOverKey != KeyCode.None && Input.GetKeyDown(gameOverKey))
             {
@@ -118,6 +158,32 @@ namespace JellyGame.GamePlay.Managers
 
                 EventManager.TriggerEvent(EventManager.GameEvent.GameWin);
             }
+        }
+
+        // ===================== Main Menu =====================
+
+        private void LoadFromMainMenu()
+        {
+            if (!IsValidBuildIndex(mainMenuNextScene))
+            {
+                Debug.LogError($"[GameSceneManager] Main Menu next scene invalid: {mainMenuNextScene}", this);
+                return;
+            }
+
+            if (LoadingManager.Instance == null)
+            {
+                Debug.LogError("[GameSceneManager] LoadingManager.Instance is null! Make sure LoadingScreen is loaded.", this);
+                return;
+            }
+
+            if (debugLogs)
+                Debug.Log($"[GameSceneManager] Loading from Main Menu → scene {mainMenuNextScene}", this);
+
+            // Disable this flag so we don't trigger again
+            isMainMenu = false;
+
+            // Load via LoadingManager (just one scene - Tutorial)
+            LoadingManager.Instance.StartLoading(new int[] { mainMenuNextScene });
         }
 
         // ===================== Event Handlers =====================
@@ -249,7 +315,7 @@ namespace JellyGame.GamePlay.Managers
                     if (debugLogs)
                         Debug.Log($"[GameSceneManager] Loading {winScenesToLoad.Length} scene(s) via LoadingManager.", this);
 
-                    LoadingManager.Instance.StartLoading(winScenesToLoad);
+                    LoadingManager.Instance.StartLoading(winScenesToLoad, 0);
                     yield break;
                 }
                 else
