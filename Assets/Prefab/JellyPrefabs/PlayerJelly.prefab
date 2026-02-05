@@ -5671,9 +5671,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f50945afcbc424baccf5e3e4fef1f1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
+  scaleTarget: {fileID: 0}
   uniformScale: 1
   minSize: 0.2
-  maxSize: 5
+  maxSize: 3
   sizeLossPerDamage: 0.15
   sizeGainPerHeal: 1
   destroyOnDeath: 1
@@ -5686,7 +5687,7 @@ MonoBehaviour:
   scaleHoverHeightWithSize: 1
   particlesObject: {fileID: 5183894216813921977}
   scaleParticlesWithSize: 1
-  particlesScaleMultiplier: 0.7
+  particlesScaleMultiplier: 0.6
   healthImageRect: {fileID: 0}
   healthImageDownAtMinSize: 60
   updateHealthUiOnAwake: 1
