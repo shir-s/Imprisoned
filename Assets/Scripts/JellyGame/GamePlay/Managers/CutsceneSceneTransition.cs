@@ -1,42 +1,31 @@
 // FILEPATH: Assets/Scripts/Managers/CutsceneSceneTransition.cs
 using System.Collections;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.Playables;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.Playables;
+using UnityEngine.SceneManagement;
 
 namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
-    /// Handles cutscene scene transitions with support for:
+    /// Simplified cutscene transition - just activates the already-loaded next scene.
+    /// 
+    /// NEW ARCHITECTURE:
+    /// - GameSceneManager loads BOTH cutscene AND next level via LoadingManager
+    /// - Cutscene plays while next level waits (inactive)
+    /// - This script just activates the next scene when user skips
+    /// 
+    /// Supports:
     /// - Manual skip (keyboard/controller)
     /// - Auto-skip after cutscene ends
-    /// - Loading screen integration
-    /// - Preloaded scene detection
-    /// 
-    /// UPDATED: Now supports loading screen workflow and auto-detects cutscene end via Timeline.
+    /// - Timeline (PlayableDirector) detection
     /// </summary>
     [DisallowMultipleComponent]
     public class CutsceneSceneTransition : MonoBehaviour
     {
-        public enum SceneIdMode { BuildIndex, SceneName }
-        public enum TransitionMode { Direct, UseLoadingScreen }
-
-        [Header("Transition Mode")]
-        [Tooltip("Direct: Load next scene immediately. UseLoadingScreen: Go to loading screen first.")]
-        [SerializeField] private TransitionMode transitionMode = TransitionMode.Direct;
-
-        [Header("Next Scene (Direct Mode)")]
-        [SerializeField] private SceneIdMode sceneIdMode = SceneIdMode.BuildIndex;
+        [Header("Next Scene")]
+        [Tooltip("Build index of the scene to activate (should already be loaded by GameSceneManager).")]
         [SerializeField] private int nextSceneBuildIndex = -1;
-        [SerializeField] private string nextSceneName = "";
-
-        [Header("Loading Screen Mode")]
-        [Tooltip("Build index of the LoadingScreen scene.")]
-        [SerializeField] private int loadingScreenBuildIndex = -1;
-
-        [Tooltip("Scenes to load via LoadingScreen (1 or 2 scenes). First scene will be activated first.")]
-        [SerializeField] private int[] scenesToLoad = new int[0];
 
         [Header("Skip Input")]
         [Tooltip("Enable manual skip? If false, only auto-skip will work.")]
@@ -65,32 +54,22 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("If detectCutsceneEnd is false, use this fixed duration (seconds).")]
         [SerializeField] private float fixedCutsceneDuration = 10f;
 
-        [Header("Preload")]
-        [Tooltip("If true, preload starts immediately on Start (for Direct mode).")]
-        [SerializeField] private bool preloadOnStart = true;
-
         [Header("Debug")]
         [SerializeField] private bool debugLogs = true;
 
-        private AsyncOperation _preloadOp;
         private bool _skipRequested;
         private bool _autoSkipTriggered;
         private PlayableDirector _timeline;
+        private bool _loadingWasVisibleLastFrame = false;
 
         private void Start()
         {
-            // Check if next scene is already loaded (by LoadingScreen)
-            if (IsNextSceneAlreadyLoaded())
+            // Verify next scene is loaded
+            if (!IsNextSceneLoaded())
             {
-                if (debugLogs)
-                    Debug.Log("[CutsceneSceneTransition] Next scene already loaded. Will activate when ready.", this);
-
-                // Don't preload - scene is already there!
-                preloadOnStart = false;
+                Debug.LogWarning($"[CutsceneSceneTransition] Next scene (index {nextSceneBuildIndex}) is not loaded! " +
+                    "Make sure GameSceneManager loaded it before this cutscene.", this);
             }
-
-            if (preloadOnStart && transitionMode == TransitionMode.Direct)
-                StartPreload();
 
             // Setup auto-skip
             if (enableAutoSkip)
@@ -105,7 +84,33 @@ namespace JellyGame.GamePlay.Managers
             if (!allowManualSkip)
                 return;
 
-            // Check for manual skip input
+            // Check if LoadingManager is currently visible
+            bool loadingVisible = IsLoadingManagerVisible();
+
+            // CRITICAL: Ignore input WHILE LoadingManager is visible
+            if (loadingVisible)
+            {
+                _loadingWasVisibleLastFrame = true;
+                
+                if (debugLogs && Time.frameCount % 60 == 0)
+                    Debug.Log("[CutsceneSceneTransition] Ignoring input - LoadingManager is visible", this);
+                
+                return;
+            }
+
+            // CRITICAL: Also ignore input for ONE FRAME after LoadingManager becomes hidden
+            // This prevents the SAME key press that hid the loading screen from also skipping the cutscene
+            if (_loadingWasVisibleLastFrame)
+            {
+                _loadingWasVisibleLastFrame = false;
+                
+                if (debugLogs)
+                    Debug.Log("[CutsceneSceneTransition] Ignoring input for 1 frame after LoadingManager hidden (prevent carryover)", this);
+                
+                return;
+            }
+
+            // Now safe to check for manual skip input
             bool inputDetected = Input.GetKeyDown(skipKey);
 
             if (!inputDetected && controllerSkipButtons != null)
@@ -126,8 +131,34 @@ namespace JellyGame.GamePlay.Managers
                     Debug.Log("[CutsceneSceneTransition] Manual skip input detected.", this);
 
                 _skipRequested = true;
-                PerformTransition();
+                ActivateNextScene();
             }
+        }
+
+        /// <summary>
+        /// Check if LoadingManager canvas is currently visible.
+        /// If it is, we shouldn't accept skip input (user is still on loading screen).
+        /// </summary>
+        private bool IsLoadingManagerVisible()
+        {
+            // Find LoadingManager instance
+            LoadingManager loadingManager = LoadingManager.Instance;
+            
+            if (loadingManager == null)
+                return false;
+
+            // Check if canvas is enabled (LoadingManager disables it when done)
+            // Use reflection to access private field, or make it public
+            // For now, we'll check if the canvas GameObject is active
+            
+            // Try to find the canvas
+            Canvas canvas = loadingManager.GetComponentInChildren<Canvas>();
+            if (canvas != null)
+            {
+                return canvas.enabled && canvas.gameObject.activeInHierarchy;
+            }
+
+            return false;
         }
 
         private void SetupAutoSkip()
@@ -139,14 +170,25 @@ namespace JellyGame.GamePlay.Managers
 
                 if (_timeline != null)
                 {
-                    _timeline.stopped += OnTimelineStopped;
+                    // Validate timeline has a valid duration
+                    if (_timeline.duration > 0.1)
+                    {
+                        _timeline.stopped += OnTimelineStopped;
 
-                    if (debugLogs)
-                        Debug.Log($"[CutsceneSceneTransition] Timeline detected. Duration: {_timeline.duration:F1}s", this);
+                        if (debugLogs)
+                            Debug.Log($"[CutsceneSceneTransition] Timeline detected. Duration: {_timeline.duration:F1}s", this);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[CutsceneSceneTransition] Timeline found but duration is {_timeline.duration:F1}s (invalid)! " +
+                            "Falling back to fixed duration.", this);
+                        StartCoroutine(AutoSkipAfterFixedDuration());
+                    }
                 }
                 else
                 {
-                    Debug.LogWarning("[CutsceneSceneTransition] detectCutsceneEnd enabled but no PlayableDirector found! Falling back to fixed duration.", this);
+                    Debug.LogWarning("[CutsceneSceneTransition] detectCutsceneEnd enabled but no PlayableDirector found! " +
+                        "Falling back to fixed duration.", this);
                     StartCoroutine(AutoSkipAfterFixedDuration());
                 }
             }
@@ -180,7 +222,7 @@ namespace JellyGame.GamePlay.Managers
                 if (debugLogs)
                     Debug.Log("[CutsceneSceneTransition] Auto-skip triggered.", this);
 
-                PerformTransition();
+                ActivateNextScene();
             }
         }
 
@@ -200,170 +242,80 @@ namespace JellyGame.GamePlay.Managers
                 if (debugLogs)
                     Debug.Log("[CutsceneSceneTransition] Auto-skip triggered (fixed duration).", this);
 
-                PerformTransition();
+                ActivateNextScene();
             }
         }
 
-        private void PerformTransition()
+        /// <summary>
+        /// Activate the next scene that was already loaded by GameSceneManager.
+        /// </summary>
+        private void ActivateNextScene()
         {
-            if (transitionMode == TransitionMode.UseLoadingScreen)
+            if (!IsValidBuildIndex(nextSceneBuildIndex))
             {
-                LoadViaLoadingScreen();
-            }
-            else
-            {
-                LoadDirectly();
-            }
-        }
-
-        private void LoadViaLoadingScreen()
-        {
-            if (scenesToLoad == null || scenesToLoad.Length == 0)
-            {
-                Debug.LogError("[CutsceneSceneTransition] LoadingScreen mode enabled but scenesToLoad is empty!", this);
+                Debug.LogError($"[CutsceneSceneTransition] Invalid nextSceneBuildIndex: {nextSceneBuildIndex}", this);
                 return;
             }
 
-            if (!IsValidBuildIndex(loadingScreenBuildIndex))
+            Scene nextScene = SceneManager.GetSceneByBuildIndex(nextSceneBuildIndex);
+
+            if (!nextScene.isLoaded)
             {
-                Debug.LogError($"[CutsceneSceneTransition] Invalid loadingScreenBuildIndex: {loadingScreenBuildIndex}", this);
+                Debug.LogError($"[CutsceneSceneTransition] Next scene (index {nextSceneBuildIndex}) is not loaded! " +
+                    "Cannot activate.", this);
                 return;
             }
 
             if (debugLogs)
-                Debug.Log($"[CutsceneSceneTransition] Loading via LoadingScreen: {scenesToLoad.Length} scene(s)", this);
+                Debug.Log($"[CutsceneSceneTransition] Activating next scene: {nextScene.name}", this);
 
-            SceneTransitionHelper.LoadWithLoadingScreen(loadingScreenBuildIndex, scenesToLoad);
-        }
-
-        private void LoadDirectly()
-        {
-            // Check if next scene is already loaded
-            if (IsNextSceneAlreadyLoaded())
+            // Reactivate all root GameObjects (LoadingManager disabled them)
+            GameObject[] rootObjects = nextScene.GetRootGameObjects();
+            
+            // IMPORTANT: Re-enable cameras and audio listeners FIRST (before activating GameObjects)
+            // LoadingManager disables these components separately
+            foreach (GameObject obj in rootObjects)
             {
-                if (debugLogs)
-                    Debug.Log("[CutsceneSceneTransition] Next scene already loaded. Activating it.", this);
-
-                ActivatePreloadedScene();
-                return;
-            }
-
-            // Normal loading
-            if (_preloadOp == null)
-                StartPreload();
-            else
-                TryActivateIfReady();
-        }
-
-        private void StartPreload()
-        {
-            if (_preloadOp != null)
-                return;
-
-            if (!TryGetSceneToLoad(out int buildIndex, out string sceneName))
-            {
-                Debug.LogError("[CutsceneSceneTransition] Invalid next scene configuration.", this);
-                return;
-            }
-
-            if (debugLogs)
-                Debug.Log("[CutsceneSceneTransition] Starting scene preload.", this);
-
-            _preloadOp = (sceneIdMode == SceneIdMode.BuildIndex)
-                ? SceneManager.LoadSceneAsync(buildIndex)
-                : SceneManager.LoadSceneAsync(sceneName);
-
-            _preloadOp.allowSceneActivation = false;
-
-            StartCoroutine(PreloadWatcher());
-        }
-
-        private IEnumerator PreloadWatcher()
-        {
-            while (_preloadOp != null && !_preloadOp.isDone)
-            {
-                if (_skipRequested || _autoSkipTriggered)
-                    TryActivateIfReady();
-
-                yield return null;
-            }
-        }
-
-        private void TryActivateIfReady()
-        {
-            if (_preloadOp == null)
-                return;
-
-            if (_preloadOp.progress < 0.89f)
-                return;
-
-            if (debugLogs)
-                Debug.Log("[CutsceneSceneTransition] Activating preloaded scene.", this);
-
-            _preloadOp.allowSceneActivation = true;
-        }
-
-        private bool IsNextSceneAlreadyLoaded()
-        {
-            if (transitionMode == TransitionMode.UseLoadingScreen)
-                return false; // LoadingScreen handles this
-
-            if (!TryGetSceneToLoad(out int buildIndex, out string sceneName))
-                return false;
-
-            // Check if scene is loaded
-            Scene scene = (sceneIdMode == SceneIdMode.BuildIndex)
-                ? SceneManager.GetSceneByBuildIndex(buildIndex)
-                : SceneManager.GetSceneByName(sceneName);
-
-            if (!scene.isLoaded)
-                return false;
-
-            // Check if scene was loaded but deactivated by LoadingManager
-            if (sceneIdMode == SceneIdMode.BuildIndex && SceneTransitionHelper.IsSceneInactive(buildIndex))
-            {
-                if (debugLogs)
-                    Debug.Log($"[CutsceneSceneTransition] Next scene {scene.name} is loaded but inactive (objects disabled).", this);
-                return true;
-            }
-
-            return scene.isLoaded;
-        }
-
-        private void ActivatePreloadedScene()
-        {
-            if (!TryGetSceneToLoad(out int buildIndex, out string sceneName))
-                return;
-
-            Scene scene = (sceneIdMode == SceneIdMode.BuildIndex)
-                ? SceneManager.GetSceneByBuildIndex(buildIndex)
-                : SceneManager.GetSceneByName(sceneName);
-
-            if (scene.isLoaded)
-            {
-                // Reactivate all root GameObjects in the scene
-                GameObject[] rootObjects = scene.GetRootGameObjects();
-                foreach (GameObject obj in rootObjects)
+                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
+                foreach (UnityEngine.Camera cam in cameras)
                 {
-                    obj.SetActive(true);
+                    cam.enabled = true;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[CutsceneSceneTransition] Re-enabled camera: {cam.name}", this);
                 }
 
-                // Set as active scene
-                SceneManager.SetActiveScene(scene);
-
-                if (debugLogs)
-                    Debug.Log($"[CutsceneSceneTransition] Activated preloaded scene: {scene.name} (enabled {rootObjects.Length} root objects)", this);
-
-                // Optional: Unload the current cutscene scene to free memory
-                Scene currentScene = SceneManager.GetActiveScene();
-                if (currentScene != scene)
+                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
+                foreach (AudioListener listener in listeners)
                 {
-                    StartCoroutine(UnloadSceneAfterDelay(currentScene, 0.5f));
+                    listener.enabled = true;
+                    
+                    if (debugLogs)
+                        Debug.Log($"[CutsceneSceneTransition] Re-enabled audio listener: {listener.name}", this);
                 }
+            }
+            
+            // Now activate GameObjects
+            foreach (GameObject obj in rootObjects)
+            {
+                obj.SetActive(true);
+            }
+
+            // Set as active scene
+            SceneManager.SetActiveScene(nextScene);
+
+            if (debugLogs)
+                Debug.Log($"[CutsceneSceneTransition] Activated scene {nextScene.name} (enabled {rootObjects.Length} root objects)", this);
+
+            // Unload this cutscene scene
+            Scene currentScene = gameObject.scene;
+            if (currentScene.isLoaded && currentScene != nextScene)
+            {
+                StartCoroutine(UnloadCutsceneAfterDelay(currentScene, 0.5f));
             }
         }
 
-        private IEnumerator UnloadSceneAfterDelay(Scene scene, float delay)
+        private IEnumerator UnloadCutsceneAfterDelay(Scene scene, float delay)
         {
             yield return new WaitForSeconds(delay);
 
@@ -376,18 +328,13 @@ namespace JellyGame.GamePlay.Managers
             }
         }
 
-        private bool TryGetSceneToLoad(out int buildIndex, out string sceneName)
+        private bool IsNextSceneLoaded()
         {
-            buildIndex = nextSceneBuildIndex;
-            sceneName = nextSceneName;
+            if (!IsValidBuildIndex(nextSceneBuildIndex))
+                return false;
 
-            if (sceneIdMode == SceneIdMode.BuildIndex)
-            {
-                return buildIndex >= 0 &&
-                       buildIndex < SceneManager.sceneCountInBuildSettings;
-            }
-
-            return !string.IsNullOrWhiteSpace(sceneName);
+            Scene scene = SceneManager.GetSceneByBuildIndex(nextSceneBuildIndex);
+            return scene.isLoaded;
         }
 
         private static bool IsValidBuildIndex(int buildIndex)
