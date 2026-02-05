@@ -136,6 +136,8 @@ namespace JellyGame.GamePlay.Player
 
         public void ApplyDamage(float amount)
         {
+            if (logChanges && amount > 0f)
+                Debug.Log($"[CubeScaler] ApplyDamage({amount}) on {gameObject.name} (enabled={isActiveAndEnabled}, dead={_dead})", this);
             if (!isActiveAndEnabled) return;
             if (_dead || amount <= 0f) return;
             ChangeVolumeAdd(-amount * sizeLossPerDamage);

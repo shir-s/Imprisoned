@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &920876964952450592
+--- !u!1 &2113561541621386802
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,37 +8,37 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 447884672298249009}
-  - component: {fileID: 1319562123413096921}
+  - component: {fileID: 63451508200840958}
+  - component: {fileID: 4945124951089692361}
   m_Layer: 0
-  m_Name: SlimePrimeTarget
+  m_Name: SlimePrimeTarget 1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &447884672298249009
+--- !u!4 &63451508200840958
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 920876964952450592}
+  m_GameObject: {fileID: 2113561541621386802}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -21, y: -8.26, z: -1}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0, y: -0.9981425, z: -0, w: 0.060923696}
+  m_LocalPosition: {x: -20.7, y: 0.3, z: 2.4}
+  m_LocalScale: {x: 3.12979, y: 3.1297898, z: 3.12979}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1319562123413096921
+--- !u!65 &4945124951089692361
 BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 920876964952450592}
+  m_GameObject: {fileID: 2113561541621386802}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -51,5 +51,5 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Size: {x: 2.7116227, y: 5.5724077, z: 2.9001758}
+  m_Center: {x: -0.020869346, y: 0.98966295, z: 0.45008692}

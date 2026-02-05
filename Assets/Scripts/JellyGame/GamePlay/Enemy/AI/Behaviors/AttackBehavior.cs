@@ -152,13 +152,28 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             Vector3 pos = transform.position;
             Vector3 targetPos = _currentTarget.position;
 
-            Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
-            Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
-            float distXZ = Vector3.Distance(selfXZ, targetXZ);
+            // Use distance to surface (closest point) when we have a collider, so we deal damage when at the cube's surface
+            float distToTarget;
+            if (_currentTargetCollider != null && _currentTargetCollider.enabled)
+            {
+                Vector3 closest = _currentTargetCollider.ClosestPoint(pos);
+                Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
+                Vector3 closestXZ = new Vector3(closest.x, 0f, closest.z);
+                distToTarget = Vector3.Distance(selfXZ, closestXZ);
+            }
+            else
+            {
+                Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
+                Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
+                distToTarget = Vector3.Distance(selfXZ, targetXZ);
+            }
 
             float effectiveAttackRadius = _currentTargetAttackRadius > 0f ? _currentTargetAttackRadius : attackRadius;
+            // When using distance-to-surface, ensure we count as "in range" when at the cube (e.g. 1.5–2 units from surface)
+            if (_currentTargetCollider != null && _currentTargetCollider.enabled)
+                effectiveAttackRadius = Mathf.Max(effectiveAttackRadius, 2.5f);
 
-            if (distXZ <= effectiveAttackRadius)
+            if (distToTarget <= effectiveAttackRadius)
             {
                 _navigator.Stop();
 
@@ -172,7 +187,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (debugLogs && _tickCount % 60 == 0)
             {
-                Debug.Log($"[AttackBehavior] Chasing target. Dist: {distXZ:F1}", this);
+                Debug.Log($"[AttackBehavior] Chasing target. Dist: {distToTarget:F1}", this);
             }
         }
 
@@ -184,8 +199,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             if (_currentTarget == null)
                 return;
 
-            // Get a damage receiver from the target (player uses CubeScaler implementing IDamageable)
-            IDamageable dmg = _currentTarget.GetComponentInParent<IDamageable>();
+            // Get a damage receiver: try self, then parent, then children (handles collider on child / CubeScaler on parent)
+            IDamageable dmg = _currentTarget.GetComponent<IDamageable>()
+                ?? _currentTarget.GetComponentInParent<IDamageable>()
+                ?? _currentTarget.GetComponentInChildren<IDamageable>();
             if (dmg == null)
             {
                 if (debugLogs)
@@ -196,8 +213,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                 return;
             }
 
+            // Log which object we're actually damaging (the one with IDamageable - may be parent of _currentTarget)
+            string damageTargetName = (dmg as MonoBehaviour) != null ? (dmg as MonoBehaviour).gameObject.name : "?";
             if (debugLogs)
-                Debug.Log($"[AttackBehavior] Hit {_currentTarget.name} for {damagePerHit} damage.", this);
+                Debug.Log($"[AttackBehavior] Hit {_currentTarget.name} for {damagePerHit} damage. (IDamageable on: {damageTargetName})", this);
 
             dmg.ApplyDamage(damagePerHit);
             SoundManager.Instance.PlaySound("SlimeHit", transform);
@@ -250,6 +269,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                 foreach (Collider c in hits)
                 {
                     if (c == null) continue;
+                    // Never target ourselves or our own children
+                    if (c.transform == transform || c.transform.IsChildOf(transform))
+                        continue;
                     float dSq = (c.transform.position - origin).sqrMagnitude;
                     bool isBetter = false;
                     if (tp.attackPriority > bestPriority) isBetter = true;
@@ -265,7 +287,13 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                     }
                 }
             }
-            if (bestTarget != null) { SetTarget(bestTarget, bestCollider, bestPriority, bestAttackRadius); return true; }
+            if (bestTarget != null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[AttackBehavior] Acquired target: {bestTarget.name} (layer: {LayerMask.LayerToName(bestTarget.gameObject.layer)})", this);
+                SetTarget(bestTarget, bestCollider, bestPriority, bestAttackRadius);
+                return true;
+            }
             return false;
         }
 
@@ -278,19 +306,42 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         private bool IsTargetValidAndInDetectionRadius(Transform t, Collider c)
         {
             if (t == null || c == null) return false;
+            // Use the layer of the object that has IDamageable (e.g. father), not the collider's object (e.g. child empty on Default)
+            int layerToCheck = c.gameObject.layer;
+            IDamageable dmg = t.GetComponent<IDamageable>() ?? t.GetComponentInParent<IDamageable>() ?? t.GetComponentInChildren<IDamageable>();
+            if (dmg is MonoBehaviour mb)
+                layerToCheck = mb.gameObject.layer;
+
             float radius = detectionRadius;
             bool found = false;
-            foreach (var tp in targetPriorities)
+            if (targetPriorities != null)
             {
-                if (tp.layer.LayerIndex == c.gameObject.layer)
+                foreach (var tp in targetPriorities)
                 {
-                    radius = tp.customDetectionRadius > 0 ? tp.customDetectionRadius : detectionRadius;
-                    found = true; break;
+                    if (tp.layer.LayerIndex == layerToCheck)
+                    {
+                        radius = tp.customDetectionRadius > 0 ? tp.customDetectionRadius : detectionRadius;
+                        found = true;
+                        break;
+                    }
                 }
             }
-            if (!found) return false;
+            if (!found)
+            {
+                if (debugLogs)
+                    Debug.Log($"[AttackBehavior] Target lost: layer '{LayerMask.LayerToName(layerToCheck)}' (index {layerToCheck}) not in Target Priorities. Add this layer to the enemy's AttackBehavior Target Priorities.", this);
+                return false;
+            }
             float dist = Vector3.Distance(transform.position, t.position);
-            return dist <= (radius + 3.0f);
+            // Use at least global detection radius and a minimum 20 so we don't drop target at 11–12 units
+            float maxDist = Mathf.Max(radius + 5f, detectionRadius + 2f, 20f);
+            if (dist > maxDist)
+            {
+                if (debugLogs)
+                    Debug.Log($"[AttackBehavior] Target lost: out of range (dist={dist:F1}, max={maxDist:F1}).", this);
+                return false;
+            }
+            return true;
         }
 
         private void SetTarget(Transform t, Collider c, int p, float r)
