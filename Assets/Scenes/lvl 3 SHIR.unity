@@ -3643,11 +3643,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 288771444}
   m_Mesh: {fileID: 5578184439353574583, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
---- !u!4 &302641317 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-  m_PrefabInstance: {fileID: 7978701309499397820}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &309405190
 GameObject:
   m_ObjectHideFlags: 0
@@ -61505,7 +61500,6 @@ Transform:
   - {fileID: 1130038970}
   - {fileID: 1639302214}
   - {fileID: 640071954}
-  - {fileID: 302641317}
   - {fileID: 892468231}
   - {fileID: 7611463057030185359}
   - {fileID: 1356398940520801178}
@@ -62433,6 +62427,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 110240745974625901, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+    - {fileID: 2270316849056669089, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
@@ -62460,6 +62455,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f50945afcbc424baccf5e3e4fef1f1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
+  scaleTarget: {fileID: 0}
   uniformScale: 1
   minSize: 0.2
   maxSize: 4
@@ -63011,63 +63007,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3252598759004662228}
   m_Mesh: {fileID: -7754318969949236687, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
---- !u!1001 &7978701309499397820
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 543450651643157183}
-    m_Modifications:
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 1.0839748
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 5.933622
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 5.917701
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: -0.69474834
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -8.1081786e-17
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.71925294
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 9.162319e-17
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3415426687354222879, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 7062139582509643356, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
-      propertyPath: m_Name
-      value: Cube
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 16ed7114bff8f2b4ea023986e3699b51, type: 3}
 --- !u!23 &8104029156834703406
 MeshRenderer:
   m_ObjectHideFlags: 0

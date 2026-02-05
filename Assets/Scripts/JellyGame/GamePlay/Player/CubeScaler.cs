@@ -14,6 +14,8 @@ namespace JellyGame.GamePlay.Player
     public class CubeScaler : MonoBehaviour, IDamageable
     {
         [Header("Scale Settings")]
+        [Tooltip("If set, scale is applied to this transform (e.g. root of model) so the entire hierarchy shrinks. If empty, scales only this object.")]
+        [SerializeField] private Transform scaleTarget;
         [SerializeField] private bool uniformScale = true;
         [SerializeField] private float minSize = 0.2f;
         [SerializeField] private float maxSize = 3.0f;
@@ -174,7 +176,8 @@ namespace JellyGame.GamePlay.Player
 
         private float GetCurrentSize()
         {
-            Vector3 s = transform.localScale;
+            Transform target = scaleTarget != null ? scaleTarget : transform;
+            Vector3 s = target.localScale;
             return uniformScale ? s.x : s.y;
         }
 
@@ -185,13 +188,14 @@ namespace JellyGame.GamePlay.Player
             if (Mathf.Approximately(size, oldSize))
                 return;
 
-            Vector3 newScale = transform.localScale;
+            Transform target = scaleTarget != null ? scaleTarget : transform;
+            Vector3 newScale = target.localScale;
             if (uniformScale)
                 newScale = new Vector3(size, size, size);
             else
                 newScale.y = size;
 
-            transform.localScale = newScale;
+            target.localScale = newScale;
 
             // Tell movement script how far the pivot should hover above the surface.
             UpdateHoverHeight(size);
