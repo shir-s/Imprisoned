@@ -11,7 +11,7 @@ namespace JellyGame.GamePlay.Managers
     /// 
     /// Responsibilities:
     /// - On Start(), tell LoadingManager to preload the next scene in the background
-    /// - Listen for GameWin → transition to next scene via LoadingManager
+    /// - Listen for GameWin → transition to next scene (instant if preloaded, loading screen otherwise)
     /// - Listen for EntityDied → trigger GameOver → transition to GameOver scene
     /// - Play win FX before transitioning
     /// - Handle Main Menu "Press Any Key" flow
@@ -40,6 +40,10 @@ namespace JellyGame.GamePlay.Managers
                  "- Win Scene → Main Menu build index\n" +
                  "Set to -1 to disable preloading.")]
         [SerializeField] private int nextSceneBuildIndex = -1;
+
+        [Tooltip("If true, skip the loading screen when the next scene is already preloaded.\n" +
+                 "If false, always show the loading screen for at least the minimum display time.")]
+        [SerializeField] private bool useInstantTransition = true;
 
         [Header("Game Over")]
         [Tooltip("Build index of the GameOver scene.")]
@@ -117,7 +121,7 @@ namespace JellyGame.GamePlay.Managers
                 if (debugLogs)
                     Debug.Log("[GameSceneManager] Main Menu: key pressed → loading next scene.", this);
 
-                isMainMenu = false; // Prevent double-trigger
+                isMainMenu = false;
                 TransitionTo(mainMenuNextScene);
                 return;
             }
@@ -235,33 +239,49 @@ namespace JellyGame.GamePlay.Managers
                 Time.timeScale = 0f;
 
             // Wait for FX — always use realtime because timeScale may be 0
-            // (FinishTrigger freezes time before triggering GameWin)
             if (delay > 0f)
             {
                 yield return new WaitForSecondsRealtime(delay);
             }
 
             // Always restore timeScale before transition
-            // (LoadingManager also does this as a safety net in Step 8)
             Time.timeScale = 1f;
 
-            // Transition
+            // Transition — try instant first, fall back to loading screen
             TransitionTo(destination);
         }
 
         // ===================== Transition Helper =====================
 
+        /// <summary>
+        /// Transition to a scene. Tries instant (no loading screen) if the scene is preloaded
+        /// and ready. Falls back to full loading screen transition otherwise.
+        /// </summary>
         private void TransitionTo(int buildIndex)
         {
-            if (LoadingManager.Instance != null)
-            {
-                LoadingManager.Instance.TransitionToScene(buildIndex);
-            }
-            else
+            if (LoadingManager.Instance == null)
             {
                 Debug.LogError("[GameSceneManager] LoadingManager.Instance is null! Falling back to direct load.", this);
                 SceneManager.LoadScene(buildIndex);
+                return;
             }
+
+            // Try instant transition (no loading screen) if enabled
+            if (useInstantTransition && LoadingManager.Instance.TryInstantTransition(buildIndex))
+            {
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] ⚡ Instant transition to scene {buildIndex} (preload was ready).", this);
+                return;
+            }
+
+            // Preload not ready or instant disabled — use full loading screen
+            if (debugLogs)
+            {
+                string reason = useInstantTransition ? "preload not ready" : "instant transition disabled";
+                Debug.Log($"[GameSceneManager] {reason} → using loading screen for scene {buildIndex}.", this);
+            }
+
+            LoadingManager.Instance.TransitionToScene(buildIndex);
         }
 
         // ===================== Win FX =====================
@@ -312,7 +332,6 @@ namespace JellyGame.GamePlay.Managers
                 ps.Play(true);
             }
 
-            // Auto-calculate delay if not set
             if (delay <= 0f)
                 delay = ComputeLongestFxDuration(systems);
 

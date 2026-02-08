@@ -5631,6 +5631,8 @@ MonoBehaviour:
   fallbackMaxTotalSamples: 250000
   fallbackBaseUvStep: 0.0015
   clipPolygonToSurfaceBounds: 1
+  autoFindReferences: 1
+  debugAutoFind: 1
   debugPolygon: 0
   debugFillFailures: 0
   debugMultiSurface: 0
@@ -5724,7 +5726,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
   collisionMask:
     serializedVersion: 2
-    m_Bits: 1064960
+    m_Bits: 9453568
   skinWidth: 0.01
   maxPushPerStep: 0.3
   allowPushingOthers: 0
