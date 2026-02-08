@@ -36929,6 +36929,7 @@ MonoBehaviour:
     disableDelaySeconds: 0.05
     activateBeforeMove: {fileID: 552870961}
     waitOneFrameAfterActivate: 1
+    destroyDamageZonesBeforeMove: 1
   windowGates:
   - enabled: 0
     requirement: 0
@@ -119020,11 +119021,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e5d78e6ee795d649ac88c372681e6a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.Tutorial.OrderedTriggerSequence
-  steps:
-  - {fileID: 853059174}
-  - {fileID: 375868056}
-  - {fileID: 2052727791}
-  - {fileID: 1941606281}
+  steps: []
   requiredLayer: 7
   requiredTag: DrawingCube
   autoStartOnEnable: 0

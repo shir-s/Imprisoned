@@ -9,27 +9,29 @@ namespace JellyGame.GamePlay.Managers
     /// <summary>
     /// Controls the visual elements of the loading screen.
     /// 
-    /// Supports two progress display modes:
-    /// 1. Slider (classic horizontal bar)
-    /// 2. Fill Image (e.g. a slime outline that fills from bottom to top)
+    /// Supports three progress display modes:
+    /// 1. Slider — classic horizontal bar
+    /// 2. FillImage — Image.fillAmount (vertical fill from bottom)
+    /// 3. MoveUp — moves an image upward; full distance = 100% loaded
     /// 
-    /// For the slime fill effect:
-    /// - Create an Image with the filled slime sprite
-    /// - Set Image Type = Filled, Fill Method = Vertical, Fill Origin = Bottom
-    /// - Assign it to fillImage below
-    /// - Place the slime outline image on top (separate Image, not filled)
+    /// For the MoveUp mode:
+    /// - Assign the image's RectTransform to moveUpTarget
+    /// - Set moveUpDistance to how many units (pixels) it should travel upward
+    /// - At 0% progress the image is at its starting position
+    /// - At 100% progress the image has moved up by moveUpDistance
     /// </summary>
     [DisallowMultipleComponent]
     public class LoadingScreenUI : MonoBehaviour
     {
         [Header("Progress Display Mode")]
         [Tooltip("Which UI element to use for showing progress.")]
-        [SerializeField] private ProgressMode progressMode = ProgressMode.FillImage;
+        [SerializeField] private ProgressMode progressMode = ProgressMode.MoveUp;
 
         public enum ProgressMode
         {
             Slider,
-            FillImage
+            FillImage,
+            MoveUp
         }
 
         [Header("Slider (if progressMode = Slider)")]
@@ -40,6 +42,15 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Image that fills vertically to show progress.\n" +
                  "Setup: Image Type = Filled, Fill Method = Vertical, Fill Origin = Bottom.")]
         [SerializeField] private Image fillImage;
+
+        [Header("Move Up (if progressMode = MoveUp)")]
+        [Tooltip("The RectTransform of the image to move upward.\n" +
+                 "At 0% it stays at its original position.\n" +
+                 "At 100% it has moved up by moveUpDistance.")]
+        [SerializeField] private RectTransform moveUpTarget;
+
+        [Tooltip("How far (in pixels / units) the image moves upward for 100% progress.")]
+        [SerializeField] private float moveUpDistance = 200f;
 
         [Header("Text")]
         [Tooltip("Loading text (TextMeshPro).")]
@@ -75,10 +86,28 @@ namespace JellyGame.GamePlay.Managers
         private float _targetProgress = 0f;
         private float _displayedProgress = 0f;
 
+        // MoveUp: store the starting anchored position so we can offset from it
+        private Vector2 _moveUpStartPos;
+        private bool _moveUpStartPosCaptured = false;
+
         private void Start()
         {
+            CaptureStartPosition();
             UpdateProgress(0f);
             ShowContinuePrompt(false);
+        }
+
+        /// <summary>
+        /// Capture the initial anchored position of the moveUpTarget.
+        /// Called once — all movement is relative to this position.
+        /// </summary>
+        private void CaptureStartPosition()
+        {
+            if (moveUpTarget != null && !_moveUpStartPosCaptured)
+            {
+                _moveUpStartPos = moveUpTarget.anchoredPosition;
+                _moveUpStartPosCaptured = true;
+            }
         }
 
         private void Update()
@@ -155,6 +184,15 @@ namespace JellyGame.GamePlay.Managers
                     if (fillImage != null)
                         fillImage.fillAmount = value;
                     break;
+
+                case ProgressMode.MoveUp:
+                    if (moveUpTarget != null)
+                    {
+                        CaptureStartPosition(); // safety: ensure we have the start pos
+                        float yOffset = value * moveUpDistance;
+                        moveUpTarget.anchoredPosition = new Vector2(_moveUpStartPos.x, _moveUpStartPos.y + yOffset);
+                    }
+                    break;
             }
         }
 
@@ -176,6 +214,7 @@ namespace JellyGame.GamePlay.Managers
         /// </summary>
         public void ResetProgress()
         {
+            CaptureStartPosition(); // safety: ensure we have start pos before resetting
             _targetProgress = 0f;
             _displayedProgress = 0f;
             ApplyProgress(0f);

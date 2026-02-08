@@ -30453,6 +30453,9 @@ MonoBehaviour:
   meshOnChildObject: {fileID: 0}
   additionalRenderers: []
   gameObjectsToToggle: []
+  freezeOnWin: 1
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -31789,6 +31792,9 @@ MonoBehaviour:
   additionalRenderers: []
   gameObjectsToToggle:
   - {fileID: 1598780732}
+  freezeOnWin: 1
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
   winFxRoot: {fileID: 65756140}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -43315,7 +43321,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
   durationSeconds: 120
   startOnEnable: 1
-  useUnscaledTime: 1
   debugLogs: 0
 --- !u!4 &1592128410
 Transform:
@@ -68100,23 +68105,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   isMainMenu: 0
-  mainMenuNextScene: 2
-  pressAnyKeyText: Press Any Key to Start
+  mainMenuNextScene: 4
   playBackgroundMusic: 1
+  nextSceneBuildIndex: 2
+  useInstantTransition: 1
   gameOverSceneBuildIndex: 1
-  useLoadingScreenForGameOver: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  useLoadingScreenForWin: 1
-  winScenesToLoad: 03000000
-  postLevelCutsceneBuildIndex: -1
-  gameOverPortalScenesToLoad: 0500000006000000
-  gameOverPortalFirstSceneIndex: 0
+  gameOverPortalDestination: -1
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
-  winSceneLoadDelay: 2
+  winFxDelay: 0
   pauseGameplayOnWin: 0
   debugLogs: 1
   gameOverKey: 114
