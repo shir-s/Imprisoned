@@ -2,16 +2,21 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 
 namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
-    /// Persistent Loading Manager - stays loaded throughout the game.
-    /// Shows/hides loading UI as needed without unloading the scene.
+    /// Persistent Loading Manager - stays loaded throughout the game via DontDestroyOnLoad.
     /// 
-    /// UPDATED: Now properly unloads ALL non-essential scenes when loading new ones,
-    /// preventing duplicate scenes and memory leaks.
+    /// NEW ARCHITECTURE:
+    /// - PreloadScene(): Starts loading a scene in the background (allowSceneActivation = false).
+    ///   Nothing in the preloaded scene runs (no Awake, no Start, no visual scripting, no Timeline).
+    /// - TransitionToScene(): Unloads ALL old scenes first, THEN activates the new scene.
+    ///   This guarantees no singleton conflicts (old player is destroyed before new one spawns).
+    /// - Loading screen shows while transition is in progress.
+    /// - Handles orphaned preloads (e.g. player dies → preloaded cutscene is cleaned up properly).
     /// </summary>
     [DisallowMultipleComponent]
     public class LoadingManager : MonoBehaviour
@@ -24,7 +29,7 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private LoadingScreenUI uiController;
 
         [Header("Canvas Settings")]
-        [Tooltip("Sort order for the loading canvas (higher = on top). Set high to ensure it's above everything.")]
+        [Tooltip("Sort order for the loading canvas (higher = on top).")]
         [SerializeField] private int canvasSortOrder = 1000;
 
         [Header("Input")]
@@ -38,538 +43,625 @@ namespace JellyGame.GamePlay.Managers
         };
 
         [Header("Timing")]
-        [Tooltip("Minimum time to show loading screen (prevents flash if loading is instant).")]
-        [SerializeField] private float minimumDisplayTime = 1.0f;
+        [Tooltip("Minimum time (seconds) to show the loading screen.\n" +
+                 "The slime fill animation will be spread over this duration.\n" +
+                 "Set higher for a nicer fill effect (e.g. 2-3 seconds).")]
+        [SerializeField] private float minimumDisplayTime = 2.0f;
+
+        [Header("Options")]
+        [Tooltip("If true, show 'Press E' and wait for input after minimum time.\n" +
+                 "If false, auto-dismiss the loading screen after minimum time.")]
+        [SerializeField] private bool waitForUserInput = false;
 
         [Header("Debug")]
         [SerializeField] private bool debugLogs = true;
 
-        // State
-        private bool _isLoading = false;
-        private bool _loadingComplete = false;
-        private bool _canContinue = false;
-        private List<AsyncOperation> _loadOperations = new List<AsyncOperation>();
-        private float _loadStartTime;
-        
-        // Track scenes to unload (all scenes except LoadingScreen and the new ones)
-        private List<Scene> _scenesToUnload = new List<Scene>();
+        // ===================== State =====================
 
-        // Singleton instance
+        private bool _isTransitioning = false;
+        private bool _continuePressed = false;
+        private bool _acceptContinueInput = false; // Only true when we're ready for user to press continue
+
+        // Preloading
+        private AsyncOperation _preloadOp = null;
+        private int _preloadedBuildIndex = -1;
+
+        // The build index of the LoadingScreen scene itself — must never be unloaded
+        private int _mySceneBuildIndex = -1;
+
+        // Singleton
         private static LoadingManager _instance;
         public static LoadingManager Instance => _instance;
 
-        /// <summary>
-        /// Get the build index of the LoadingScreen scene (for exclusion during unload).
-        /// </summary>
-        private int LoadingScreenBuildIndex => gameObject.scene.buildIndex;
+        /// <summary>True while a transition is in progress.</summary>
+        public bool IsTransitioning => _isTransitioning;
+
+        // ===================== Lifecycle =====================
 
         private void Awake()
         {
-            // Singleton pattern
             if (_instance != null && _instance != this)
             {
-                Debug.LogWarning("[LoadingManager] Multiple instances detected! Destroying duplicate.", this);
+                Debug.LogWarning("[LoadingManager] Duplicate instance detected! Destroying.", this);
                 Destroy(gameObject);
                 return;
             }
 
             _instance = this;
 
-            // This scene should persist
+            // IMPORTANT: Capture our scene build index BEFORE DontDestroyOnLoad moves us
+            _mySceneBuildIndex = gameObject.scene.buildIndex;
+
+            // Destroy any EventSystem in the LoadingScreen scene BEFORE DontDestroyOnLoad.
+            // The LoadingScreen only uses Input.GetKeyDown (not UI events), so it doesn't need one.
+            // If it persists, it conflicts with every gameplay scene's EventSystem and blocks UI input.
+            DestroyEventSystemsInMyScene();
+
             DontDestroyOnLoad(gameObject);
-            
-            // CRITICAL: If Canvas is a separate root GameObject, it needs DontDestroyOnLoad too!
+
+            // If Canvas is a separate root GameObject, persist it too
             if (loadingCanvas != null && loadingCanvas.transform.parent == null)
             {
                 DontDestroyOnLoad(loadingCanvas.gameObject);
-                
+
                 if (debugLogs)
-                    Debug.Log("[LoadingManager] Canvas is root object - applied DontDestroyOnLoad to it too.", this);
+                    Debug.Log("[LoadingManager] Canvas is root object — applied DontDestroyOnLoad.", this);
             }
 
-            // Hide UI by default
-            if (loadingCanvas != null)
-                loadingCanvas.enabled = false;
-
-            // Disable any cameras in the LoadingScreen scene
-            DisableAllCamerasInScene();
-            DisableAllAudioListenersInScene();
-        }
-
-        private void DisableAllCamerasInScene()
-        {
-            Scene loadingScene = gameObject.scene;
-            GameObject[] rootObjects = loadingScene.GetRootGameObjects();
-
-            foreach (GameObject obj in rootObjects)
-            {
-                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
-                foreach (UnityEngine.Camera cam in cameras)
-                {
-                    cam.enabled = false;
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager] Disabled camera: {cam.name}", this);
-                }
-            }
-        }
-
-        private void DisableAllAudioListenersInScene()
-        {
-            Scene loadingScene = gameObject.scene;
-            GameObject[] rootObjects = loadingScene.GetRootGameObjects();
-
-            foreach (GameObject obj in rootObjects)
-            {
-                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
-                foreach (AudioListener listener in listeners)
-                {
-                    listener.enabled = false;
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager] Disabled audio listener: {listener.name}", this);
-                }
-            }
+            // Start hidden
+            HideLoadingUI();
+            DisableAllCamerasInMyScene();
+            DisableAllAudioListenersInMyScene();
         }
 
         private void Update()
         {
-            if (!_canContinue)
+            // Only listen for continue input when the coroutine is ready for it
+            if (!_acceptContinueInput || _continuePressed)
                 return;
 
-            bool inputDetected = Input.GetKeyDown(continueKey);
+            if (Input.GetKeyDown(continueKey))
+            {
+                _continuePressed = true;
+                return;
+            }
 
-            if (!inputDetected && continueControllerButtons != null)
+            if (continueControllerButtons != null)
             {
                 foreach (var button in continueControllerButtons)
                 {
                     if (Input.GetKeyDown(button))
                     {
-                        inputDetected = true;
-                        break;
+                        _continuePressed = true;
+                        return;
                     }
                 }
             }
-
-            if (inputDetected)
-            {
-                if (debugLogs)
-                    Debug.Log("[LoadingManager] Continue input detected.", this);
-
-                OnUserContinue();
-            }
         }
 
+        // ===================== PUBLIC API =====================
+
         /// <summary>
-        /// Start loading scenes. Called by GameSceneManager or CutsceneSceneTransition.
+        /// Start preloading a scene in the background.
+        /// The scene will load to ~90% but NOT activate — nothing in it will run.
+        /// Call TransitionToScene() later to actually switch to it.
+        /// 
+        /// Safe to call multiple times with the same index. If a DIFFERENT scene is requested,
+        /// the old preload reference is dropped (it will be cleaned up during the next transition).
         /// </summary>
-        public void StartLoading(int[] sceneIndices, int firstSceneToActivate = 0)
+        public void PreloadScene(int buildIndex)
         {
-            if (_isLoading)
+            if (!IsValidBuildIndex(buildIndex))
             {
-                Debug.LogWarning("[LoadingManager] Already loading! Ignoring new request.", this);
+                Debug.LogError($"[LoadingManager] PreloadScene: invalid build index {buildIndex}", this);
                 return;
             }
 
-            if (sceneIndices == null || sceneIndices.Length == 0)
+            // Already preloading this exact scene?
+            if (_preloadedBuildIndex == buildIndex && _preloadOp != null)
             {
-                Debug.LogError("[LoadingManager] Cannot load null or empty scene array!", this);
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Scene {buildIndex} already preloading. Skipping.", this);
+                return;
+            }
+
+            // If we had a different preload, drop the reference.
+            // The orphaned AsyncOperation will be cleaned up in the next TransitionCoroutine.
+            if (_preloadOp != null && _preloadedBuildIndex != buildIndex && _preloadedBuildIndex >= 0)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Dropping preload of scene {_preloadedBuildIndex} in favor of {buildIndex}." +
+                              " Orphan will be cleaned up during next transition.", this);
+            }
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Preloading scene {buildIndex}...", this);
+
+            _preloadOp = SceneManager.LoadSceneAsync(buildIndex, LoadSceneMode.Additive);
+            _preloadOp.allowSceneActivation = false;
+            _preloadedBuildIndex = buildIndex;
+        }
+
+        /// <summary>
+        /// Transition to a scene. This will:
+        /// 1. Show loading screen
+        /// 2. Wait for scene to finish loading (if not preloaded yet)
+        /// 3. Clean up any orphaned preloads
+        /// 4. Unload ALL current gameplay scenes (old player is destroyed here)
+        /// 5. Activate the new scene (new player spawns here, cutscenes start here)
+        /// 6. Wait for user input (optional)
+        /// 7. Hide loading screen
+        /// </summary>
+        public void TransitionToScene(int buildIndex)
+        {
+            if (_isTransitioning)
+            {
+                Debug.LogWarning($"[LoadingManager] Already transitioning! Ignoring request for scene {buildIndex}.", this);
+                return;
+            }
+
+            if (!IsValidBuildIndex(buildIndex))
+            {
+                Debug.LogError($"[LoadingManager] TransitionToScene: invalid build index {buildIndex}", this);
                 return;
             }
 
             if (debugLogs)
-                Debug.Log($"[LoadingManager] Starting load of {sceneIndices.Length} scene(s)", this);
+                Debug.Log($"[LoadingManager] === TransitionToScene({buildIndex}) ===", this);
 
-            // Collect ALL scenes that need to be unloaded (everything except LoadingScreen)
-            CollectScenesToUnload(sceneIndices);
-
-            SceneTransitionHelper.SetScenesToLoad(sceneIndices, firstSceneToActivate);
-            StartCoroutine(LoadScenesCoroutine());
+            StartCoroutine(TransitionCoroutine(buildIndex));
         }
 
-        /// <summary>
-        /// Collect all currently loaded scenes that should be unloaded.
-        /// Excludes: LoadingScreen scene and the new scenes we're about to load.
-        /// </summary>
-        private void CollectScenesToUnload(int[] newSceneIndices)
+        /// <summary>Check if a specific scene is preloaded and ready to activate.</summary>
+        public bool IsScenePreloaded(int buildIndex)
         {
-            _scenesToUnload.Clear();
-            
-            HashSet<int> newSceneSet = new HashSet<int>(newSceneIndices);
-            int loadingScreenIndex = LoadingScreenBuildIndex;
+            return _preloadedBuildIndex == buildIndex
+                && _preloadOp != null
+                && _preloadOp.progress >= 0.9f;
+        }
+
+        // ===================== Transition Coroutine =====================
+
+        private IEnumerator TransitionCoroutine(int buildIndex)
+        {
+            _isTransitioning = true;
+            _continuePressed = false;
+            _acceptContinueInput = false;
+            float transitionStartTime = Time.realtimeSinceStartup;
+
+            // ---- STEP 1: Show loading screen ----
+
+            ShowLoadingUI();
+
+            if (uiController != null)
+            {
+                uiController.ResetProgress();
+                uiController.ShowContinuePrompt(false);
+            }
+
+            // ---- STEP 2: Get or create the async load operation ----
+            // CRITICAL: We consume/clear _preloadOp and _preloadedBuildIndex IMMEDIATELY here.
+            // If we delay clearing to the end of the coroutine, the new scene's Start() might
+            // call PreloadScene() during Step 6 (activation), and our late clear would WIPE that
+            // new preload — causing duplicate loads and deadlocks on the next transition.
+
+            AsyncOperation loadOp;
+            AsyncOperation orphanedOp = null;
+            int orphanedBuildIndex = -1;
+
+            if (_preloadedBuildIndex == buildIndex && _preloadOp != null)
+            {
+                // Consume the preload
+                loadOp = _preloadOp;
+                _preloadOp = null;
+                _preloadedBuildIndex = -1;
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Using preloaded scene {buildIndex} (progress={loadOp.progress:F2})", this);
+            }
+            else
+            {
+                // Capture orphan before clearing
+                if (_preloadOp != null && _preloadedBuildIndex >= 0)
+                {
+                    orphanedOp = _preloadOp;
+                    orphanedBuildIndex = _preloadedBuildIndex;
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Orphaned preload: scene {_preloadedBuildIndex}.", this);
+                }
+
+                // Clear preload state NOW — before any new scene can call PreloadScene()
+                _preloadOp = null;
+                _preloadedBuildIndex = -1;
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Scene {buildIndex} not preloaded. Loading now.", this);
+
+                loadOp = SceneManager.LoadSceneAsync(buildIndex, LoadSceneMode.Additive);
+                loadOp.allowSceneActivation = false;
+            }
+
+            // ---- STEP 3: Wait for scene to reach 0.9 + minimum display time ----
+            // The scene stays FROZEN at 0.9 — nothing runs, nothing renders.
+            // We animate the slime fill from 0% to 100% over minimumDisplayTime.
+            // If loading takes longer than minimumDisplayTime, we wait for loading too.
+
+            bool sceneReady = false;
+
+            while (true)
+            {
+                float now = Time.realtimeSinceStartup;
+                float totalElapsed = now - transitionStartTime;
+
+                // Check if the async load reached 0.9
+                if (!sceneReady && loadOp.progress >= 0.9f)
+                {
+                    sceneReady = true;
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Scene {buildIndex} ready at {totalElapsed:F2}s.", this);
+                }
+
+                // Animate fill: 0% → 100% over minimumDisplayTime
+                // If loading is slow, the bar will pause at 80% until scene is ready,
+                // then continue to 100%.
+                float displayProgress;
+
+                if (minimumDisplayTime > 0f)
+                {
+                    float timeProgress = Mathf.Clamp01(totalElapsed / minimumDisplayTime);
+
+                    if (!sceneReady)
+                    {
+                        // Scene still loading: cap at 80% so we don't show 100% before ready
+                        float loadProgress = Mathf.Clamp01(loadOp.progress / 0.9f) * 0.8f;
+                        displayProgress = Mathf.Min(timeProgress, loadProgress);
+                    }
+                    else
+                    {
+                        displayProgress = timeProgress;
+                    }
+                }
+                else
+                {
+                    // No minimum time: just show actual load progress
+                    displayProgress = sceneReady ? 1f : Mathf.Clamp01(loadOp.progress / 0.9f);
+                }
+
+                if (uiController != null)
+                    uiController.UpdateProgress(displayProgress);
+
+                // Exit when BOTH conditions are met:
+                // 1) Scene is ready (progress >= 0.9)
+                // 2) Minimum display time has passed
+                if (sceneReady && totalElapsed >= minimumDisplayTime)
+                    break;
+
+                yield return null;
+            }
+
+            if (uiController != null)
+                uiController.UpdateProgress(1f);
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Loading wait complete ({Time.realtimeSinceStartup - transitionStartTime:F2}s).", this);
+
+            // ---- STEP 4: (Optional) Wait for user input ----
+
+            if (waitForUserInput)
+            {
+                if (uiController != null)
+                    uiController.ShowContinuePrompt(true);
+
+                if (debugLogs)
+                    Debug.Log("[LoadingManager] Waiting for user to press continue...", this);
+
+                _continuePressed = false;
+                _acceptContinueInput = true;
+
+                while (!_continuePressed)
+                    yield return null;
+
+                _acceptContinueInput = false;
+
+                if (debugLogs)
+                    Debug.Log("[LoadingManager] Continue pressed.", this);
+            }
+
+            // ---- STEP 5: Neutralize old scenes ----
+            // Destroy players and disable ALL objects. After this, old scenes are functionally
+            // dead — no scripts run, no singletons exist, no rendering.
+            // The actual memory unload happens later (Step 9) once the load op is no longer blocking.
+
+            List<Scene> scenesToUnload = CollectOldScenes(buildIndex);
+
+            foreach (Scene scene in scenesToUnload)
+            {
+                if (!scene.isLoaded) continue;
+
+                DestroyPlayersInScene(scene);
+
+                foreach (GameObject obj in scene.GetRootGameObjects())
+                    obj.SetActive(false);
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager]   Neutralized: {scene.name} (build {scene.buildIndex})", this);
+            }
+
+            // ---- STEP 6: Activate the new scene ----
+            // Old scenes are neutralized (all objects disabled, player destroyed).
+            // NOW scripts run, player spawns, cutscenes start.
+            // NOTE: Must activate BEFORE unloading — Unity's scene op queue is sequential,
+            // and a pending load at 0.9 blocks all UnloadSceneAsync calls.
+            //
+            // CRITICAL: We use sceneLoaded callback to set the active scene IMMEDIATELY
+            // when the scene finishes loading, BEFORE Start() runs on the new scene's objects.
+            // Without this, Instantiate() calls in Start() (e.g. PlayerSpawner) would place
+            // objects in the OLD active scene (Tutorial), which then gets unloaded — destroying
+            // the newly spawned player.
+            //
+            // Unity execution order after allowSceneActivation:
+            //   1. Awake() → 2. OnEnable() → 3. sceneLoaded callback ← we set active here
+            //   4. Start() → 5. coroutine resumes (yield return null)
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Activating scene {buildIndex}...", this);
+
+            // Register callback to set active scene as soon as it loads (before Start)
+            int targetIndex = buildIndex;
+            bool activeSceneSet = false;
+
+            UnityEngine.Events.UnityAction<Scene, LoadSceneMode> onSceneLoaded = null;
+            onSceneLoaded = (scene, mode) =>
+            {
+                if (scene.buildIndex == targetIndex)
+                {
+                    SceneManager.SetActiveScene(scene);
+                    activeSceneSet = true;
+                    SceneManager.sceneLoaded -= onSceneLoaded;
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Active scene set early (sceneLoaded): {scene.name}", this);
+                }
+            };
+            SceneManager.sceneLoaded += onSceneLoaded;
+
+            loadOp.allowSceneActivation = true;
+
+            while (!loadOp.isDone)
+                yield return null;
+
+            // Safety: ensure active scene is set (in case callback didn't fire)
+            if (!activeSceneSet)
+            {
+                SceneManager.sceneLoaded -= onSceneLoaded; // cleanup
+
+                Scene newScene = SceneManager.GetSceneByBuildIndex(buildIndex);
+                if (newScene.isLoaded)
+                {
+                    SceneManager.SetActiveScene(newScene);
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Active scene set (fallback): {newScene.name}", this);
+                }
+                else
+                {
+                    Debug.LogError($"[LoadingManager] Scene {buildIndex} failed to activate!", this);
+                }
+            }
+
+            // ---- STEP 7: Clean up orphaned preload (if any) ----
+
+            if (orphanedOp != null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Cleaning up orphaned scene {orphanedBuildIndex}...", this);
+
+                orphanedOp.allowSceneActivation = true;
+
+                while (!orphanedOp.isDone)
+                    yield return null;
+
+                Scene orphanedScene = SceneManager.GetSceneByBuildIndex(orphanedBuildIndex);
+                if (orphanedScene.isLoaded)
+                {
+                    DestroyPlayersInScene(orphanedScene);
+
+                    foreach (GameObject obj in orphanedScene.GetRootGameObjects())
+                        obj.SetActive(false);
+
+                    if (!scenesToUnload.Contains(orphanedScene))
+                        scenesToUnload.Add(orphanedScene);
+                }
+            }
+
+            // ---- STEP 8: Hide loading screen — new scene becomes visible ----
+            // SAFETY: Ensure timeScale is 1. It can get stuck at 0 if a WinSequence
+            // coroutine was killed mid-pause, or a pause menu was open during transition.
+
+            Time.timeScale = 1f;
+            HideLoadingUI();
+
+            _isTransitioning = false;
+            _acceptContinueInput = false;
+
+            if (debugLogs)
+                Debug.Log("[LoadingManager] Loading UI hidden. New scene is now visible.", this);
+
+            // ---- STEP 9: Unload old scenes (background cleanup) ----
+            // UI is already hidden — user sees the new scene.
+            // Wait for unloads to finish so scenes don't stay as "(is unloading)" in hierarchy.
+
+            if (scenesToUnload.Count > 0)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Unloading {scenesToUnload.Count} old scene(s)...", this);
+
+                List<AsyncOperation> unloadOps = new List<AsyncOperation>();
+
+                foreach (Scene scene in scenesToUnload)
+                {
+                    if (!scene.isLoaded) continue;
+
+                    AsyncOperation op = SceneManager.UnloadSceneAsync(scene);
+                    if (op != null)
+                    {
+                        unloadOps.Add(op);
+
+                        if (debugLogs)
+                            Debug.Log($"[LoadingManager]   Unloading: {scene.name}", this);
+                    }
+                }
+
+                // Wait for all unloads (with safety timeout)
+                float unloadStartTime = Time.realtimeSinceStartup;
+                const float unloadTimeout = 10f;
+
+                while (unloadOps.Count > 0)
+                {
+                    unloadOps.RemoveAll(op => op.isDone);
+
+                    if (Time.realtimeSinceStartup - unloadStartTime > unloadTimeout)
+                    {
+                        Debug.LogWarning($"[LoadingManager] Unload timeout ({unloadTimeout}s)! {unloadOps.Count} scene(s) still unloading.", this);
+                        break;
+                    }
+
+                    yield return null;
+                }
+
+                if (debugLogs)
+                    Debug.Log("[LoadingManager] All old scenes unloaded.", this);
+            }
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] === Transition complete ({Time.realtimeSinceStartup - transitionStartTime:F2}s) ===", this);
+        }
+
+        // ===================== Scene Unloading =====================
+
+        /// <summary>
+        /// Collect all loaded scenes that should be unloaded (everything except target + LoadingScreen + DDOL).
+        /// Does NOT unload them — just returns the list.
+        /// </summary>
+        private List<Scene> CollectOldScenes(int keepBuildIndex)
+        {
+            List<Scene> result = new List<Scene>();
 
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
                 Scene scene = SceneManager.GetSceneAt(i);
-                
-                if (!scene.isLoaded)
-                    continue;
 
-                // Don't unload LoadingScreen
-                if (scene.buildIndex == loadingScreenIndex)
-                    continue;
+                if (!scene.isLoaded) continue;
+                if (scene.buildIndex == keepBuildIndex) continue;
+                if (scene.buildIndex == _mySceneBuildIndex) continue; // Never unload LoadingScreen
+                if (scene.name == "DontDestroyOnLoad") continue;
 
-                // Don't unload scenes we're about to load (they might already be loaded additively)
-                if (newSceneSet.Contains(scene.buildIndex))
-                    continue;
-
-                _scenesToUnload.Add(scene);
-                
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] Will unload scene: {scene.name} (buildIndex={scene.buildIndex})", this);
+                result.Add(scene);
             }
 
-            if (debugLogs)
-                Debug.Log($"[LoadingManager] Total scenes to unload: {_scenesToUnload.Count}", this);
+            return result;
         }
 
-        private IEnumerator LoadScenesCoroutine()
-        {
-            _isLoading = true;
-            _loadingComplete = false;
-            _canContinue = false;
-            _loadStartTime = Time.realtimeSinceStartup;
-            _loadOperations.Clear();
-
-            // Show loading UI
-            if (loadingCanvas != null)
-            {
-                if (!loadingCanvas.gameObject.activeSelf)
-                {
-                    loadingCanvas.gameObject.SetActive(true);
-                    if (debugLogs)
-                        Debug.Log("[LoadingManager] ✓ Enabled Canvas GameObject", this);
-                }
-                
-                loadingCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                loadingCanvas.sortingOrder = canvasSortOrder;
-                loadingCanvas.enabled = true;
-                
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] ✓ Loading UI shown (sortOrder={canvasSortOrder})", this);
-            }
-
-            if (uiController != null)
-            {
-                uiController.UpdateProgress(0f);
-                uiController.ShowContinuePrompt(false);
-            }
-
-            // STEP 1: Disable and destroy objects in scenes we're about to unload
-            // This prevents issues with singletons and event listeners
-            foreach (Scene sceneToUnload in _scenesToUnload)
-            {
-                if (!sceneToUnload.isLoaded)
-                    continue;
-
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] Disabling objects in scene before unload: {sceneToUnload.name}", this);
-
-                // Destroy player first to prevent singleton conflicts
-                DestroyPlayerInScene(sceneToUnload);
-
-                // Disable all root objects
-                GameObject[] rootObjects = sceneToUnload.GetRootGameObjects();
-                foreach (GameObject obj in rootObjects)
-                {
-                    obj.SetActive(false);
-                }
-            }
-
-            // STEP 2: Unload old scenes
-            List<AsyncOperation> unloadOperations = new List<AsyncOperation>();
-            foreach (Scene sceneToUnload in _scenesToUnload)
-            {
-                if (!sceneToUnload.isLoaded)
-                    continue;
-
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] ⚠ Unloading scene: {sceneToUnload.name}", this);
-
-                AsyncOperation unloadOp = SceneManager.UnloadSceneAsync(sceneToUnload);
-                if (unloadOp != null)
-                    unloadOperations.Add(unloadOp);
-            }
-
-            // Wait for all unloads to complete
-            while (unloadOperations.Count > 0)
-            {
-                unloadOperations.RemoveAll(op => op.isDone);
-                yield return null;
-            }
-
-            if (debugLogs)
-                Debug.Log("[LoadingManager] ✓ All old scenes unloaded", this);
-
-            // STEP 3: Load new scenes (or track already-loaded ones)
-            int[] sceneIndices = SceneTransitionHelper.GetScenesToLoad();
-            
-            // Track which scenes are already loaded (need reactivation, not loading)
-            HashSet<int> alreadyLoadedScenes = new HashSet<int>();
-
-            foreach (int buildIndex in sceneIndices)
-            {
-                if (!IsValidBuildIndex(buildIndex))
-                {
-                    Debug.LogError($"[LoadingManager] Invalid build index: {buildIndex}", this);
-                    continue;
-                }
-
-                // Check if scene is already loaded (might happen if reloading same scene)
-                Scene existingScene = SceneManager.GetSceneByBuildIndex(buildIndex);
-                if (existingScene.isLoaded)
-                {
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager] Scene {buildIndex} already loaded - will reactivate", this);
-                    
-                    alreadyLoadedScenes.Add(buildIndex);
-                    continue;
-                }
-
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] Loading scene index {buildIndex}", this);
-
-                AsyncOperation op = SceneManager.LoadSceneAsync(buildIndex, LoadSceneMode.Additive);
-                op.allowSceneActivation = true;
-                _loadOperations.Add(op);
-            }
-
-            if (_loadOperations.Count == 0 && alreadyLoadedScenes.Count == 0)
-            {
-                Debug.LogError("[LoadingManager] No valid scenes to load!", this);
-                HideLoadingUI();
-                _isLoading = false;
-                yield break;
-            }
-
-            // STEP 4: Wait for all scenes to load and configure them
-            int firstSceneIndex = SceneTransitionHelper.GetFirstSceneToActivate();
-            bool[] sceneConfigured = new bool[sceneIndices.Length];
-
-            while (!AllScenesLoadedAndConfigured(sceneConfigured))
-            {
-                float totalProgress = CalculateTotalProgress();
-
-                if (uiController != null)
-                    uiController.UpdateProgress(totalProgress);
-
-                // Configure scenes as they load (or reactivate already-loaded ones)
-                for (int i = 0; i < sceneIndices.Length; i++)
-                {
-                    if (sceneConfigured[i])
-                        continue;
-
-                    Scene scene = SceneManager.GetSceneByBuildIndex(sceneIndices[i]);
-
-                    if (!scene.isLoaded)
-                        continue;
-
-                    bool wasAlreadyLoaded = alreadyLoadedScenes.Contains(sceneIndices[i]);
-                    
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager] 🔍 Scene loaded: {scene.name} (buildIndex={sceneIndices[i]}), i={i}, firstSceneIndex={firstSceneIndex}, isActive={i == firstSceneIndex}, wasAlreadyLoaded={wasAlreadyLoaded}");
-
-                    if (i == firstSceneIndex)
-                    {
-                        // This is the main scene - activate it
-                        // If it was already loaded (but deactivated), we need to reactivate its objects
-                        if (wasAlreadyLoaded)
-                        {
-                            if (debugLogs)
-                                Debug.Log($"[LoadingManager] Reactivating already-loaded scene: {scene.name}", this);
-                            
-                            ReactivateSceneObjects(scene);
-                        }
-                        
-                        SceneManager.SetActiveScene(scene);
-
-                        if (debugLogs)
-                            Debug.Log($"[LoadingManager] ✓ Activated: {scene.name}", this);
-                    }
-                    else
-                    {
-                        // This scene should be hidden (e.g., cutscene waiting to play after level)
-                        DeactivateSceneObjects(scene);
-                        SceneTransitionHelper.RegisterInactiveScene(sceneIndices[i]);
-
-                        if (debugLogs)
-                            Debug.Log($"[LoadingManager] ✗ Deactivated: {scene.name}", this);
-                    }
-
-                    sceneConfigured[i] = true;
-                }
-
-                yield return null;
-            }
-
-            if (debugLogs)
-                Debug.Log("[LoadingManager] All scenes loaded and configured.", this);
-
-            // Ensure minimum display time
-            float elapsed = Time.realtimeSinceStartup - _loadStartTime;
-            float remaining = minimumDisplayTime - elapsed;
-
-            if (remaining > 0f)
-            {
-                if (uiController != null)
-                    uiController.UpdateProgress(1.0f);
-
-                yield return new WaitForSecondsRealtime(remaining);
-            }
-
-            // Ready for user input
-            _loadingComplete = true;
-            _canContinue = true;
-
-            if (uiController != null)
-                uiController.ShowContinuePrompt(true);
-
-            if (debugLogs)
-                Debug.Log("[LoadingManager] Ready! Waiting for user input...", this);
-        }
-
-        private void OnUserContinue()
-        {
-            _canContinue = false;
-            _isLoading = false;
-            HideLoadingUI();
-
-            if (debugLogs)
-                Debug.Log("[LoadingManager] User continued. Loading UI hidden.", this);
-        }
-
-        /// <summary>
-        /// Destroy the player character in a specific scene to prevent singleton conflicts.
-        /// </summary>
-        private void DestroyPlayerInScene(Scene scene)
+        private void DestroyPlayersInScene(Scene scene)
         {
             if (!scene.IsValid() || !scene.isLoaded)
                 return;
 
-            // Find all players by tag
-            GameObject[] players = GameObject.FindGameObjectsWithTag("DrawingCube");
-            
-            foreach (GameObject player in players)
+            foreach (GameObject player in GameObject.FindGameObjectsWithTag("DrawingCube"))
             {
                 if (player != null && player.scene == scene)
                 {
                     if (debugLogs)
-                        Debug.Log($"[LoadingManager] 🗑️ Destroying player from scene: {scene.name}", this);
-                    
+                        Debug.Log($"[LoadingManager]   Destroying player: {player.name} in {scene.name}", this);
+
                     Destroy(player);
                 }
             }
         }
 
+        // ===================== UI Helpers =====================
+
+        private void ShowLoadingUI()
+        {
+            if (loadingCanvas == null) return;
+
+            if (!loadingCanvas.gameObject.activeSelf)
+                loadingCanvas.gameObject.SetActive(true);
+
+            loadingCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            loadingCanvas.sortingOrder = canvasSortOrder;
+            loadingCanvas.enabled = true;
+
+            if (uiController != null)
+                uiController.SetVisible(true);
+
+            if (debugLogs)
+                Debug.Log("[LoadingManager] Loading UI shown.", this);
+        }
+
         private void HideLoadingUI()
         {
+            if (uiController != null)
+                uiController.SetVisible(false);
+
             if (loadingCanvas != null)
             {
                 loadingCanvas.enabled = false;
-                
+
                 if (debugLogs)
                     Debug.Log("[LoadingManager] Loading UI hidden.", this);
             }
         }
 
-        private bool AllScenesLoadedAndConfigured(bool[] configured)
-        {
-            foreach (bool c in configured)
-            {
-                if (!c) return false;
-            }
-            return true;
-        }
-
-        private float CalculateTotalProgress()
-        {
-            if (_loadOperations.Count == 0)
-                return 1f;
-
-            float sum = 0f;
-            foreach (var op in _loadOperations)
-            {
-                sum += Mathf.Clamp01(op.progress);
-            }
-
-            return sum / _loadOperations.Count;
-        }
+        // ===================== Utility =====================
 
         /// <summary>
-        /// Reactivate all root GameObjects in a scene that was previously deactivated.
-        /// Used when a scene is already loaded (from a previous LoadingManager call) but needs to become active.
+        /// Destroy any EventSystem in the LoadingScreen scene.
+        /// LoadingManager only uses Input.GetKeyDown (no UI events), so it doesn't need one.
+        /// If an EventSystem persists via DontDestroyOnLoad, it conflicts with every gameplay
+        /// scene's EventSystem and can block UI input (buttons, raycasts, etc.).
         /// </summary>
-        private void ReactivateSceneObjects(Scene scene)
+        private void DestroyEventSystemsInMyScene()
         {
-            GameObject[] allObjects = scene.GetRootGameObjects();
+            Scene myScene = gameObject.scene;
+            if (!myScene.IsValid()) return;
 
-            // Enable cameras and audio listeners FIRST
-            foreach (GameObject obj in allObjects)
+            foreach (GameObject obj in myScene.GetRootGameObjects())
             {
-                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
-                foreach (UnityEngine.Camera cam in cameras)
+                foreach (var es in obj.GetComponentsInChildren<EventSystem>(true))
                 {
-                    cam.enabled = true;
-                    
                     if (debugLogs)
-                        Debug.Log($"[LoadingManager] Re-enabled camera: {cam.name}", this);
-                }
+                        Debug.Log($"[LoadingManager] Destroying EventSystem: {es.name} (prevents conflict with gameplay scenes)", this);
 
-                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
-                foreach (AudioListener listener in listeners)
-                {
-                    listener.enabled = true;
-                    
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager] Re-enabled audio listener: {listener.name}", this);
-                }
-            }
+                    // Also destroy any input modules on the same GameObject
+                    foreach (var inputModule in es.GetComponents<BaseInputModule>())
+                        Destroy(inputModule);
 
-            // Activate all root objects
-            foreach (GameObject obj in allObjects)
-            {
-                if (!obj.activeSelf)
-                {
-                    obj.SetActive(true);
-
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager]   + Reactivated: {obj.name}", this);
+                    Destroy(es);
                 }
             }
         }
 
-        /// <summary>
-        /// Deactivate all root GameObjects in a scene to hide it.
-        /// </summary>
-        private void DeactivateSceneObjects(Scene scene)
+        private void DisableAllCamerasInMyScene()
         {
-            GameObject[] allObjects = scene.GetRootGameObjects();
+            Scene myScene = gameObject.scene;
+            if (!myScene.IsValid()) return;
 
-            // Disable cameras first (stops rendering immediately)
-            foreach (GameObject obj in allObjects)
-            {
-                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
-                foreach (UnityEngine.Camera cam in cameras)
-                {
+            foreach (GameObject obj in myScene.GetRootGameObjects())
+                foreach (var cam in obj.GetComponentsInChildren<UnityEngine.Camera>(true))
                     cam.enabled = false;
-                }
+        }
 
-                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
-                foreach (AudioListener listener in listeners)
-                {
+        private void DisableAllAudioListenersInMyScene()
+        {
+            Scene myScene = gameObject.scene;
+            if (!myScene.IsValid()) return;
+
+            foreach (GameObject obj in myScene.GetRootGameObjects())
+                foreach (var listener in obj.GetComponentsInChildren<AudioListener>(true))
                     listener.enabled = false;
-                }
-            }
-
-            // Disable all root objects
-            foreach (GameObject obj in allObjects)
-            {
-                if (obj.activeSelf)
-                {
-                    obj.SetActive(false);
-
-                    if (debugLogs)
-                        Debug.Log($"[LoadingManager]   - Deactivated: {obj.name}", this);
-                }
-            }
         }
 
         private static bool IsValidBuildIndex(int buildIndex)

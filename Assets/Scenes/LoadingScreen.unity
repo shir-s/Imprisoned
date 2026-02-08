@@ -149,13 +149,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 369b76a1cf3f6fe448fa19024d072471, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.LoadingScreenUI
+  progressMode: 1
   progressBar: {fileID: 0}
+  fillImage: {fileID: 1653289815}
   loadingText: {fileID: 1101962561}
   loadingTextLegacy: {fileID: 0}
   loadingMessage: Loading...
   continueMessage: Press E to continue
   continuePromptObject: {fileID: 0}
+  objectsToShowDuringLoading:
+  - {fileID: 398391305}
+  - {fileID: 1176303270}
+  - {fileID: 1101962560}
+  - {fileID: 301253412}
   showPercentage: 0
+  smoothFill: 1
+  smoothSpeed: 1
 --- !u!114 &235782182
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -169,11 +178,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.LoadingManager
   loadingCanvas: {fileID: 301253415}
-  uiController: {fileID: 0}
+  uiController: {fileID: 235782181}
   canvasSortOrder: 1000
   continueKey: 101
   continueControllerButtons: 4a010000
-  minimumDisplayTime: 1
+  minimumDisplayTime: 5
+  waitForUserInput: 0
   debugLogs: 1
 --- !u!4 &235782183
 Transform:
@@ -564,7 +574,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &1176303271
 RectTransform:
   m_ObjectHideFlags: 0
@@ -958,7 +968,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 50.26648, y: -50.100006}
+  m_AnchoredPosition: {x: 50.26648, y: -82.9}
   m_SizeDelta: {x: 100, y: 98.87}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1653289815

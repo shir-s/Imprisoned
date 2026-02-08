@@ -10,6 +10,13 @@ namespace JellyGame.GamePlay.World.Finish
     /// <summary>
     /// Triggers GameWin when player enters the trigger AND all enemies are dead.
     /// Listens to EventManager.GameEvent.EntityDied.
+    /// 
+    /// Win sequence:
+    /// 1. Player enters portal (trigger collider)
+    /// 2. Gameplay freezes (timeScale = 0)
+    /// 3. Win FX plays
+    /// 4. Player character is destroyed
+    /// 5. GameWin event fires → LoadingManager starts transition
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -38,6 +45,17 @@ namespace JellyGame.GamePlay.World.Finish
         
         [Tooltip("GameObjects to activate/deactivate (e.g., key parent object with many child renderers). More efficient than managing many renderers separately.")]
         [SerializeField] private List<GameObject> gameObjectsToToggle = new List<GameObject>();
+
+        [Header("Win Sequence")]
+        [Tooltip("Freeze gameplay (timeScale=0) when player enters the portal.")]
+        [SerializeField] private bool freezeOnWin = true;
+
+        [Tooltip("Destroy the player character before triggering GameWin.\n" +
+                 "Prevents duplicate-player issues when the new scene spawns its own player.")]
+        [SerializeField] private bool destroyPlayerBeforeTransition = true;
+
+        [Tooltip("Tag used to find the player character for destruction.")]
+        [SerializeField] private string playerTag = "DrawingCube";
 
         [Header("Win FX (optional)")]
         [Tooltip("Root object that contains particle systems to play on win. Will be SetActive(true) before GameWin.")]
@@ -70,7 +88,6 @@ namespace JellyGame.GamePlay.World.Finish
             if (meshOnChildObject != null)
                 meshOnChildObject.enabled = enabled;
             
-            // Update additional renderers (e.g., key parts)
             if (additionalRenderers != null)
             {
                 for (int i = 0; i < additionalRenderers.Count; i++)
@@ -80,7 +97,6 @@ namespace JellyGame.GamePlay.World.Finish
                 }
             }
             
-            // Update GameObjects (activate/deactivate entire objects - more efficient for complex objects like keys)
             if (gameObjectsToToggle != null)
             {
                 for (int i = 0; i < gameObjectsToToggle.Count; i++)
@@ -95,11 +111,8 @@ namespace JellyGame.GamePlay.World.Finish
         {
             EnsureKinematicRigidbody();
 
-            // Hide meshes until win condition is met
             UpdateFinishMeshes(IsWinConditionMet());
 
-
-            // Optional: keep FX off until win
             if (winFxRoot != null)
                 winFxRoot.SetActive(false);
 
@@ -116,7 +129,6 @@ namespace JellyGame.GamePlay.World.Finish
         {
             EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
 
-            // Catch-up from EnemyDeathCounter
             var counter = FindObjectOfType<JellyGame.GamePlay.Utils.EnemyDeathCounter>();
             if (counter != null)
             {
@@ -126,7 +138,6 @@ namespace JellyGame.GamePlay.World.Finish
             }
 
             UpdateFinishMeshes(IsWinConditionMet());
-
 
             if (debugLogs)
                 Debug.Log($"[FinishTrigger] OnEnable catch-up: deaths={_deathCount}/{requiredDeaths} (allowedLayers={allowedLayers.value}, countLayers={countLayers.value})", this);
@@ -161,7 +172,6 @@ namespace JellyGame.GamePlay.World.Finish
 
             if (IsWinConditionMet())
                 UpdateFinishMeshes(true);
-
         }
 
         private void OnTriggerEnter(Collider other)
@@ -200,7 +210,6 @@ namespace JellyGame.GamePlay.World.Finish
                 return;
             }
 
-
             _triggered = true;
 
             if (debugLogs)
@@ -214,17 +223,24 @@ namespace JellyGame.GamePlay.World.Finish
         
         private bool IsWinConditionMet()
         {
-            // requiredDeaths == 0 means: no kills required, but still must enter the trigger.
             if (requiredDeaths <= 0)
                 return true;
 
             return _deathCount >= requiredDeaths;
         }
 
-
         private IEnumerator GameWinEvent(Collider other)
         {
-            // 1) Activate FX
+            // 1) Freeze gameplay — everything stops immediately
+            if (freezeOnWin)
+            {
+                Time.timeScale = 0f;
+
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] Gameplay frozen (timeScale=0).", this);
+            }
+
+            // 2) Activate win FX
             if (winFxRoot != null)
             {
                 winFxRoot.SetActive(true);
@@ -235,6 +251,9 @@ namespace JellyGame.GamePlay.World.Finish
                     for (int i = 0; i < ps.Length; i++)
                     {
                         ps[i].Clear(true);
+                        // Use unscaled time so particles play even when timeScale=0
+                        var main = ps[i].main;
+                        main.useUnscaledTime = true;
                         ps[i].Play(true);
                     }
                 }
@@ -243,15 +262,50 @@ namespace JellyGame.GamePlay.World.Finish
                     Debug.Log($"[FinishTrigger] Win FX activated: '{winFxRoot.name}', delay={winFxDelaySeconds:0.###}s", this);
             }
 
-            // 2) Delay (real time, even if timescale changes elsewhere)
+            // 3) Wait for FX to play (real time — works even with timeScale=0)
             float delay = Mathf.Max(0f, winFxDelaySeconds);
             if (delay > 0f)
                 yield return new WaitForSecondsRealtime(delay);
             else
                 yield return null;
 
-            // 3) Trigger GameWin
-            EventManager.TriggerEvent(EventManager.GameEvent.GameWin, other.gameObject);
+            // 4) Destroy the player character BEFORE triggering GameWin.
+            //    This prevents duplicate-player issues: when the new scene activates,
+            //    its PlayerSpawner creates a fresh player — the old one must be gone by then.
+            if (destroyPlayerBeforeTransition)
+            {
+                DestroyAllPlayers();
+            }
+
+            // 5) Trigger GameWin → GameSceneManager → LoadingManager starts transition
+            //    Note: LoadingManager resets timeScale=1 in Step 8 when the new scene is ready.
+            if (debugLogs)
+                Debug.Log("[FinishTrigger] Triggering GameWin event.", this);
+
+            EventManager.TriggerEvent(EventManager.GameEvent.GameWin, null);
+        }
+
+        /// <summary>
+        /// Destroy all player characters in the current scene.
+        /// Uses the same tag-based approach as LoadingManager.DestroyPlayersInScene.
+        /// </summary>
+        private void DestroyAllPlayers()
+        {
+            GameObject[] players = GameObject.FindGameObjectsWithTag(playerTag);
+
+            foreach (GameObject player in players)
+            {
+                if (player != null)
+                {
+                    if (debugLogs)
+                        Debug.Log($"[FinishTrigger] Destroying player: {player.name}", this);
+
+                    Destroy(player);
+                }
+            }
+
+            if (debugLogs && (players == null || players.Length == 0))
+                Debug.LogWarning($"[FinishTrigger] No objects found with tag '{playerTag}' to destroy.", this);
         }
 
         private void EnsureKinematicRigidbody()

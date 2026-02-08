@@ -18509,6 +18509,10 @@ PrefabInstance:
       propertyPath: healthImageDownAtMinSize
       value: 60
       objectReference: {fileID: 0}
+    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: particlesScaleMultiplier
+      value: 0.6
+      objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalScale.x
       value: 2
@@ -18785,21 +18789,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   isMainMenu: 0
   mainMenuNextScene: 4
+  pressAnyKeyText: Press Any Key to Start
   playBackgroundMusic: 1
-  nextSceneBuildIndex: 8
   gameOverSceneBuildIndex: 0
+  useLoadingScreenForGameOver: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  gameOverPortalDestination: 5
+  useLoadingScreenForWin: 1
+  winScenesToLoad: 
+  postLevelCutsceneBuildIndex: 8
+  gameOverPortalScenesToLoad: 0500000006000000
+  gameOverPortalFirstSceneIndex: 0
   winFxRoot: {fileID: 128629144}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
-  winFxDelay: 0
+  winSceneLoadDelay: 2
   pauseGameplayOnWin: 0
   debugLogs: 1
-  gameOverKey: 114
-  winKey: 116
+  gameOverKey: 0
+  winKey: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -25498,9 +25507,6 @@ MonoBehaviour:
   additionalRenderers: []
   gameObjectsToToggle:
   - {fileID: 2437890829655878560}
-  freezeOnWin: 1
-  destroyPlayerBeforeTransition: 1
-  playerTag: DrawingCube
   winFxRoot: {fileID: 727996361}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -81676,9 +81682,6 @@ MonoBehaviour:
   meshOnChildObject: {fileID: 0}
   additionalRenderers: []
   gameObjectsToToggle: []
-  freezeOnWin: 1
-  destroyPlayerBeforeTransition: 1
-  playerTag: DrawingCube
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
