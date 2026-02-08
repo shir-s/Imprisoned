@@ -92,11 +92,14 @@ namespace JellyGame.GamePlay.Managers
             // IMPORTANT: Capture our scene build index BEFORE DontDestroyOnLoad moves us
             _mySceneBuildIndex = gameObject.scene.buildIndex;
 
-            // Destroy any EventSystem in the LoadingScreen scene BEFORE DontDestroyOnLoad.
-            // The LoadingScreen only uses Input.GetKeyDown (not UI events), so it doesn't need one.
-            // If it persists, it conflicts with every gameplay scene's EventSystem and blocks UI input.
+            // CRITICAL: All scene-based cleanup must happen BEFORE DontDestroyOnLoad,
+            // because after DDOL, gameObject.scene changes to the "DontDestroyOnLoad"
+            // pseudo-scene and we can no longer find objects in the LoadingScreen scene.
             DestroyEventSystemsInMyScene();
+            DisableAllCamerasInMyScene();
+            DisableAllAudioListenersInMyScene();
 
+            // NOW move to DontDestroyOnLoad (gameObject.scene changes after this!)
             DontDestroyOnLoad(gameObject);
 
             // If Canvas is a separate root GameObject, persist it too
@@ -110,8 +113,6 @@ namespace JellyGame.GamePlay.Managers
 
             // Start hidden
             HideLoadingUI();
-            DisableAllCamerasInMyScene();
-            DisableAllAudioListenersInMyScene();
         }
 
         private void Update()
