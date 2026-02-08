@@ -31863,22 +31863,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   isMainMenu: 0
   mainMenuNextScene: 4
-  pressAnyKeyText: Press Any Key to Start
   playBackgroundMusic: 1
+  nextSceneBuildIndex: -1
+  useInstantTransition: 1
   gameOverSceneBuildIndex: 0
-  useLoadingScreenForGameOver: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  useLoadingScreenForWin: 1
-  winScenesToLoad: 
-  postLevelCutsceneBuildIndex: -1
-  gameOverPortalScenesToLoad: 0500000006000000
-  gameOverPortalFirstSceneIndex: 0
+  gameOverPortalDestination: -1
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
-  winSceneLoadDelay: 2
+  winFxDelay: 0
   pauseGameplayOnWin: 0
   debugLogs: 1
   gameOverKey: 114
@@ -60086,6 +60082,9 @@ MonoBehaviour:
   meshOnChildObject: {fileID: 806039155}
   additionalRenderers: []
   gameObjectsToToggle: []
+  freezeOnWin: 1
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -68941,6 +68940,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: be82a60aef84d4bf18f6e273897cfbfa, type: 3}
       propertyPath: m_IsActive
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2826503885085323509, guid: be82a60aef84d4bf18f6e273897cfbfa, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3278582164102641905, guid: be82a60aef84d4bf18f6e273897cfbfa, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -104846,6 +104849,8 @@ MonoBehaviour:
   fallbackMaxTotalSamples: 250000
   fallbackBaseUvStep: 0.0015
   clipPolygonToSurfaceBounds: 1
+  autoFindReferences: 1
+  debugAutoFind: 1
   debugPolygon: 1
   debugFillFailures: 1
   debugMultiSurface: 0
