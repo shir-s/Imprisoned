@@ -672,6 +672,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 552870960}
   - {fileID: 177299742}
   - {fileID: 605363058}
   - {fileID: 3923426347369336396}
@@ -17118,7 +17119,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2790502361088553366, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5547669403784400705, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
       propertyPath: m_LocalScale.x
@@ -36730,6 +36731,7 @@ MonoBehaviour:
   mainMenuNextScene: 4
   playBackgroundMusic: 1
   nextSceneBuildIndex: 5
+  useInstantTransition: 1
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
@@ -36797,7 +36799,7 @@ MonoBehaviour:
   - {fileID: 1210166133803371560}
   restoreDisabledScriptsOnFinish: 1
   deactivateOnTutorialStart:
-  - {fileID: 1291572107}
+  - {fileID: 552870961}
   - {fileID: 2929676165028298123}
   - {fileID: 853059174}
   - {fileID: 375868056}
@@ -36876,11 +36878,11 @@ MonoBehaviour:
   clearPaintOnSkippedWindowIndices: 08000000
   windowIntroMovesOnComplete:
   - windowIndex: 10
-    target: {fileID: 177299742}
+    target: {fileID: 552870960}
     useGlobalSettings: 0
     directionMode: 1
     worldDirection: {x: 1, y: 0, z: 0}
-    directionReference: {fileID: 605363058}
+    directionReference: {fileID: 552870960}
     distance: 8
     duration: 2
     startSpeed: 100
@@ -36925,7 +36927,7 @@ MonoBehaviour:
     forceTargetActiveBeforeMove: 1
     temporarilyDisableBehaviour: {fileID: 28017797}
     disableDelaySeconds: 0.05
-    activateBeforeMove: {fileID: 1291572107}
+    activateBeforeMove: {fileID: 552870961}
     waitOneFrameAfterActivate: 1
   windowGates:
   - enabled: 0
@@ -37009,7 +37011,7 @@ MonoBehaviour:
   - enabled: 0
     requirement: 3
     afterCompleteCountdownSeconds: 3
-    activateObjectOnGateStart: {fileID: 1291572107}
+    activateObjectOnGateStart: {fileID: 552870961}
     orderedTriggerSequence: {fileID: 0}
     deactivateObjectOnGateComplete: 1
     enemyLayerName: Enemy
@@ -37048,7 +37050,7 @@ MonoBehaviour:
   - enabled: 0
     requirement: 3
     afterCompleteCountdownSeconds: 2
-    activateObjectOnGateStart: {fileID: 1291572107}
+    activateObjectOnGateStart: {fileID: 552870961}
     orderedTriggerSequence: {fileID: 0}
     deactivateObjectOnGateComplete: 0
     enemyLayerName: Enemy
@@ -37061,7 +37063,7 @@ MonoBehaviour:
   - enabled: 1
     requirement: 3
     afterCompleteCountdownSeconds: 2
-    activateObjectOnGateStart: {fileID: 1291572107}
+    activateObjectOnGateStart: {fileID: 552870961}
     orderedTriggerSequence: {fileID: 0}
     deactivateObjectOnGateComplete: 0
     enemyLayerName: Enemy
@@ -42966,6 +42968,73 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 544639721}
   m_CullTransparentMesh: 1
+--- !u!1001 &552870959
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 28017796}
+    m_Modifications:
+    - target: {fileID: 2923702396451744168, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_Name
+      value: EnemyStill
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -19.960001
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 4.60624
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.617012
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+--- !u!4 &552870960 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+  m_PrefabInstance: {fileID: 552870959}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &552870961 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2923702396451744168, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
+  m_PrefabInstance: {fileID: 552870959}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &559526630
 GameObject:
   m_ObjectHideFlags: 0
@@ -106495,11 +106564,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 145893023239714166, guid: 45676675436694bb98eb87161231800a, type: 3}
   m_PrefabInstance: {fileID: 1862751528}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1291572107 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 2790502361088553366, guid: 48506c5d388f2f64090fab82a6108a27, type: 3}
-  m_PrefabInstance: {fileID: 177299741}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &1294083603
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -143106,6 +143170,8 @@ MonoBehaviour:
   fallbackMaxTotalSamples: 250000
   fallbackBaseUvStep: 0.0015
   clipPolygonToSurfaceBounds: 1
+  autoFindReferences: 1
+  debugAutoFind: 1
   debugPolygon: 1
   debugFillFailures: 1
   debugMultiSurface: 0
