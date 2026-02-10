@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.Events;
 using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
+using JellyGame.GamePlay.Abilities.Zones;
 
 namespace JellyGame.UI.Tutorial
 {
@@ -167,6 +168,10 @@ namespace JellyGame.UI.Tutorial
 
             [Tooltip("Wait a frame after activating so renderers/particles initialize before moving.")]
             public bool waitOneFrameAfterActivate = true;
+            
+            [Header("Clear Damage Zones")]
+            [Tooltip("If true, destroys all DamageZoneEffect objects before the intro move to prevent the enemy from spawning inside player-created damage zones.")]
+            public bool destroyDamageZonesBeforeMove = false;
         }
 
         [Header("Per-Window Intro Moves (run AFTER window is completed/skipped)")]
@@ -749,6 +754,12 @@ namespace JellyGame.UI.Tutorial
                     if (a.waitOneFrameAfterActivate)
                         yield return null; // let renderers/animators initialize so it's visible before movement starts
                 }
+                
+                // --- Destroy damage zones if needed ---
+                if (a.destroyDamageZonesBeforeMove)
+                {
+                    DestroyAllDamageZones();
+                }
 
                 // Resume time so the intro is visible
                 bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
@@ -1086,6 +1097,37 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
+
+        /// <summary>
+        /// Destroys all DamageZoneEffect objects in the scene.
+        /// Used to prevent enemies from spawning inside player-created damage zones.
+        /// </summary>
+        private void DestroyAllDamageZones()
+        {
+            // Find all DamageZoneEffect components in the scene
+            var zones = FindObjectsOfType<DamageZoneEffect>();
+            
+            if (zones.Length == 0)
+            {
+                if (debugLogs)
+                    Debug.Log("[Tutorial] No DamageZoneEffect objects found to destroy.", this);
+                return;
+            }
+            
+            if (debugLogs)
+                Debug.Log($"[Tutorial] Destroying {zones.Length} DamageZoneEffect object(s) before intro move.", this);
+            
+            foreach (var zone in zones)
+            {
+                if (zone != null && zone.gameObject != null)
+                {
+                    if (debugLogs)
+                        Debug.Log($"[Tutorial] Destroying damage zone: {zone.gameObject.name}", this);
+                    
+                    Destroy(zone.gameObject);
+                }
+            }
+        }
         // ===================== Safety: Ensure behaviours are restored on destroy =====================
         private void OnDestroy()
         {

@@ -80,6 +80,29 @@ namespace JellyGame.GamePlay.Map
             if (_r) _mpb = new MaterialPropertyBlock();
         }
 
+        /// <summary>
+        /// Clear stale static reference after scene reload.
+        /// Without this, requireSelectionForInput permanently blocks input
+        /// because _current still points to the destroyed TiltTray from the old scene.
+        /// </summary>
+        private void OnEnable()
+        {
+            // If the previous _current was destroyed (scene unload), clear the stale reference
+            if (_current != null && !_current)
+                _current = null;
+
+            // If requireSelectionForInput is false AND no tray is selected, auto-select this one
+            if (!requireSelectionForInput && _current == null)
+                _current = this;
+        }
+
+        private void OnDisable()
+        {
+            // If this tray is being disabled/destroyed, clear the static reference
+            if (_current == this)
+                _current = null;
+        }
+
         private void OnMouseDown() { SelectThis(); }
 
         private void Update()

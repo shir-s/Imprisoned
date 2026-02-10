@@ -95,6 +95,14 @@ namespace JellyGame.GamePlay.Painting.Shapes
         [Tooltip("If true, clip polygons to each surface's UV bounds. If false, use original polygon for all surfaces.")]
         [SerializeField] private bool clipPolygonToSurfaceBounds = true;
 
+        [Header("Auto-Find Settings")]
+        [Tooltip("If true, auto-finds paintSurfaces and painter at runtime when not assigned in Inspector.\n" +
+                 "Searches parent hierarchy first (player is child of TiltTray), then scene-wide.")]
+        [SerializeField] private bool autoFindReferences = true;
+
+        [Tooltip("If true, logs what was found/not found during auto-find.")]
+        [SerializeField] private bool debugAutoFind = true;
+
         [Header("Debug")]
         [SerializeField] private bool debugPolygon = false;
         [SerializeField] private bool debugFillFailures = true;
@@ -110,6 +118,123 @@ namespace JellyGame.GamePlay.Painting.Shapes
             public List<Vector2> localPolyXZ;
             public Bounds localBounds;
         }
+
+        // ===================== Auto-Find =====================
+
+        private void Awake()
+        {
+            if (!autoFindReferences)
+                return;
+
+            AutoFindPaintSurfaces();
+            AutoFindPainter();
+        }
+
+        /// <summary>
+        /// Auto-find SimplePaintSurface components if paintSurfaces list is empty or contains only nulls.
+        /// Search order: parent hierarchy (TiltTray and its children), then scene-wide.
+        /// </summary>
+        private void AutoFindPaintSurfaces()
+        {
+            // Skip if already assigned in Inspector with valid entries
+            if (paintSurfaces != null && paintSurfaces.Count > 0)
+            {
+                // Remove nulls that might be left from broken prefab references
+                paintSurfaces.RemoveAll(s => s == null);
+
+                if (paintSurfaces.Count > 0)
+                {
+                    if (debugAutoFind)
+                        Debug.Log($"[AreaFillShapeDetector] paintSurfaces already assigned ({paintSurfaces.Count} surface(s)). Skipping auto-find.", this);
+                    return;
+                }
+            }
+
+            if (paintSurfaces == null)
+                paintSurfaces = new List<SimplePaintSurface>();
+
+            // 1) Search parent hierarchy (player is child of TiltTray → surfaces are siblings/cousins)
+            Transform root = transform;
+            while (root.parent != null)
+                root = root.parent;
+
+            var found = root.GetComponentsInChildren<SimplePaintSurface>(true);
+            if (found != null && found.Length > 0)
+            {
+                paintSurfaces.AddRange(found);
+
+                if (debugAutoFind)
+                    Debug.Log($"[AreaFillShapeDetector] Auto-found {found.Length} SimplePaintSurface(s) in parent hierarchy (root: '{root.name}').", this);
+                return;
+            }
+
+            // 2) Scene-wide fallback
+            var sceneFound = FindObjectsOfType<SimplePaintSurface>(true);
+            if (sceneFound != null && sceneFound.Length > 0)
+            {
+                paintSurfaces.AddRange(sceneFound);
+
+                if (debugAutoFind)
+                    Debug.Log($"[AreaFillShapeDetector] Auto-found {sceneFound.Length} SimplePaintSurface(s) scene-wide.", this);
+                return;
+            }
+
+            Debug.LogWarning("[AreaFillShapeDetector] Auto-find FAILED: No SimplePaintSurface found anywhere! Area fill will not work.", this);
+        }
+
+        /// <summary>
+        /// Auto-find RenderTextureTrailPainter if not assigned.
+        /// Search order: this GameObject, children, parent hierarchy, scene-wide.
+        /// </summary>
+        private void AutoFindPainter()
+        {
+            if (painter != null)
+            {
+                if (debugAutoFind)
+                    Debug.Log($"[AreaFillShapeDetector] painter already assigned: '{painter.name}'. Skipping auto-find.", this);
+                return;
+            }
+
+            // 1) This GameObject
+            painter = GetComponent<RenderTextureTrailPainter>();
+            if (painter != null)
+            {
+                if (debugAutoFind)
+                    Debug.Log("[AreaFillShapeDetector] Auto-found painter on this GameObject.", this);
+                return;
+            }
+
+            // 2) Children
+            painter = GetComponentInChildren<RenderTextureTrailPainter>(true);
+            if (painter != null)
+            {
+                if (debugAutoFind)
+                    Debug.Log($"[AreaFillShapeDetector] Auto-found painter in children: '{painter.name}'.", this);
+                return;
+            }
+
+            // 3) Parent hierarchy
+            painter = GetComponentInParent<RenderTextureTrailPainter>(true);
+            if (painter != null)
+            {
+                if (debugAutoFind)
+                    Debug.Log($"[AreaFillShapeDetector] Auto-found painter in parent hierarchy: '{painter.name}'.", this);
+                return;
+            }
+
+            // 4) Scene-wide fallback
+            painter = FindObjectOfType<RenderTextureTrailPainter>(true);
+            if (painter != null)
+            {
+                if (debugAutoFind)
+                    Debug.Log($"[AreaFillShapeDetector] Auto-found painter scene-wide: '{painter.name}'.", this);
+                return;
+            }
+
+            Debug.LogWarning("[AreaFillShapeDetector] Auto-find FAILED: No RenderTextureTrailPainter found! Area fill will not work.", this);
+        }
+
+        // ===================== Shape Handling =====================
 
         public bool TryHandleShape(StrokeLoopSegment seg)
         {
@@ -357,8 +482,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
             Vector3 rightEnd = endPair.hasRight ? endPair.GetRightWorld(innerEnd) : innerEnd;
 
             // Find parallel closure point on the outer trail
-            // The closure connects start and end on the inner trail. We want to find the matching
-            // point on the outer trail that is parallel to this closure.
             List<Vector3> innerPoly, outerPoly;
 
             float distLeftStart = Vector3.Distance(leftStart, innerStart);
@@ -366,7 +489,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
             float distRightStart = Vector3.Distance(rightStart, innerStart);
             float distRightEnd = Vector3.Distance(rightEnd, innerEnd);
 
-            // Whichever edge is closer to the center at both closure points is likely the inner edge
             float leftClosureDist = distLeftStart + distLeftEnd;
             float rightClosureDist = distRightStart + distRightEnd;
 
@@ -381,21 +503,15 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 outerPoly = left;
             }
 
-            // For inner polygon: close normally (already closed by removing duplicate)
-            // For outer polygon: find parallel closure point
             List<Vector3> outerClosed = new List<Vector3>(outerPoly);
 
-            // Find the point on the outer trail that is most parallel to the inner closure
-            // Project each outer point onto the closure line and find the best match
             int bestMatchIdx = -1;
             float bestMatchScore = float.PositiveInfinity;
 
-            // The closure vector goes from inner start to inner end
             Vector3 innerClosureVec = innerEnd - innerStart;
             float innerClosureLen = innerClosureVec.magnitude;
             if (innerClosureLen < 0.0001f)
             {
-                // Degenerate closure, just close normally
                 worldInner = innerPoly;
                 worldOuter = outerClosed;
                 return true;
@@ -404,20 +520,17 @@ namespace JellyGame.GamePlay.Painting.Shapes
             Vector3 innerClosureDir = innerClosureVec / innerClosureLen;
             Vector3 innerStartToOuterStart = outerClosed[0] - innerStart;
 
-            // Project the outer start point onto the closure line
             float projStart = Vector3.Dot(innerStartToOuterStart, innerClosureDir);
-            float desiredProj = innerClosureLen; // We want to find a point at the end of the closure line
+            float desiredProj = innerClosureLen;
 
-            // Search through outer points to find the one closest to the desired projection
             for (int i = 0; i < outerClosed.Count; i++)
             {
                 Vector3 outerPt = outerClosed[i];
                 Vector3 innerStartToOuterPt = outerPt - innerStart;
                 float proj = Vector3.Dot(innerStartToOuterPt, innerClosureDir);
 
-                // Score: distance from desired projection + perpendicular distance from closure line
                 float perpDist = Vector3.Cross(innerStartToOuterPt, innerClosureDir).magnitude;
-                float score = Mathf.Abs(proj - desiredProj) + perpDist * 0.5f; // Weight perpendicular distance less
+                float score = Mathf.Abs(proj - desiredProj) + perpDist * 0.5f;
 
                 if (score < bestMatchScore)
                 {
@@ -426,10 +539,8 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 }
             }
 
-            // If we found a good match, close to that point instead of the first point
             if (bestMatchIdx >= 0 && bestMatchIdx < outerClosed.Count - 1)
             {
-                // Move matching point to end for proper closure
                 if (bestMatchIdx > 0)
                 {
                     Vector3 matchPoint = outerClosed[bestMatchIdx];
@@ -437,7 +548,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     outerClosed.Add(matchPoint);
                 }
             }
-            // Otherwise, outer is already closed normally
 
             worldInner = innerPoly;
             worldOuter = outerClosed;
@@ -543,14 +653,12 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
                 if (clippedUvPoly == null || clippedUvPoly.Count < 3)
                 {
-                    // Check if polygon completely outside or just clipping failed
                     if (!PolygonIntersectsUnitSquare(uvPoly))
                     {
                         if (debugMultiSurface)
                             Debug.Log($"[AreaFill] Polygon completely outside surface {surface.name} UV bounds.", this);
                         return null;
                     }
-                    // Clipping failed but polygon intersects - use original (will be clamped during fill)
                     if (debugPolygon)
                         Debug.Log($"[AreaFill] Clipping failed for surface {surface.name}, using original polygon.", this);
                 }
@@ -585,14 +693,12 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (polygon == null || polygon.Count < 3)
                 return false;
 
-            // Check if any vertex is inside [0,1]
             foreach (var p in polygon)
             {
                 if (p.x >= 0f && p.x <= 1f && p.y >= 0f && p.y <= 1f)
                     return true;
             }
 
-            // Check if any edge intersects the unit square
             for (int i = 0; i < polygon.Count; i++)
             {
                 Vector2 a = polygon[i];
@@ -602,8 +708,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     return true;
             }
 
-            // Check if unit square is completely inside the polygon
-            // (test center point of unit square)
             if (PointInPolygon(new Vector2(0.5f, 0.5f), polygon))
                 return true;
 
@@ -612,14 +716,9 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
         private bool LineIntersectsUnitSquare(Vector2 a, Vector2 b)
         {
-            // Check intersection with each edge of unit square
-            // Left edge
             if (LinesIntersect(a, b, new Vector2(0, 0), new Vector2(0, 1))) return true;
-            // Right edge
             if (LinesIntersect(a, b, new Vector2(1, 0), new Vector2(1, 1))) return true;
-            // Bottom edge
             if (LinesIntersect(a, b, new Vector2(0, 0), new Vector2(1, 0))) return true;
-            // Top edge
             if (LinesIntersect(a, b, new Vector2(0, 1), new Vector2(1, 1))) return true;
 
             return false;
@@ -669,20 +768,15 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             List<Vector2> output = new List<Vector2>(polygon);
 
-            // Clip against each edge of the unit square
-            // Left edge (x = 0)
             output = ClipPolygonAgainstEdge(output, new Vector2(0, 0), new Vector2(0, 1));
             if (output == null || output.Count < 3) return null;
 
-            // Right edge (x = 1)
             output = ClipPolygonAgainstEdge(output, new Vector2(1, 1), new Vector2(1, 0));
             if (output == null || output.Count < 3) return null;
 
-            // Bottom edge (y = 0)
             output = ClipPolygonAgainstEdge(output, new Vector2(1, 0), new Vector2(0, 0));
             if (output == null || output.Count < 3) return null;
 
-            // Top edge (y = 1)
             output = ClipPolygonAgainstEdge(output, new Vector2(0, 1), new Vector2(1, 1));
             if (output == null || output.Count < 3) return null;
 
@@ -699,7 +793,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             List<Vector2> output = new List<Vector2>();
             Vector2 edgeDir = edgeP2 - edgeP1;
-            Vector2 edgeNormal = new Vector2(-edgeDir.y, edgeDir.x); // Points inward (left of edge direction)
+            Vector2 edgeNormal = new Vector2(-edgeDir.y, edgeDir.x);
 
             for (int i = 0; i < polygon.Count; i++)
             {
@@ -718,7 +812,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
                     if (!nextInside)
                     {
-                        // Exiting: add intersection
                         Vector2? intersection = LineEdgeIntersection(current, next, edgeP1, edgeP2);
                         if (intersection.HasValue)
                             output.Add(intersection.Value);
@@ -726,7 +819,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 }
                 else if (nextInside)
                 {
-                    // Entering: add intersection
                     Vector2? intersection = LineEdgeIntersection(current, next, edgeP1, edgeP2);
                     if (intersection.HasValue)
                         output.Add(intersection.Value);
@@ -746,13 +838,13 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             float cross = d1.x * d2.y - d1.y * d2.x;
             if (Mathf.Abs(cross) < 1e-10f)
-                return null; // Parallel
+                return null;
 
             Vector2 d3 = e1 - p1;
             float t = (d3.x * d2.y - d3.y * d2.x) / cross;
 
             if (t < 0f || t > 1f)
-                return null; // Intersection outside segment
+                return null;
 
             return p1 + d1 * t;
         }
@@ -790,7 +882,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
         private IEnumerator FillAllSurfacesProgressiveAsync(List<SurfaceFillData> surfaceFillDatas)
         {
             Debug.Log("FillAllSurfacesProgressiveAsync");
-            // Create parallel fill coroutines for all surfaces
             List<IEnumerator> fillEnumerators = new List<IEnumerator>();
 
             foreach (var fillData in surfaceFillDatas)
@@ -804,8 +895,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 yield break;
             }
 
-            // Run all fills in parallel by advancing each one per frame
-            // This distributes the time budget across all surfaces
             float budgetPerSurface = progressiveTimeBudgetMsPerFrame / Mathf.Max(1, fillEnumerators.Count);
             List<bool> completed = new List<bool>(fillEnumerators.Count);
             for (int i = 0; i < fillEnumerators.Count; i++)
@@ -823,7 +912,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     float frameStart = Time.realtimeSinceStartup;
                     float budgetSec = budgetPerSurface / 1000f;
 
-                    // Advance this surface's fill until it yields or completes
                     while ((Time.realtimeSinceStartup - frameStart) < budgetSec)
                     {
                         if (!fillEnumerators[i].MoveNext())
@@ -903,7 +991,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
             for (int i = 0; i < rings; i++)
                 buckets[i] = new List<Vector2>(1024);
 
-            // radius normalization
             Vector2 corner0 = new Vector2(minU, minV);
             Vector2 corner1 = new Vector2(minU, maxV);
             Vector2 corner2 = new Vector2(maxU, minV);
@@ -919,21 +1006,17 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
             float budgetSec = Mathf.Max(0.0001f, progressiveTimeBudgetMsPerFrame / 1000f);
 
-            // Stable rotation for finger directions
             float fingerRot = Hash01(centroid, unevenSeed + 999) * Mathf.PI * 2f;
 
-            // We'll paint from outside->inside as soon as we have points
             int paintRing = rings - 1;
 
             List<float> intersections = new List<float>(64);
 
-            // Build scanlines, but time-slice and paint within the same budget
             float v = minV;
             while (v <= maxV)
             {
                 float frameStart = Time.realtimeSinceStartup;
 
-                // Do build work until budget is about half used, then paint with the remainder
                 while (v <= maxV && (Time.realtimeSinceStartup - frameStart) < budgetSec * 0.55f)
                 {
                     intersections.Clear();
@@ -998,13 +1081,11 @@ namespace JellyGame.GamePlay.Painting.Shapes
                         break;
                 }
 
-                // Paint whatever we already have (outside -> inside) for the rest of the budget
                 PaintAvailableOuterBucketsWithinBudget(surface, buckets, ref paintRing, frameStart, budgetSec);
 
                 yield return null;
             }
 
-            // Build is done; finish painting remaining points (still budgeted)
             while (paintRing >= 0)
             {
                 float frameStart = Time.realtimeSinceStartup;

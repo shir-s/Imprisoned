@@ -10,13 +10,14 @@ namespace JellyGame.GamePlay.Managers
     /// Simplified Game Scene Manager.
     /// 
     /// Responsibilities:
-    /// - Listen for GameWin event (triggered by FinishTrigger when player enters exit)
-    /// - Load scenes via LoadingScreen (configured per level in winScenesToLoad)
-    /// - Handle post-level cutscenes that are already loaded (activate directly)
-    /// - Play win FX before loading
-    /// - Trigger GameOver when player dies
+    /// - On Start(), tell LoadingManager to preload the next scene in the background
+    /// - Listen for GameWin → transition to next scene (instant if preloaded, loading screen otherwise)
+    /// - Listen for EntityDied → trigger GameOver → transition to GameOver scene
+    /// - Play win FX before transitioning
+    /// - Handle Main Menu "Press Any Key" flow
     /// 
-    /// No buttons, no manual level selection - everything is automatic via triggers.
+    /// IMPORTANT: Configure nextSceneBuildIndex in the Inspector for each level!
+    /// This is the scene that will be preloaded and transitioned to on win.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
@@ -24,62 +25,51 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Enable 'Press Any Key' to start from Main Menu.")]
         [SerializeField] private bool isMainMenu = false;
 
-        [Tooltip("Which scene to load when user presses any key in Main Menu (usually Tutorial).")]
-        [SerializeField] private int mainMenuNextScene = 4; // Tutorial
+        [Tooltip("Which scene to load when user presses any key in Main Menu.")]
+        [SerializeField] private int mainMenuNextScene = 4;
 
-        [Tooltip("Text to display (optional). Leave empty to skip.")]
-        [SerializeField] private string pressAnyKeyText = "Press Any Key to Start";
-
-        [Tooltip("Play background music in Main Menu? Disable if you don't have SoundManager set up.")]
+        [Tooltip("Play background music in Main Menu?")]
         [SerializeField] private bool playBackgroundMusic = true;
+
+        [Header("Scene Flow")]
+        [Tooltip("Build index of the NEXT scene after winning this level.\n" +
+                 "Examples:\n" +
+                 "- Tutorial → Level 1 build index\n" +
+                 "- Level 1 → Cutscene 1 build index\n" +
+                 "- Level 3 → Win Scene build index\n" +
+                 "- Win Scene → Main Menu build index\n" +
+                 "Set to -1 to disable preloading.")]
+        [SerializeField] private int nextSceneBuildIndex = -1;
+
+        [Tooltip("If true, skip the loading screen when the next scene is already preloaded.\n" +
+                 "If false, always show the loading screen for at least the minimum display time.")]
+        [SerializeField] private bool useInstantTransition = true;
 
         [Header("Game Over")]
         [Tooltip("Build index of the GameOver scene.")]
         [SerializeField] private int gameOverSceneBuildIndex = 0;
 
-        [Tooltip("Use LoadingManager for GameOver transitions? If false, loads directly.")]
-        [SerializeField] private bool useLoadingScreenForGameOver = true;
-
-        [Tooltip("If an EntityDied event is triggered with a victim layer in this mask => trigger GameOver.")]
+        [Tooltip("If an EntityDied event victim layer matches this mask → trigger GameOver.")]
         [SerializeField] private LayerMask gameOverOnVictimLayers;
 
-        [Header("Loading Screen")]
-        [Tooltip("Use loading screen for win transitions? If false, goes directly to scenes.")]
-        [SerializeField] private bool useLoadingScreenForWin = true;
-
-        [Tooltip("Scenes to load when player wins THIS level. Configure per level!\n" +
-                 "Examples:\n" +
-                 "- Tutorial: [5, 6] (Level1 + Cutscene1)\n" +
-                 "- Level3: [3] (MainMenu)\n" +
-                 "NOTE: If postLevelCutsceneBuildIndex is set, this is ignored.")]
-        [SerializeField] private int[] winScenesToLoad = new int[0];
-
-        [Header("Post-Level Cutscene (Already Loaded)")]
-        [Tooltip("If >= 0, this cutscene was loaded together with this level by LoadingManager.\n" +
-                 "On win, it will be activated directly (no loading screen).\n" +
-                 "Set to -1 if no cutscene follows this level.")]
-        [SerializeField] private int postLevelCutsceneBuildIndex = -1;
-
-        [Header("Special Case: GameOver Portal")]
-        [Tooltip("When player enters portal in GameOver scene, which scenes to load? (Level1 + Cutscene1)")]
-        [SerializeField] private int[] gameOverPortalScenesToLoad = new int[] { 5, 6 };
-
-        [Tooltip("Which scene to activate first from gameOverPortalScenesToLoad (0 = first scene).")]
-        [SerializeField] private int gameOverPortalFirstSceneIndex = 0;
+        [Header("Special Case: GameOver Scene Portal")]
+        [Tooltip("When winning from the GameOver scene (portal), go to this scene.\n" +
+                 "Usually Level 1. Set to -1 to use nextSceneBuildIndex instead.")]
+        [SerializeField] private int gameOverPortalDestination = -1;
 
         [Header("Win FX (Optional)")]
-        [Tooltip("ROOT GameObject containing win particles (all ParticleSystems in children).")]
+        [Tooltip("ROOT GameObject containing win particle systems.")]
         [SerializeField] private GameObject winFxRoot;
 
-        [Tooltip("Disable FX root on start so nothing auto-plays.")]
+        [Tooltip("Disable FX root on start.")]
         [SerializeField] private bool disableWinFxRootOnStart = true;
 
-        [Tooltip("Force-stop all ParticleSystems in winFxRoot on start.")]
+        [Tooltip("Force-stop all ParticleSystems on start.")]
         [SerializeField] private bool stopWinFxOnStart = true;
 
-        [Tooltip("Delay after win before loading next scenes.\n" +
-                 "If <= 0 and winFxRoot exists, auto-calculates from longest particle duration.")]
-        [SerializeField] private float winSceneLoadDelay = 0f;
+        [Tooltip("Delay after win before transitioning.\n" +
+                 "If <= 0 and winFxRoot exists, auto-calculates from particle duration.")]
+        [SerializeField] private float winFxDelay = 0f;
 
         [Tooltip("Pause gameplay (Time.timeScale = 0) during win sequence.")]
         [SerializeField] private bool pauseGameplayOnWin = false;
@@ -93,44 +83,24 @@ namespace JellyGame.GamePlay.Managers
 
         private bool _winSequenceRunning;
 
+        // ===================== Lifecycle =====================
+
         private void Awake()
         {
-            PrepareWinFxForStart();
+            PrepareWinFx();
         }
 
         private void Start()
         {
-            // Background music (optional - can be disabled)
-            if (playBackgroundMusic && SoundManager.Instance != null)
-            {
-                try
-                {
-                    SoundManager.Instance.StopAllSounds();
-                    
-                    // Only play if "Background" audio exists
-                    if (SoundManager.Instance.FindAudioConfig("Background") != null)
-                    {
-                        SoundManager.Instance.PlaySound("Background", this.transform);
-                    }
-                    else if (debugLogs)
-                    {
-                        Debug.Log("[GameSceneManager] No 'Background' audio config found - skipping background music.", this);
-                    }
-                }
-                catch (System.Exception ex)
-                {
-                    // Silently catch any audio errors (common in Main Menu without SoundManager)
-                    if (debugLogs)
-                        Debug.LogWarning($"[GameSceneManager] Background music error (safe to ignore): {ex.Message}", this);
-                }
-            }
+            PlayBackgroundMusic();
+            StartPreloading();
         }
 
         private void OnEnable()
         {
-            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDiedEvent);
-            EventManager.StartListening(EventManager.GameEvent.GameOver, OnGameOverEvent);
-            EventManager.StartListening(EventManager.GameEvent.GameWin, OnWinEvent);
+            EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+            EventManager.StartListening(EventManager.GameEvent.GameOver, OnGameOver);
+            EventManager.StartListening(EventManager.GameEvent.GameWin, OnGameWin);
 
             if (debugLogs)
                 Debug.Log($"[GameSceneManager] Enabled in scene: {SceneManager.GetActiveScene().name}", this);
@@ -138,9 +108,9 @@ namespace JellyGame.GamePlay.Managers
 
         private void OnDisable()
         {
-            EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDiedEvent);
-            EventManager.StopListening(EventManager.GameEvent.GameOver, OnGameOverEvent);
-            EventManager.StopListening(EventManager.GameEvent.GameWin, OnWinEvent);
+            EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDied);
+            EventManager.StopListening(EventManager.GameEvent.GameOver, OnGameOver);
+            EventManager.StopListening(EventManager.GameEvent.GameWin, OnGameWin);
         }
 
         private void Update()
@@ -149,86 +119,84 @@ namespace JellyGame.GamePlay.Managers
             if (isMainMenu && Input.anyKeyDown)
             {
                 if (debugLogs)
-                    Debug.Log("[GameSceneManager] Main Menu: Any key pressed, loading next scene.", this);
+                    Debug.Log("[GameSceneManager] Main Menu: key pressed → loading next scene.", this);
 
-                LoadFromMainMenu();
-                return; // Don't check cheat codes after starting
+                isMainMenu = false;
+                TransitionTo(mainMenuNextScene);
+                return;
             }
 
             // Cheat codes
             if (gameOverKey != KeyCode.None && Input.GetKeyDown(gameOverKey))
             {
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Cheat: Triggering GameOver", this);
-
+                if (debugLogs) Debug.Log("[GameSceneManager] Cheat: GameOver", this);
                 EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
             }
 
             if (winKey != KeyCode.None && Input.GetKeyDown(winKey))
             {
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Cheat: Triggering Win", this);
-
+                if (debugLogs) Debug.Log("[GameSceneManager] Cheat: Win", this);
                 EventManager.TriggerEvent(EventManager.GameEvent.GameWin);
             }
         }
 
-        // ===================== Main Menu =====================
+        // ===================== Preloading =====================
 
-        private void LoadFromMainMenu()
+        private void StartPreloading()
         {
-            if (!IsValidBuildIndex(mainMenuNextScene))
-            {
-                Debug.LogError($"[GameSceneManager] Main Menu next scene invalid: {mainMenuNextScene}", this);
-                return;
-            }
-
             if (LoadingManager.Instance == null)
             {
-                Debug.LogError("[GameSceneManager] LoadingManager.Instance is null! Make sure LoadingScreen is loaded.", this);
+                if (debugLogs)
+                    Debug.LogWarning("[GameSceneManager] LoadingManager not available yet. Preloading skipped.", this);
                 return;
             }
 
-            if (debugLogs)
-                Debug.Log($"[GameSceneManager] Loading from Main Menu → scene {mainMenuNextScene}", this);
+            // Main Menu preloads its target
+            if (isMainMenu && mainMenuNextScene >= 0)
+            {
+                LoadingManager.Instance.PreloadScene(mainMenuNextScene);
 
-            // Disable this flag so we don't trigger again
-            isMainMenu = false;
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Main Menu preloading scene {mainMenuNextScene}", this);
+                return;
+            }
 
-            // Load via LoadingManager (just one scene - Tutorial)
-            LoadingManager.Instance.StartLoading(new int[] { mainMenuNextScene });
+            // Normal level preloads next scene
+            if (nextSceneBuildIndex >= 0)
+            {
+                LoadingManager.Instance.PreloadScene(nextSceneBuildIndex);
+
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Preloading next scene: {nextSceneBuildIndex}", this);
+            }
         }
 
         // ===================== Event Handlers =====================
 
-        private void OnEntityDiedEvent(object eventData)
+        private void OnEntityDied(object eventData)
         {
             if (eventData is not EntityDiedEventData died)
-            {
-                if (debugLogs)
-                    Debug.LogWarning("[GameSceneManager] EntityDied received with unexpected payload type.", this);
                 return;
-            }
 
             bool match = (gameOverOnVictimLayers.value & (1 << died.VictimLayer)) != 0;
             if (!match)
                 return;
 
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] EntityDied matched layer {died.VictimLayer}. Triggering GameOver.", this);
+                Debug.Log($"[GameSceneManager] EntityDied on matching layer → GameOver.", this);
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
         }
 
-        private void OnGameOverEvent(object _)
+        private void OnGameOver(object _)
         {
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] GameOver event! Loading scene index: {gameOverSceneBuildIndex}", this);
+                Debug.Log($"[GameSceneManager] GameOver → loading scene {gameOverSceneBuildIndex}", this);
 
-            LoadGameOverScene();
+            TransitionTo(gameOverSceneBuildIndex);
         }
 
-        private void OnWinEvent(object _)
+        private void OnGameWin(object _)
         {
             if (_winSequenceRunning)
                 return;
@@ -244,238 +212,83 @@ namespace JellyGame.GamePlay.Managers
             if (debugLogs)
                 Debug.Log("[GameSceneManager] Win sequence started.", this);
 
-            // SPECIAL CASE: Win triggered in GameOver scene (portal)
-            // Always go to the configured destination (usually Level1 + Cutscene1)
-            if (IsInGameOverScene())
+            // Determine destination
+            int destination = nextSceneBuildIndex;
+
+            // Special case: winning from the GameOver scene (portal)
+            if (IsInGameOverScene() && gameOverPortalDestination >= 0)
             {
-                if (gameOverPortalScenesToLoad == null || gameOverPortalScenesToLoad.Length == 0)
-                {
-                    Debug.LogError("[GameSceneManager] GameOver portal scenes not configured!", this);
-                    yield break;
-                }
+                destination = gameOverPortalDestination;
 
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Win in GameOver scene → loading {gameOverPortalScenesToLoad.Length} scene(s)", this);
+                    Debug.Log($"[GameSceneManager] Win in GameOver scene → going to {destination}", this);
+            }
 
-                if (LoadingManager.Instance != null)
-                {
-                    LoadingManager.Instance.StartLoading(gameOverPortalScenesToLoad, gameOverPortalFirstSceneIndex);
-                }
-                else
-                {
-                    // Fallback: direct load first scene
-                    SceneManager.LoadScene(gameOverPortalScenesToLoad[0]);
-                }
+            if (destination < 0)
+            {
+                Debug.LogError("[GameSceneManager] nextSceneBuildIndex not configured! Can't transition.", this);
+                _winSequenceRunning = false;
                 yield break;
             }
 
-            // Calculate delay (from FX or configured value)
-            float delay = winSceneLoadDelay;
+            // Play win FX
+            float delay = PlayWinFx();
 
-            if (winFxRoot != null)
-            {
-                if (!winFxRoot.activeInHierarchy)
-                    winFxRoot.SetActive(true);
-
-                ParticleSystem[] systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
-
-                if (systems != null && systems.Length > 0)
-                {
-                    // Stop and clear any existing particles
-                    foreach (var ps in systems)
-                    {
-                        if (ps == null) continue;
-                        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                    }
-
-                    // Play all particles
-                    foreach (var ps in systems)
-                    {
-                        if (ps == null) continue;
-                        ps.Play(true);
-                    }
-
-                    // Auto-calculate delay if not set
-                    if (delay <= 0f)
-                        delay = ComputeLongestFxDurationSeconds(systems);
-                }
-                else if (debugLogs)
-                {
-                    Debug.LogWarning("[GameSceneManager] winFxRoot assigned but no ParticleSystem found.", this);
-                }
-            }
-
-            // Pause if configured
+            // Pause if configured (FinishTrigger may have already frozen time)
             if (pauseGameplayOnWin)
                 Time.timeScale = 0f;
 
-            // Wait for FX to play
+            // Wait for FX — always use realtime because timeScale may be 0
             if (delay > 0f)
             {
-                if (pauseGameplayOnWin)
-                    yield return new WaitForSecondsRealtime(delay);
-                else
-                    yield return new WaitForSeconds(delay);
+                yield return new WaitForSecondsRealtime(delay);
             }
 
-            // Unpause
-            if (pauseGameplayOnWin)
-                Time.timeScale = 1f;
+            // Always restore timeScale before transition
+            Time.timeScale = 1f;
 
-            // ==================== NEW: Post-Level Cutscene Logic ====================
-            // Check if there's a cutscene already loaded that should play after this level
-            if (postLevelCutsceneBuildIndex >= 0)
-            {
-                Scene cutsceneScene = SceneManager.GetSceneByBuildIndex(postLevelCutsceneBuildIndex);
-                
-                if (cutsceneScene.isLoaded)
-                {
-                    if (debugLogs)
-                        Debug.Log($"[GameSceneManager] Post-level cutscene (index {postLevelCutsceneBuildIndex}) is already loaded. Activating directly.", this);
-
-                    ActivatePostLevelCutscene(cutsceneScene);
-                    yield break;
-                }
-                else
-                {
-                    Debug.LogWarning($"[GameSceneManager] postLevelCutsceneBuildIndex={postLevelCutsceneBuildIndex} but scene is NOT loaded! " +
-                        "Falling back to winScenesToLoad.", this);
-                }
-            }
-
-            // ==================== Standard: Load via LoadingManager ====================
-            if (useLoadingScreenForWin)
-            {
-                if (winScenesToLoad != null && winScenesToLoad.Length > 0)
-                {
-                    if (LoadingManager.Instance == null)
-                    {
-                        Debug.LogError("[GameSceneManager] LoadingManager.Instance is null! Make sure LoadingScreen scene is loaded.", this);
-                        yield break;
-                    }
-
-                    if (debugLogs)
-                        Debug.Log($"[GameSceneManager] Loading {winScenesToLoad.Length} scene(s) via LoadingManager.", this);
-
-                    LoadingManager.Instance.StartLoading(winScenesToLoad, 0);
-                    yield break;
-                }
-                else
-                {
-                    Debug.LogError("[GameSceneManager] useLoadingScreenForWin enabled but winScenesToLoad is EMPTY! Configure it in Inspector.", this);
-                }
-            }
-            else
-            {
-                Debug.LogWarning("[GameSceneManager] LoadingScreen disabled. Cannot load next scenes.", this);
-            }
+            // Transition — try instant first, fall back to loading screen
+            TransitionTo(destination);
         }
 
-        // ===================== Post-Level Cutscene Activation =====================
+        // ===================== Transition Helper =====================
 
         /// <summary>
-        /// Activate a cutscene scene that was already loaded by LoadingManager (but deactivated).
-        /// This is used when Level wins and the cutscene should play without a loading screen.
+        /// Transition to a scene. Tries instant (no loading screen) if the scene is preloaded
+        /// and ready. Falls back to full loading screen transition otherwise.
         /// </summary>
-        private void ActivatePostLevelCutscene(Scene cutsceneScene)
+        private void TransitionTo(int buildIndex)
         {
-            if (!cutsceneScene.isLoaded)
+            if (LoadingManager.Instance == null)
             {
-                Debug.LogError($"[GameSceneManager] Cannot activate cutscene - scene not loaded!", this);
+                Debug.LogError("[GameSceneManager] LoadingManager.Instance is null! Falling back to direct load.", this);
+                SceneManager.LoadScene(buildIndex);
                 return;
             }
 
-            if (debugLogs)
-                Debug.Log($"[GameSceneManager] Activating post-level cutscene: {cutsceneScene.name}", this);
-
-            // FIRST: Disable cameras and audio listeners in the CURRENT scene (level)
-            // This prevents "multiple audio listeners" warnings
-            Scene currentLevelScene = gameObject.scene;
-            if (currentLevelScene.isLoaded && currentLevelScene != cutsceneScene)
+            // Try instant transition (no loading screen) if enabled
+            if (useInstantTransition && LoadingManager.Instance.TryInstantTransition(buildIndex))
             {
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Disabling cameras/audio in level scene: {currentLevelScene.name}", this);
-
-                GameObject[] levelObjects = currentLevelScene.GetRootGameObjects();
-                foreach (GameObject obj in levelObjects)
-                {
-                    UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
-                    foreach (UnityEngine.Camera cam in cameras)
-                    {
-                        cam.enabled = false;
-                    }
-
-                    AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
-                    foreach (AudioListener listener in listeners)
-                    {
-                        listener.enabled = false;
-                    }
-                }
-            }
-
-            // NOW: Activate the cutscene scene
-            GameObject[] rootObjects = cutsceneScene.GetRootGameObjects();
-
-            // Re-enable cameras and audio listeners FIRST
-            foreach (GameObject obj in rootObjects)
-            {
-                UnityEngine.Camera[] cameras = obj.GetComponentsInChildren<UnityEngine.Camera>(true);
-                foreach (UnityEngine.Camera cam in cameras)
-                {
-                    cam.enabled = true;
-                    
-                    if (debugLogs)
-                        Debug.Log($"[GameSceneManager] Re-enabled camera: {cam.name}", this);
-                }
-
-                AudioListener[] listeners = obj.GetComponentsInChildren<AudioListener>(true);
-                foreach (AudioListener listener in listeners)
-                {
-                    listener.enabled = true;
-                    
-                    if (debugLogs)
-                        Debug.Log($"[GameSceneManager] Re-enabled audio listener: {listener.name}", this);
-                }
-            }
-
-            // Now activate GameObjects
-            foreach (GameObject obj in rootObjects)
-            {
-                obj.SetActive(true);
-            }
-
-            // Set cutscene as active scene
-            SceneManager.SetActiveScene(cutsceneScene);
-
-            if (debugLogs)
-                Debug.Log($"[GameSceneManager] Activated cutscene scene {cutsceneScene.name}", this);
-
-            // Unload the current level scene
-            if (currentLevelScene.isLoaded && currentLevelScene != cutsceneScene)
-            {
-                StartCoroutine(UnloadSceneAfterDelay(currentLevelScene, 0.5f));
-            }
-        }
-
-        private IEnumerator UnloadSceneAfterDelay(Scene scene, float delay)
-        {
-            yield return new WaitForSeconds(delay);
-
-            if (scene.isLoaded)
-            {
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Unloading level scene: {scene.name}", this);
-
-                SceneManager.UnloadSceneAsync(scene);
-            }
-        }
-
-        // ===================== Helper Methods =====================
-
-        private void PrepareWinFxForStart()
-        {
-            if (winFxRoot == null)
+                    Debug.Log($"[GameSceneManager] ⚡ Instant transition to scene {buildIndex} (preload was ready).", this);
                 return;
+            }
+
+            // Preload not ready or instant disabled — use full loading screen
+            if (debugLogs)
+            {
+                string reason = useInstantTransition ? "preload not ready" : "instant transition disabled";
+                Debug.Log($"[GameSceneManager] {reason} → using loading screen for scene {buildIndex}.", this);
+            }
+
+            LoadingManager.Instance.TransitionToScene(buildIndex);
+        }
+
+        // ===================== Win FX =====================
+
+        private void PrepareWinFx()
+        {
+            if (winFxRoot == null) return;
 
             if (disableWinFxRootOnStart && winFxRoot.activeSelf)
                 winFxRoot.SetActive(false);
@@ -485,65 +298,87 @@ namespace JellyGame.GamePlay.Managers
                 var systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
                 foreach (var ps in systems)
                 {
-                    if (ps == null) continue;
-                    ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    if (ps != null)
+                        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
                 }
             }
         }
 
-        private static float ComputeLongestFxDurationSeconds(ParticleSystem[] systems)
+        /// <summary>Play win FX and return the delay to wait.</summary>
+        private float PlayWinFx()
+        {
+            float delay = winFxDelay;
+
+            if (winFxRoot == null)
+                return Mathf.Max(0f, delay);
+
+            if (!winFxRoot.activeInHierarchy)
+                winFxRoot.SetActive(true);
+
+            ParticleSystem[] systems = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
+
+            if (systems == null || systems.Length == 0)
+                return Mathf.Max(0f, delay);
+
+            foreach (var ps in systems)
+            {
+                if (ps == null) continue;
+                ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            foreach (var ps in systems)
+            {
+                if (ps == null) continue;
+                ps.Play(true);
+            }
+
+            if (delay <= 0f)
+                delay = ComputeLongestFxDuration(systems);
+
+            return delay;
+        }
+
+        private static float ComputeLongestFxDuration(ParticleSystem[] systems)
         {
             float max = 0f;
 
             foreach (var ps in systems)
             {
                 if (ps == null) continue;
-
                 var main = ps.main;
-                float lifetime = main.startLifetime.constantMax;
-                float startDelay = main.startDelay.constantMax;
-                float total = Mathf.Max(0f, startDelay + main.duration + lifetime);
-
-                if (total > max)
-                    max = total;
+                float total = main.startDelay.constantMax + main.duration + main.startLifetime.constantMax;
+                if (total > max) max = total;
             }
 
             return max;
         }
 
-        private void LoadGameOverScene()
+        // ===================== Helpers =====================
+
+        private void PlayBackgroundMusic()
         {
-            if (!IsValidBuildIndex(gameOverSceneBuildIndex))
-            {
-                Debug.LogError("[GameSceneManager] GameOver scene build index is invalid!", this);
+            if (!playBackgroundMusic || SoundManager.Instance == null)
                 return;
-            }
 
-            if (useLoadingScreenForGameOver && LoadingManager.Instance != null)
+            try
+            {
+                SoundManager.Instance.StopAllSounds();
+
+                if (SoundManager.Instance.FindAudioConfig("Background") != null)
+                    SoundManager.Instance.PlaySound("Background", this.transform);
+                else if (debugLogs)
+                    Debug.Log("[GameSceneManager] No 'Background' audio config found.", this);
+            }
+            catch (System.Exception ex)
             {
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Loading GameOver scene via LoadingManager: {gameOverSceneBuildIndex}", this);
-
-                LoadingManager.Instance.StartLoading(new int[] { gameOverSceneBuildIndex });
-            }
-            else
-            {
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Loading GameOver scene directly: {gameOverSceneBuildIndex}", this);
-
-                SceneManager.LoadScene(gameOverSceneBuildIndex);
+                    Debug.LogWarning($"[GameSceneManager] Background music error: {ex.Message}", this);
             }
         }
 
         private bool IsInGameOverScene()
         {
-            int active = SceneManager.GetActiveScene().buildIndex;
-            return active == gameOverSceneBuildIndex;
-        }
-
-        private static bool IsValidBuildIndex(int buildIndex)
-        {
-            return buildIndex >= 0 && buildIndex < SceneManager.sceneCountInBuildSettings;
+            return SceneManager.GetActiveScene().buildIndex == gameOverSceneBuildIndex;
         }
     }
 }

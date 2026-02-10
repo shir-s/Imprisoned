@@ -5503,8 +5503,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f1c4fd8be3cb4c41abfb20757c814f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailAnalyzer
-  closureMaxDistance: 0.6
-  minLoopIndexSeparation: 10
+  closureMaxDistance: 0.8
+  minLoopIndexSeparation: 30
   useEdgePairsForClosure: 1
   consumeHistoryUpToClosurePoint: 1
   ageConsumedTrailSection: 1
@@ -5595,10 +5595,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b03f2499035c00c4b821d55af9ce7009, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AreaFillShapeDetector
-  paintSurfaces:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  paintSurfaces: []
   painter: {fileID: 3338532106483729296}
   fillMode: 1
   useGpuPolygonFill: 1
@@ -5634,6 +5631,8 @@ MonoBehaviour:
   fallbackMaxTotalSamples: 250000
   fallbackBaseUvStep: 0.0015
   clipPolygonToSurfaceBounds: 1
+  autoFindReferences: 1
+  debugAutoFind: 1
   debugPolygon: 0
   debugFillFailures: 0
   debugMultiSurface: 0
@@ -5727,7 +5726,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::KinematicCollisionResolver
   collisionMask:
     serializedVersion: 2
-    m_Bits: 1064960
+    m_Bits: 9453568
   skinWidth: 0.01
   maxPushPerStep: 0.3
   allowPushingOthers: 0
