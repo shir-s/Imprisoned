@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using JellyGame.GamePlay.Abilities;
+using JellyGame.GamePlay.Abilities.Zones;
 using JellyGame.GamePlay.Audio.Core;
 using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Map.Surfaces;
@@ -318,6 +319,26 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     // Choose fill polygon based on setting
                     var fillPolygonToUse = fillUsesOuterPolygon ? fillBig.Value : fillSmall.Value;
                     var colliderPolygonToUse = fillUsesOuterPolygon ? fillSmall.Value : fillBig.Value;
+                    
+                    List<Vector2> fixedColliderPoly;
+                    var testTris = ZoneMeshBuilder.TriangulatePolygonXZ(colliderPolygonToUse.localPolyXZ, out fixedColliderPoly);
+                    if (fixedColliderPoly != null && fixedColliderPoly != colliderPolygonToUse.localPolyXZ)
+                    {
+                        if (debugFillFailures)
+                            Debug.LogWarning("[AreaFill] Polygon was twisted! Using Convex Hull fix.");
+                        SurfaceFillData fixedData = colliderPolygonToUse;
+                        fixedData.localPolyXZ = fixedColliderPoly;
+                        List<Vector2> newUvPoly = new List<Vector2>();
+                        foreach (var pt in fixedColliderPoly)
+                        {
+                            if (surface.TryLocalToPaintUV(new Vector3(pt.x, 0, pt.y), out Vector2 uv))
+                                newUvPoly.Add(uv);
+                        }
+
+                        fixedData.uvPoly = newUvPoly;
+                        //fillPolygonToUse = fixedData;
+                        colliderPolygonToUse = fixedData;
+                    }
 
                     // For painting, store the selected fill polygon
                     surfaceFillDatas.Add(fillPolygonToUse);

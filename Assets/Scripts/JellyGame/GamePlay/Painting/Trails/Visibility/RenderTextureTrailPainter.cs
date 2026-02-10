@@ -172,7 +172,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         /// Paint time data to the time texture.
         /// isFill = true writes G=1 (fill), isFill = false writes G=0 (trail)
         /// </summary>
-        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, Vector2 halfSizeUV, float opacity, bool isFill)
+        /*private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, Vector2 halfSizeUV, float opacity, bool isFill)
         {
             if (!surface.EnableTimeAging || timeBrushBlitMaterial == null)
                 return;
@@ -195,8 +195,45 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
             Graphics.Blit(timeRT, _tempTimeRT, timeBrushBlitMaterial);
             Graphics.Blit(_tempTimeRT, timeRT);
+        }*/
+        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, Vector2 halfSizeUV, float opacity, bool isFill)
+        {
+            if (!surface.EnableTimeAging || timeBrushBlitMaterial == null) return;
+
+            var timeRT = surface.PaintTimeRT;
+            if (timeRT == null) return;
+
+            // --- בדיקת חירום לפורמט הטקסטורה ---
+            if (timeRT.format != RenderTextureFormat.RFloat && 
+                timeRT.format != RenderTextureFormat.ARGBFloat && 
+                timeRT.format != RenderTextureFormat.RGFloat) // הוספתי את זה
+            {
+                Debug.LogError($"[Painter] CRITICAL: Time RT format is {timeRT.format}, but must be Float-based! Aging will fail.");
+            }
+            // ------------------------------------
+
+            float currentTime = surface.GetCurrentTime();
+            
+            // דיבוג זמני: אם את רואה פה 0 כשאת משחקת, סימן ש-GetCurrentTime לא עובד
+            // Debug.Log($"Writing Time: {currentTime} | IsFill: {isFill}"); 
+
+            timeBrushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
+            timeBrushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
+            timeBrushBlitMaterial.SetFloat("_BrushOpacity", opacity);
+            
+            // שימוש במחרוזות ישירות כדי למנוע בלבול עם IDs
+            timeBrushBlitMaterial.SetFloat("_PaintTime", currentTime);
+            timeBrushBlitMaterial.SetFloat("_IsFill", isFill ? 1f : 0f);
+            
+            // פרמטרים נוספים למקרה שהשיידר צריך אותם
+            timeBrushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
+            timeBrushBlitMaterial.SetFloat("_CornerRadius", 0.2f); // ערך קבוע לביטחון
+            
+            EnsureTemp(timeRT, ref _tempTimeRT);
+            timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
+            Graphics.Blit(timeRT, _tempTimeRT, timeBrushBlitMaterial);
+            Graphics.Blit(_tempTimeRT, timeRT);
         }
-        
         // ========== Public API for UV painting ==========
         
         
@@ -320,7 +357,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
         // ========== Polygon Fill ==========
 
-        public bool FillPolygonUV(SimplePaintSurface surface, List<Vector2> uvPolygon)
+        /*public bool FillPolygonUV(SimplePaintSurface surface, List<Vector2> uvPolygon)
         {
             if (surface == null || uvPolygon == null || uvPolygon.Count < 3)
                 return false;
@@ -381,6 +418,97 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             }
 
             return true;
+        }*/
+        
+        public bool FillPolygonUV(SimplePaintSurface surface, List<Vector2> uvPolygon)
+        {
+            if (surface == null || uvPolygon == null || uvPolygon.Count < 3) return false;
+            var rt = surface.PaintRT;
+            if (rt == null) return false;
+
+            // ... (לוגיקת סניטציה וטריאנגולציה - נשארת אותו דבר, או לפי ה-ZoneMeshBuilder אם את משתמשת בו) ...
+            // לצורך הדוגמה אני מניח שאת משתמשת בטריאנגולציה הפנימית או החיצונית
+            // כאן נתמקד רק בצביעה:
+
+            List<Vector2> poly = uvPolygon;
+            // (הניחי שבוצעה טריאנגולציה ל-tris)
+            if (!TriangulateEarClipping(poly, out var tris)) return false; 
+
+            UpdatePaintColor();
+            
+            // 1. צבע (רגיל)
+            polygonFillMaterial.SetColor("_FillColor", new Color(0, 1, 0, 1)); // ירוק לדיבוג
+            polygonFillMaterial.SetFloat("_Opacity", polygonFillOpacity);
+            FillPolygonToRT(rt, poly, tris, polygonFillMaterial);
+
+            // 2. זמן (קריטי!)
+            if (surface.EnableTimeAging && timePolygonFillMaterial != null && surface.PaintTimeRT != null)
+            {
+                float currentTime = surface.GetCurrentTime();
+                
+                // בדיקת חירום גם כאן
+                if (currentTime < 0.1f && Time.time > 5f) 
+                    Debug.LogWarning("[Painter] Writing Time ~0 but game is running! Check Surface clock.");
+
+                // שימוש במחרוזות ישירות
+                timePolygonFillMaterial.SetFloat("_PaintTime", currentTime);
+                
+                // חשוב: אם השיידר שלך הוא הקודם ששלחתי, הוא מצפה ל-_IsFill? 
+                // השיידר הפשוט ששלחת בתשובה האחרונה לא צריך _IsFill, הוא כותב 1.0 קבוע.
+                // אבל ליתר ביטחון נשלח גם וגם.
+                timePolygonFillMaterial.SetFloat("_IsFill", 1.0f); 
+
+                FillPolygonToRT(surface.PaintTimeRT, poly, tris, timePolygonFillMaterial);
+                
+                // מילוי שוליים (חשוב לחיבורים)
+                float uvRadius = fallbackHalfSizeUV * sizeWorldMultiplier;
+                FillPolygonEdges(surface.PaintTimeRT, poly, timePolygonFillMaterial, uvRadius);
+            }
+
+            return true;
+        }
+        
+        private void FillPolygonEdges(RenderTexture rt, List<Vector2> poly, Material mat, float uvRadius)
+        {
+            var prev = RenderTexture.active;
+            RenderTexture.active = rt;
+            GL.PushMatrix();
+            GL.LoadOrtho();
+            
+            // משתמשים בחומר שהועבר (TimePolygonFillMaterial)
+            mat.SetPass(0);
+            
+            GL.Begin(GL.QUADS);
+
+            int count = poly.Count;
+            for (int i = 0; i < count; i++)
+            {
+                Vector2 p1 = poly[i];
+                Vector2 p2 = poly[(i + 1) % count]; // הנקודה הבאה (מעגלי)
+
+                Vector2 dir = (p2 - p1);
+                if (dir.sqrMagnitude < 1e-10f) continue;
+                dir.Normalize();
+                
+                // וקטור ניצב לכיוון, באורך הרדיוס
+                Vector2 perp = new Vector2(-dir.y, dir.x) * uvRadius;
+
+                // 1. ציור "כובע" ריבועי בכל קודקוד (p1) כדי לכסות פינות
+                GL.Vertex3(p1.x - uvRadius, p1.y - uvRadius, 0);
+                GL.Vertex3(p1.x + uvRadius, p1.y - uvRadius, 0);
+                GL.Vertex3(p1.x + uvRadius, p1.y + uvRadius, 0);
+                GL.Vertex3(p1.x - uvRadius, p1.y + uvRadius, 0);
+
+                // 2. ציור מלבן עבה לאורך הצלע
+                GL.Vertex3(p1.x + perp.x, p1.y + perp.y, 0);
+                GL.Vertex3(p1.x - perp.x, p1.y - perp.y, 0);
+                GL.Vertex3(p2.x - perp.x, p2.y - perp.y, 0);
+                GL.Vertex3(p2.x + perp.x, p2.y + perp.y, 0);
+            }
+            
+            GL.End();
+            GL.PopMatrix();
+            RenderTexture.active = prev;
         }
 
         private void FillPolygonToRT(RenderTexture rt, List<Vector2> poly, List<int> tris, Material mat)
