@@ -165,14 +165,14 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             Graphics.Blit(_tempRT, rt);
 
             // Paint TIME (trail = isFill false)
-            PaintTimeAtUV(_currentSurface, uvCenter, halfSizeUV.x, 1f, false);
+            PaintTimeAtUV(_currentSurface, uvCenter, halfSizeUV, 1f, false);
         }
 
         /// <summary>
         /// Paint time data to the time texture.
         /// isFill = true writes G=1 (fill), isFill = false writes G=0 (trail)
         /// </summary>
-        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity, bool isFill)
+        private void PaintTimeAtUV(SimplePaintSurface surface, Vector2 uvCenter, Vector2 halfSizeUV, float opacity, bool isFill)
         {
             if (!surface.EnableTimeAging || timeBrushBlitMaterial == null)
                 return;
@@ -184,7 +184,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             float currentTime = surface.GetCurrentTime();
 
             timeBrushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
-            timeBrushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
+            timeBrushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
             timeBrushBlitMaterial.SetFloat("_BrushOpacity", opacity);
             timeBrushBlitMaterial.SetFloat("_PaintTime", currentTime);
             timeBrushBlitMaterial.SetFloat("_IsFill", isFill ? 1f : 0f);
@@ -247,7 +247,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         /// </summary>
         public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter)
         {
-            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f, false);
+            PaintAtUV(surface, uvCenter, new Vector2(fallbackHalfSizeUV, fallbackHalfSizeUV), 1f, false);
         }
 
         /// <summary>
@@ -255,7 +255,8 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         /// </summary>
         public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
         {
-            PaintAtUV(surface, uvCenter, halfSizeUV, opacity, false);
+            Vector2 halfSizeVector = new Vector2(halfSizeUV, halfSizeUV);
+            PaintAtUV(surface, uvCenter, halfSizeVector, opacity, false);
         }
 
         /// <summary>
@@ -263,7 +264,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         /// isFill = true: writes G=1 (for filled areas, uses MaxAgeFill)
         /// isFill = false: writes G=0 (for trails, uses MaxAge)
         /// </summary>
-        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity, bool isFill)
+        public void PaintAtUV(SimplePaintSurface surface, Vector2 uvCenter, Vector2 halfSizeUV, float opacity, bool isFill)
         {
             if (surface == null || brushBlitMaterial == null)
                 return;
@@ -274,18 +275,18 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
                 return;
 
             UpdatePaintColor();
-
-            halfSizeUV = Mathf.Max(0.00001f, halfSizeUV);
+            
+            halfSizeUV.x = Mathf.Max(0.00001f, halfSizeUV.x);
+            halfSizeUV.y = Mathf.Max(0.00001f, halfSizeUV.y);
             opacity = Mathf.Clamp01(opacity);
             
             float currentTime = surface.GetCurrentTime();
 
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
-            brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV, halfSizeUV, 0, 0));
-            brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
+            brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));            brushBlitMaterial.SetFloat("_BrushOpacity", opacity);
             brushBlitMaterial.SetFloat("_CornerRadius", cornerRadius);
             
-            brushBlitMaterial.SetTexture("_TimeTex", timeRT); // קריטי!
+            brushBlitMaterial.SetTexture("_TimeTex", timeRT);
             brushBlitMaterial.SetFloat("_PaintTime", currentTime);
             brushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
             
@@ -306,7 +307,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         /// </summary>
         public void PaintFillAtUV(SimplePaintSurface surface, Vector2 uvCenter, float halfSizeUV, float opacity)
         {
-            PaintAtUV(surface, uvCenter, halfSizeUV, opacity, true);
+            PaintAtUV(surface, uvCenter, new Vector2(halfSizeUV,halfSizeUV), opacity, true);
         }
 
         /// <summary>
@@ -314,7 +315,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         /// </summary>
         public void PaintFillAtUV(SimplePaintSurface surface, Vector2 uvCenter)
         {
-            PaintAtUV(surface, uvCenter, fallbackHalfSizeUV, 1f, true);
+            PaintAtUV(surface, uvCenter, new Vector2(fallbackHalfSizeUV,fallbackHalfSizeUV), 1f, true);
         }
 
         // ========== Polygon Fill ==========
@@ -366,9 +367,8 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             UpdatePaintColor();
             
-            // Fill COLOR texture
-            polygonFillMaterial.SetColor(FillColorId, new Color(0f, 1f, 0f, 1f));
-            //polygonFillMaterial.SetColor(FillColorId, _currentPaintColor);
+            // Fill COLOR texture – use current paint color (same as physical polygon / ability color)
+            polygonFillMaterial.SetColor(FillColorId, _currentPaintColor);
             polygonFillMaterial.SetFloat(OpacityId, polygonFillOpacity);
             FillPolygonToRT(rt, poly, tris, polygonFillMaterial);
 
