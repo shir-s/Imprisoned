@@ -26918,28 +26918,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  levelSceneBuildIndices: 0200000003000000
-  winCutsceneSceneBuildIndices: 
-  ifNoWinCutsceneLoadNextLevel: 1
-  usePerLevelWinCutsceneScenes: 1
-  loopToFirstLevelIfNoNext: 0
-  autoDetectCurrentLevelFromActiveScene: 1
+  isMainMenu: 0
+  mainMenuNextScene: 4
+  pressAnyKeyText: Press Any Key to Start
+  playBackgroundMusic: 1
   gameOverSceneBuildIndex: 0
-  winSceneBuildIndex: 1
-  gameOverSceneName: GameOver
-  winSceneName: Win
+  useLoadingScreenForGameOver: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  listenToWinEvent: 1
+  useLoadingScreenForWin: 1
+  winScenesToLoad: 
+  postLevelCutsceneBuildIndex: -1
+  gameOverPortalScenesToLoad: 0500000006000000
+  gameOverPortalFirstSceneIndex: 0
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
   winSceneLoadDelay: 2
   pauseGameplayOnWin: 0
+  debugLogs: 1
   gameOverKey: 114
   winKey: 116
-  debugLogs: 1
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -91285,6 +91285,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5f50945afcbc424baccf5e3e4fef1f1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
+  scaleTarget: {fileID: 0}
   uniformScale: 1
   minSize: 0.2
   maxSize: 3
