@@ -7,8 +7,8 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: TimeBrush_Mat
-  m_Shader: {fileID: 4800000, guid: 500d637309a5932449bfa6f240a7ad85, type: 3}
+  m_Name: timer effect
+  m_Shader: {fileID: -6465566751694194690, guid: 5fbfdb760652c4a2999ce6b0fdf870c4, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -64,8 +64,16 @@ Material:
         m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _SampleTexture2D_63f8dad86b384f73ad22146688ee2d25_Texture_1_Texture2D:
+        m_Texture: {fileID: 2800000, guid: 26b2bb5eef2aa4ed78598af24b506f87, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _effecttexture:
+        m_Texture: {fileID: 2800000, guid: 26b2bb5eef2aa4ed78598af24b506f87, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
@@ -87,12 +95,9 @@ Material:
     - _AlphaToMask: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BrushHardness: 0.5
-    - _BrushOpacity: 1
     - _BumpScale: 1
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
-    - _CornerRadius: 1
     - _Cull: 2
     - _Cutoff: 0.5
     - _DetailAlbedoMapScale: 1
@@ -103,12 +108,11 @@ Material:
     - _GlossMapScale: 0
     - _Glossiness: 0
     - _GlossyReflections: 0
-    - _IsFill: 0
-    - _MaxAge: 10
     - _Metallic: 0
     - _OcclusionStrength: 1
-    - _PaintTime: 3.1894622
+    - _Opacity: 1
     - _Parallax: 0.005
+    - _QueueControl: 0
     - _QueueOffset: 0
     - _ReceiveShadows: 1
     - _Smoothness: 0.5
@@ -122,14 +126,15 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _BrushCenter: {r: 0.6532036, g: 0.37175542, b: 0, a: 0}
-    - _BrushHalfSize: {r: 0.023095965, g: 0.023095965, b: 0, a: 0}
+    - _CastColor: {r: 1.646887, g: 1.646887, b: 1.646887, a: 1}
+    - _CastSpeed: {r: 0, g: -0.05, b: 0, a: 0}
+    - _Casttilling: {r: 3, g: 2, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &1541404942057104339
+--- !u!114 &7714499708513274803
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
