@@ -18783,28 +18783,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
-  levelSceneBuildIndices: 020000000300000004000000
-  winCutsceneSceneBuildIndices: 050000000500000006000000
-  ifNoWinCutsceneLoadNextLevel: 1
-  usePerLevelWinCutsceneScenes: 1
-  loopToFirstLevelIfNoNext: 0
-  autoDetectCurrentLevelFromActiveScene: 1
+  isMainMenu: 0
+  mainMenuNextScene: 4
+  playBackgroundMusic: 1
+  nextSceneBuildIndex: -1
+  useInstantTransition: 1
   gameOverSceneBuildIndex: 0
-  winSceneBuildIndex: 1
-  gameOverSceneName: GameOver
-  winSceneName: Win
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  listenToWinEvent: 1
+  gameOverPortalDestination: -1
   winFxRoot: {fileID: 128629144}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
-  winSceneLoadDelay: 2
+  winFxDelay: 0
   pauseGameplayOnWin: 0
+  debugLogs: 1
   gameOverKey: 114
   winKey: 116
-  debugLogs: 1
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -25498,11 +25494,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   requiredDeaths: 7
-  meshOnThisObject: {fileID: 821623315}
-  meshOnChildObject: {fileID: 857962080}
-  additionalRenderers: []
-  gameObjectsToToggle:
-  - {fileID: 2437890829655878560}
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  releaseDelay: 1
+  hidePlayerAfterGrabDelay: 0.5
+  releaseBoolName: release
+  deactivateAfterReleaseDelay: 1
+  portalParticlesRoot: {fileID: 0}
+  particleFadeDelay: 2
   winFxRoot: {fileID: 727996361}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -81674,10 +81675,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   requiredDeaths: 4
-  meshOnThisObject: {fileID: 0}
-  meshOnChildObject: {fileID: 0}
-  additionalRenderers: []
-  gameObjectsToToggle: []
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  releaseDelay: 1
+  hidePlayerAfterGrabDelay: 0.5
+  releaseBoolName: release
+  deactivateAfterReleaseDelay: 1
+  portalParticlesRoot: {fileID: 0}
+  particleFadeDelay: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -82298,8 +82305,8 @@ Transform:
   m_GameObject: {fileID: 2437890829655878560}
   serializedVersion: 2
   m_LocalRotation: {x: 0.70698005, y: 0.70698005, z: -0.013389464, w: -0.013389464}
-  m_LocalPosition: {x: 0.52, y: 2.3731444, z: -0.14}
-  m_LocalScale: {x: 0.7006314, y: 0.5993258, z: 0.70046115}
+  m_LocalPosition: {x: -0.01, y: 2.3731444, z: -0.11}
+  m_LocalScale: {x: 1.0721762, y: 0.91714823, z: 1.0719157}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 3481801202206618170}

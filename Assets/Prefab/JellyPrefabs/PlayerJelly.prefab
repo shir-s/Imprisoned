@@ -5503,8 +5503,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4f1c4fd8be3cb4c41abfb20757c814f2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StrokeTrailAnalyzer
-  closureMaxDistance: 0.6
-  minLoopIndexSeparation: 10
+  closureMaxDistance: 0.8
+  minLoopIndexSeparation: 30
   useEdgePairsForClosure: 1
   consumeHistoryUpToClosurePoint: 1
   ageConsumedTrailSection: 1
