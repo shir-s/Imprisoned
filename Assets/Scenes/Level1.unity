@@ -30520,13 +30520,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   requiredDeaths: 5
-  meshOnThisObject: {fileID: 1604427324014506475}
-  meshOnChildObject: {fileID: 8978657641268886434}
-  additionalRenderers: []
-  gameObjectsToToggle: []
-  freezeOnWin: 1
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  releaseDelay: 1
+  hidePlayerAfterGrabDelay: 0.5
+  releaseBoolName: release
+  deactivateAfterReleaseDelay: 1
+  portalParticlesRoot: {fileID: 0}
+  particleFadeDelay: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -32132,9 +32135,9 @@ MonoBehaviour:
   rightKey: 275
   horizontalAxisName: Horizontal
   verticalAxisName: Vertical
-  responseCurve: 2
-  controllerSensitivity: 1.5
-  controllerDeadzone: 0.1
+  responseCurve: 3
+  controllerSensitivity: 2
+  controllerDeadzone: 0.003
   invertVertical: 0
   inputForward: {x: 0, y: 0, z: 1}
   maxTiltDeg: 10
