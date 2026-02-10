@@ -36,7 +36,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
         [SerializeField, Range(0f, 1f)] private float brushHardness = 0.5f;
         [SerializeField] private float opacityPerMeter = 5.0f;
         [SerializeField] private Color brushColor = Color.black;
-        [SerializeField, Range(0f, 1f)] private float cornerRadius = 0.2f;
+        [SerializeField, Range(0f, 1f)] private float cornerRadius = 1f;
 
         [Header("Time Painting (for aging)")]
         [Tooltip("Material using TimeBrushBlit.shader")]
@@ -227,7 +227,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
             
             // פרמטרים נוספים למקרה שהשיידר צריך אותם
             timeBrushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
-            timeBrushBlitMaterial.SetFloat("_CornerRadius", 0.2f); // ערך קבוע לביטחון
+            timeBrushBlitMaterial.SetFloat("_CornerRadius", cornerRadius); // ערך קבוע לביטחון
             
             EnsureTemp(timeRT, ref _tempTimeRT);
             timeBrushBlitMaterial.SetTexture("_MainTex", timeRT);
