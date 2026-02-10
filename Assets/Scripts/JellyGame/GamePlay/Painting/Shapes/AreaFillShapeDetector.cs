@@ -237,7 +237,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
         // ===================== Shape Handling =====================
 
-        public bool TryHandleShape(StrokeLoopSegment seg)
+public bool TryHandleShape(StrokeLoopSegment seg)
         {
             if (paintSurfaces == null || paintSurfaces.Count == 0 || painter == null || seg.history == null)
                 return false;
@@ -253,7 +253,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 return false;
 
             // Optional: build TWO world-space polygons from stroke edge pairs (left & right)
-            // The outer polygon closure uses parallel point matching instead of straight line back to start
             List<Vector3> worldInnerPolyPoints = null;
             List<Vector3> worldOuterPolyPoints = null;
             bool haveEdgePolys = useStrokeEdgeInnerOuter && TryBuildEdgeWorldPolygonsWithParallelClosure(
@@ -261,10 +260,8 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 out worldInnerPolyPoints, 
                 out worldOuterPolyPoints);
 
-            // Collect fill data for each surface that intersects with the polygon
             List<SurfaceFillData> surfaceFillDatas = new List<SurfaceFillData>();
 
-            // We will paint using the SMALLER polygon (shader fill), but spawn gameplay zones using the BIGGER polygon (colliders).
             bool haveAbilityPolys = false;
             SimplePaintSurface abilitySurface = null;
             List<Vector2> abilityColliderPolyXZ = null;
@@ -276,7 +273,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 if (surface == null)
                     continue;
 
-                // Prefer edge-based inner/outer if available; otherwise fall back to centerline polygon.
                 SurfaceFillData? fillSmall = null;
                 SurfaceFillData? fillBig = null;
 
@@ -305,7 +301,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
                 if (!fillSmall.HasValue || !fillBig.HasValue)
                 {
-                    // fallback (single polygon)
                     SurfaceFillData? fallback = BuildSurfaceFillData(surface, worldCenterPolyPoints);
                     if (fallback.HasValue)
                     {
@@ -316,34 +311,45 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
                 if (fillSmall.HasValue && fillBig.HasValue)
                 {
-                    // Choose fill polygon based on setting
-                    var fillPolygonToUse = fillUsesOuterPolygon ? fillBig.Value : fillSmall.Value;
-                    var colliderPolygonToUse = fillUsesOuterPolygon ? fillSmall.Value : fillBig.Value;
+                    // === MAJOR CHANGE HERE ===
+                    // Instead of separating them, we set both to use the BIG polygon.
+                    // This ensures full alignment between what the player sees and where they take damage.
                     
+                    var fillPolygonToUse = fillBig.Value;      // Visual = Big
+                    var colliderPolygonToUse = fillBig.Value;  // Physics = Big
+                    
+                    // (If you want the small one in the future, just change both to fillSmall.Value here)
+
+                    // Validation and fix check (Sanitization/Triangulation check)
                     List<Vector2> fixedColliderPoly;
                     var testTris = ZoneMeshBuilder.TriangulatePolygonXZ(colliderPolygonToUse.localPolyXZ, out fixedColliderPoly);
+                    
+                    // If the polygon was fixed (e.g., because it was twisted)
                     if (fixedColliderPoly != null && fixedColliderPoly != colliderPolygonToUse.localPolyXZ)
                     {
                         if (debugFillFailures)
-                            Debug.LogWarning("[AreaFill] Polygon was twisted! Using Convex Hull fix.");
+                            Debug.LogWarning("[AreaFill] Polygon was sanitized/fixed. Updating both visual and collider.");
+                            
                         SurfaceFillData fixedData = colliderPolygonToUse;
                         fixedData.localPolyXZ = fixedColliderPoly;
+                        
+                        // Recalculate UVs for the fixed polygon
                         List<Vector2> newUvPoly = new List<Vector2>();
                         foreach (var pt in fixedColliderPoly)
                         {
                             if (surface.TryLocalToPaintUV(new Vector3(pt.x, 0, pt.y), out Vector2 uv))
                                 newUvPoly.Add(uv);
                         }
-
                         fixedData.uvPoly = newUvPoly;
-                        //fillPolygonToUse = fixedData;
+
+                        // === Update both to the fixed version ===
+                        // Must update visual as well to avoid mismatch with the fixed collider
                         colliderPolygonToUse = fixedData;
+                        fillPolygonToUse = fixedData;
                     }
 
-                    // For painting, store the selected fill polygon
                     surfaceFillDatas.Add(fillPolygonToUse);
 
-                    // For ability/colliders, store the opposite polygon (once, from the first valid surface)
                     if (!haveAbilityPolys)
                     {
                         haveAbilityPolys = true;
@@ -365,7 +371,6 @@ namespace JellyGame.GamePlay.Painting.Shapes
             if (debugMultiSurface)
                 Debug.Log($"[AreaFill] Shape closed across {surfaceFillDatas.Count} surface(s).", this);
 
-            // Play sound once for the whole fill operation (with safeguard)
             try
             {
                 if (SoundManager.Instance != null)
@@ -375,33 +380,20 @@ namespace JellyGame.GamePlay.Painting.Shapes
                     {
                         SoundManager.Instance.PlaySound("CloseArea", this.transform);
                     }
-                    else if (debugFillFailures)
-                    {
-                        Debug.Log("[AreaFill] 'CloseArea' sound not found - skipping.", this);
-                    }
                 }
             }
-            catch (System.Exception ex)
-            {
-                if (debugFillFailures)
-                    Debug.LogWarning($"[AreaFill] Could not play CloseArea sound: {ex.Message}", this);
-            }
+            catch (System.Exception ex) {}
 
-            // Notify ability manager:
-            // - Fill polygon (SMALL) is used for "filled area" cost (self-damage).
-            // - Collider polygon (BIG) is used for gameplay zone spawning.
             if (PlayerAbilityManager.Instance != null && haveAbilityPolys && abilitySurface != null)
             {
                 PlayerAbilityManager.Instance.OnAreaFilled(abilitySurface, abilityFillPolyXZ, abilityColliderPolyXZ, abilityColliderBounds);
             }
             else if (PlayerAbilityManager.Instance != null && surfaceFillDatas.Count > 0)
             {
-                // Fallback if no edge polygons available
                 var firstData = surfaceFillDatas[0];
                 PlayerAbilityManager.Instance.OnAreaFilled(firstData.surface, firstData.localPolyXZ, firstData.localPolyXZ, firstData.localBounds);
             }
 
-            // NEW: Trigger a single "AreaClosed" event (once per closure)
             {
                 var evt = new EventManager.AreaClosedEventData
                 {
@@ -412,14 +404,12 @@ namespace JellyGame.GamePlay.Painting.Shapes
                 EventManager.TriggerEvent(EventManager.GameEvent.AreaClosed, evt);
             }
 
-            // Stop any existing fill routine
             if (_fillRoutine != null)
             {
                 StopCoroutine(_fillRoutine);
                 _fillRoutine = null;
             }
 
-            // Start filling all surfaces
             if (fillMode == AreaFillMode.ProgressiveAnimated)
             {
                 _fillRoutine = StartCoroutine(FillAllSurfacesProgressiveAsync(surfaceFillDatas));
