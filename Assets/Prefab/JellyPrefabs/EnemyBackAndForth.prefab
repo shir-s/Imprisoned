@@ -321,7 +321,7 @@ MonoBehaviour:
     attackPriority: 10
     customDetectionRadius: 3
     customAttackRadius: 1
-  detectionRadius: 5
+  detectionRadius: 8
   attackRadius: 1
   damagePerHit: 1
   hitCooldownSeconds: 1.5
@@ -361,6 +361,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 5186025473858150525}
     m_Modifications:
+    - target: {fileID: 958749961565029674, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d6ae825a3578b4e8fb8c1fba0e0a1c07, type: 2}
+    - target: {fileID: 1205484248250391125, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: a2a471e7bccef4f278f05443f8dae76f, type: 2}
     - target: {fileID: 4668239965172672434, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
       propertyPath: m_Name
       value: knight idle anim
@@ -417,6 +425,26 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6703950372452529186, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 42225d90e74554b9e87081ad0d4687e1, type: 2}
+    - target: {fileID: 6703950372452529186, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[5]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 42225d90e74554b9e87081ad0d4687e1, type: 2}
+    - target: {fileID: 6938833995981617819, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[1]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 42225d90e74554b9e87081ad0d4687e1, type: 2}
+    - target: {fileID: 7251584974203546032, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[2]'
+      value: 
+      objectReference: {fileID: 2100000, guid: d6ae825a3578b4e8fb8c1fba0e0a1c07, type: 2}
+    - target: {fileID: 8438894110984677834, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: 42225d90e74554b9e87081ad0d4687e1, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
