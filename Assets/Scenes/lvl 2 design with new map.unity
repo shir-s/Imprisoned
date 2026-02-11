@@ -13865,6 +13865,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   gameOverPortalDestination: 5
+  tutorialSceneBuildIndex: -1
   winFxRoot: {fileID: 128629144}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
@@ -13873,6 +13874,8 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 27
+  mainMenuBuildIndex: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -52100,6 +52103,7 @@ MonoBehaviour:
   requiredDeaths: 4
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
   hidePlayerAtGrabProgress: 0.7
