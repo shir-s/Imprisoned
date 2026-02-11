@@ -10083,6 +10083,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 379518775}
   m_Mesh: {fileID: -640656668151783752, guid: e22be7a72517c4b428984d7a1f3cf9fa, type: 3}
+--- !u!95 &382282906 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 183404963193744057, guid: 692d6e5fd5938454183c984fc0c98a15, type: 3}
+  m_PrefabInstance: {fileID: 322707434}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &389932815
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -11703,6 +11708,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1743450400}
+    - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1743450403}
   m_SourcePrefab: {fileID: 100100000, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
 --- !u!1 &535804473
 GameObject:
@@ -35923,6 +35931,7 @@ MonoBehaviour:
   requiredDeaths: 4
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
   hidePlayerAtGrabProgress: 0.7
@@ -37529,6 +37538,7 @@ MonoBehaviour:
   requiredDeaths: 7
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
   hidePlayerAtGrabProgress: 0.7
@@ -59260,6 +59270,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1598780732}
   m_Mesh: {fileID: -5010424131415906446, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
+--- !u!95 &1619743839 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 183404963193744057, guid: 692d6e5fd5938454183c984fc0c98a15, type: 3}
+  m_PrefabInstance: {fileID: 695874695019436273}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1624727286
 GameObject:
   m_ObjectHideFlags: 0
@@ -64154,6 +64169,11 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!95 &1628777171 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 183404963193744057, guid: 692d6e5fd5938454183c984fc0c98a15, type: 3}
+  m_PrefabInstance: {fileID: 1750881200}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &1639302214 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b2c61bafe883843528880d6536f62b32, type: 3}
@@ -65203,6 +65223,27 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
   m_PrefabInstance: {fileID: 527337105}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1743450403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1743450399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5039486c8f74fcb9194873c39eb59ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PrimeHitReaction
+  targetAnimators:
+  - {fileID: 1059411824}
+  - {fileID: 616229910}
+  - {fileID: 1628777171}
+  - {fileID: 382282906}
+  - {fileID: 2045342108}
+  - {fileID: 1619743839}
+  boolParamName: prime is attcked
+  effectDuration: 1.5
 --- !u!1 &1749619835
 GameObject:
   m_ObjectHideFlags: 0
@@ -82876,6 +82917,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2035751163}
   m_Mesh: {fileID: -8995197329246257236, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
+--- !u!95 &2045342108 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 183404963193744057, guid: 692d6e5fd5938454183c984fc0c98a15, type: 3}
+  m_PrefabInstance: {fileID: 175609915}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &2047687324
 GameObject:
   m_ObjectHideFlags: 0
