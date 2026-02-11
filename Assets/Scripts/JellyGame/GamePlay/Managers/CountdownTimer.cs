@@ -58,7 +58,8 @@ namespace JellyGame.GamePlay.Managers
                 return;
 
             // Always use real time (unscaled) so 120 seconds = 2 real minutes, regardless of Time.timeScale
-            _remaining -= Time.unscaledDeltaTime;
+            //_remaining -= Time.unscaledDeltaTime;
+            _remaining -= Time.deltaTime; // Using scaled time so that pausing the game also pauses the timer
             if (_remaining <= 0f)
             {
                 _remaining = 0f;
