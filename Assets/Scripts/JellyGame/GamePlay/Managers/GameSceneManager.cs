@@ -11,8 +11,8 @@ namespace JellyGame.GamePlay.Managers
     /// 
     /// Responsibilities:
     /// - On Start(), tell LoadingManager to preload the next scene in the background
-    /// - Listen for GameWin → transition to next scene (instant if preloaded, loading screen otherwise)
-    /// - Listen for EntityDied → trigger GameOver → transition to GameOver scene
+    /// - Listen for GameWin â†’ transition to next scene (instant if preloaded, loading screen otherwise)
+    /// - Listen for EntityDied â†’ trigger GameOver â†’ transition to GameOver scene
     /// - Play win FX before transitioning
     /// - Handle Main Menu "Press Any Key" flow
     /// 
@@ -34,10 +34,10 @@ namespace JellyGame.GamePlay.Managers
         [Header("Scene Flow")]
         [Tooltip("Build index of the NEXT scene after winning this level.\n" +
                  "Examples:\n" +
-                 "- Tutorial → Level 1 build index\n" +
-                 "- Level 1 → Cutscene 1 build index\n" +
-                 "- Level 3 → Win Scene build index\n" +
-                 "- Win Scene → Main Menu build index\n" +
+                 "- Tutorial â†’ Level 1 build index\n" +
+                 "- Level 1 â†’ Cutscene 1 build index\n" +
+                 "- Level 3 â†’ Win Scene build index\n" +
+                 "- Win Scene â†’ Main Menu build index\n" +
                  "Set to -1 to disable preloading.")]
         [SerializeField] private int nextSceneBuildIndex = -1;
 
@@ -49,13 +49,20 @@ namespace JellyGame.GamePlay.Managers
         [Tooltip("Build index of the GameOver scene.")]
         [SerializeField] private int gameOverSceneBuildIndex = 0;
 
-        [Tooltip("If an EntityDied event victim layer matches this mask → trigger GameOver.")]
+        [Tooltip("If an EntityDied event victim layer matches this mask â†’ trigger GameOver.")]
         [SerializeField] private LayerMask gameOverOnVictimLayers;
 
         [Header("Special Case: GameOver Scene Portal")]
         [Tooltip("When winning from the GameOver scene (portal), go to this scene.\n" +
                  "Usually Level 1. Set to -1 to use nextSceneBuildIndex instead.")]
         [SerializeField] private int gameOverPortalDestination = -1;
+
+        [Header("Tutorial Return Override")]
+        [Tooltip("Build index of the Tutorial scene.\n" +
+                 "If the player dies in this scene, the GameOver portal returns them here\n" +
+                 "instead of gameOverPortalDestination (Level 1).\n" +
+                 "Set to -1 to disable this override.")]
+        [SerializeField] private int tutorialSceneBuildIndex = -1;
 
         [Header("Win FX (Optional)")]
         [Tooltip("ROOT GameObject containing win particle systems.")]
@@ -83,6 +90,14 @@ namespace JellyGame.GamePlay.Managers
 
         private bool _winSequenceRunning;
 
+        // ===================== Static: Remember where the player died =====================
+        
+        /// <summary>
+        /// Build index of the scene where the player last died.
+        /// Set by OnGameOver(). Used by GameOver scene to decide return destination.
+        /// </summary>
+        public static int LastDeathSceneBuildIndex { get; private set; } = -1;
+
         // ===================== Lifecycle =====================
 
         private void Awake()
@@ -92,6 +107,19 @@ namespace JellyGame.GamePlay.Managers
 
         private void Start()
         {
+
+            // Override GameOver portal destination if player died in tutorial
+            if (tutorialSceneBuildIndex >= 0 && LastDeathSceneBuildIndex == tutorialSceneBuildIndex)
+            {
+                if (gameOverPortalDestination >= 0)
+                    gameOverPortalDestination = tutorialSceneBuildIndex;
+
+                nextSceneBuildIndex = tutorialSceneBuildIndex;
+
+                if (debugLogs)
+                    Debug.Log($"[GameSceneManager] Player died in Tutorial (scene {tutorialSceneBuildIndex}) -> portal returns to Tutorial.", this);
+            }
+
             PlayBackgroundMusic();
             StartPreloading();
         }
@@ -119,7 +147,7 @@ namespace JellyGame.GamePlay.Managers
             if (isMainMenu && Input.anyKeyDown)
             {
                 if (debugLogs)
-                    Debug.Log("[GameSceneManager] Main Menu: key pressed → loading next scene.", this);
+                    Debug.Log("[GameSceneManager] Main Menu: key pressed â†’ loading next scene.", this);
 
                 isMainMenu = false;
                 TransitionTo(mainMenuNextScene);
@@ -183,15 +211,18 @@ namespace JellyGame.GamePlay.Managers
                 return;
 
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] EntityDied on matching layer → GameOver.", this);
+                Debug.Log($"[GameSceneManager] EntityDied on matching layer â†’ GameOver.", this);
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
         }
 
         private void OnGameOver(object _)
         {
+            // Save which scene the player died in
+            LastDeathSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
+
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] GameOver → loading scene {gameOverSceneBuildIndex}", this);
+                Debug.Log($"[GameSceneManager] GameOver â†’ loading scene {gameOverSceneBuildIndex}", this);
 
             TransitionTo(gameOverSceneBuildIndex);
         }
@@ -221,7 +252,7 @@ namespace JellyGame.GamePlay.Managers
                 destination = gameOverPortalDestination;
 
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Win in GameOver scene → going to {destination}", this);
+                    Debug.Log($"[GameSceneManager] Win in GameOver scene â†’ going to {destination}", this);
             }
 
             if (destination < 0)
@@ -238,7 +269,7 @@ namespace JellyGame.GamePlay.Managers
             if (pauseGameplayOnWin)
                 Time.timeScale = 0f;
 
-            // Wait for FX — always use realtime because timeScale may be 0
+            // Wait for FX â€” always use realtime because timeScale may be 0
             if (delay > 0f)
             {
                 yield return new WaitForSecondsRealtime(delay);
@@ -247,7 +278,7 @@ namespace JellyGame.GamePlay.Managers
             // Always restore timeScale before transition
             Time.timeScale = 1f;
 
-            // Transition — try instant first, fall back to loading screen
+            // Transition â€” try instant first, fall back to loading screen
             TransitionTo(destination);
         }
 
@@ -270,15 +301,15 @@ namespace JellyGame.GamePlay.Managers
             if (useInstantTransition && LoadingManager.Instance.TryInstantTransition(buildIndex))
             {
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] ⚡ Instant transition to scene {buildIndex} (preload was ready).", this);
+                    Debug.Log($"[GameSceneManager] âš¡ Instant transition to scene {buildIndex} (preload was ready).", this);
                 return;
             }
 
-            // Preload not ready or instant disabled — use full loading screen
+            // Preload not ready or instant disabled â€” use full loading screen
             if (debugLogs)
             {
                 string reason = useInstantTransition ? "preload not ready" : "instant transition disabled";
-                Debug.Log($"[GameSceneManager] {reason} → using loading screen for scene {buildIndex}.", this);
+                Debug.Log($"[GameSceneManager] {reason} â†’ using loading screen for scene {buildIndex}.", this);
             }
 
             LoadingManager.Instance.TransitionToScene(buildIndex);
