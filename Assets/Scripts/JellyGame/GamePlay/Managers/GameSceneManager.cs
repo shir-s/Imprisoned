@@ -87,6 +87,8 @@ namespace JellyGame.GamePlay.Managers
         [Header("Cheat Codes (Optional)")]
         [SerializeField] private KeyCode gameOverKey = KeyCode.None;
         [SerializeField] private KeyCode winKey = KeyCode.None;
+        [SerializeField] private KeyCode mainMenuKey = KeyCode.None;
+        [SerializeField] private int mainMenuBuildIndex = 0;
 
         private bool _winSequenceRunning;
 
@@ -153,8 +155,17 @@ namespace JellyGame.GamePlay.Managers
                 TransitionTo(mainMenuNextScene);
                 return;
             }
+            
+            
 
             // Cheat codes
+            if (mainMenuKey != KeyCode.None && Input.GetKeyDown(mainMenuKey))
+            {
+                if (debugLogs) Debug.Log("[GameSceneManager] Returning to Main Menu.", this);
+                Time.timeScale = 1f;
+                TransitionTo(mainMenuBuildIndex);
+            }
+            
             if (gameOverKey != KeyCode.None && Input.GetKeyDown(gameOverKey))
             {
                 if (debugLogs) Debug.Log("[GameSceneManager] Cheat: GameOver", this);
