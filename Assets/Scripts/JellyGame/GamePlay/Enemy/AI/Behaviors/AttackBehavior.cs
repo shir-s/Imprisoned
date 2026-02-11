@@ -201,12 +201,13 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             // Get a damage receiver: try self, then parent, then children (handles collider on child / CubeScaler on parent)
             IDamageable dmg = _currentTarget.GetComponent<IDamageable>()
-                ?? _currentTarget.GetComponentInParent<IDamageable>()
-                ?? _currentTarget.GetComponentInChildren<IDamageable>();
+                              ?? _currentTarget.GetComponentInParent<IDamageable>()
+                              ?? _currentTarget.GetComponentInChildren<IDamageable>();
             if (dmg == null)
             {
                 if (debugLogs)
-                    Debug.Log($"[AttackBehavior] Target {_currentTarget.name} has no IDamageable, cannot deal damage.", this);
+                    Debug.Log($"[AttackBehavior] Target {_currentTarget.name} has no IDamageable, cannot deal damage.",
+                        this);
 
                 // If target isn't damageable, just stop attacking it.
                 ClearTarget();
@@ -216,15 +217,28 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             // Log which object we're actually damaging (the one with IDamageable - may be parent of _currentTarget)
             string damageTargetName = (dmg as MonoBehaviour) != null ? (dmg as MonoBehaviour).gameObject.name : "?";
             if (debugLogs)
-                Debug.Log($"[AttackBehavior] Hit {_currentTarget.name} for {damagePerHit} damage. (IDamageable on: {damageTargetName})", this);
+                Debug.Log(
+                    $"[AttackBehavior] Hit {_currentTarget.name} for {damagePerHit} damage. (IDamageable on: {damageTargetName})",
+                    this);
 
             dmg.ApplyDamage(damagePerHit);
             SoundManager.Instance.PlaySound("SlimeHit", transform);
-            
-            _nextHitTime = Time.time + Mathf.Max(0.01f, hitCooldownSeconds);
-            
-            EventManager.TriggerEvent(EventManager.GameEvent.PlayerDamaged, dmg);
 
+            _nextHitTime = Time.time + Mathf.Max(0.01f, hitCooldownSeconds);
+
+            MonoBehaviour hitObj = dmg as MonoBehaviour;
+            if (hitObj != null)
+            {
+                int hitLayer = hitObj.gameObject.layer;
+                if (hitLayer == LayerMask.NameToLayer("PaintingObject"))
+                {
+                    EventManager.TriggerEvent(EventManager.GameEvent.PlayerDamaged, dmg);
+                }
+                else if (hitLayer == LayerMask.NameToLayer("SlimePrime"))
+                {
+                    EventManager.TriggerEvent(EventManager.GameEvent.SlimePrimeDamaged, dmg);
+                }
+            }
         }
 
         public void OnExit()

@@ -48,6 +48,7 @@ namespace JellyGame.GamePlay.Managers
             // Pickups / misc
             PickupCollected,
             PlayerDamaged,
+            SlimePrimeDamaged,
 
             // Legacy JellyGameEvents equivalents
             FirstEnemyDied,      // data: null
