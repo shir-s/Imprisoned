@@ -37126,8 +37126,10 @@ MonoBehaviour:
   winFxDelay: 0
   pauseGameplayOnWin: 0
   debugLogs: 1
-  gameOverKey: 0
-  winKey: 0
+  gameOverKey: 114
+  winKey: 116
+  mainMenuKey: 27
+  mainMenuBuildIndex: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -74826,6 +74828,7 @@ MonoBehaviour:
   requiredDeaths: 1
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
   hidePlayerAtGrabProgress: 0.7
@@ -83085,7 +83088,7 @@ MonoBehaviour:
   target: {fileID: 1621034874765817570}
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
-  screenMargin: 0.3
+  screenMargin: 0.45
   followStrength: 1
   easingPower: 2
   easingSoftness: 0.6
