@@ -11703,6 +11703,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1743450400}
+    - targetCorrespondingSourceObject: {fileID: 3353931067793362981, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1743450403}
   m_SourcePrefab: {fileID: 100100000, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
 --- !u!1 &535804473
 GameObject:
@@ -65203,6 +65206,23 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
   m_PrefabInstance: {fileID: 527337105}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &1743450403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1743450399}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5039486c8f74fcb9194873c39eb59ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PrimeHitReaction
+  targetAnimators:
+  - {fileID: 1059411824}
+  - {fileID: 616229910}
+  boolParamName: prime is attcked
+  effectDuration: 1.5
 --- !u!1 &1749619835
 GameObject:
   m_ObjectHideFlags: 0
