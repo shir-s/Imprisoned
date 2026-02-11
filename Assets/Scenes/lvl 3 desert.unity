@@ -35925,12 +35925,10 @@ MonoBehaviour:
   playerTag: DrawingCube
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
-  releaseDelay: 1
-  hidePlayerAfterGrabDelay: 0.5
+  hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
-  deactivateAfterReleaseDelay: 1
   portalParticlesRoot: {fileID: 0}
-  particleFadeDelay: 2
+  particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -37533,12 +37531,10 @@ MonoBehaviour:
   playerTag: DrawingCube
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
-  releaseDelay: 1
-  hidePlayerAfterGrabDelay: 0.5
+  hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
-  deactivateAfterReleaseDelay: 1
   portalParticlesRoot: {fileID: 0}
-  particleFadeDelay: 2
+  particleFadeDuration: 2
   winFxRoot: {fileID: 65756140}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -40644,6 +40640,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1284582601}
+  - component: {fileID: 1284582602}
   m_Layer: 5
   m_Name: Timer bar
   m_TagString: Untagged
@@ -40672,6 +40669,22 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1284582602
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1284582600}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21949a1e1b114b18bea64c877285a0cd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.UI.TimerBarAnimation
+  countdownTimer: {fileID: 1592128409}
+  timerBaseRect: {fileID: 1059411821}
+  startY: -100.6
+  endY: -0.3
 --- !u!1 &1292317677
 GameObject:
   m_ObjectHideFlags: 0
