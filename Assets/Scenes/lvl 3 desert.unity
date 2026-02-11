@@ -35943,6 +35943,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -37550,6 +37551,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 1
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -52583,6 +52585,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1496926460}
   target: {fileID: 538818633}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -59102,7 +59105,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c44961ca841cec47a575afbbfdd50e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
-  durationSeconds: 10
+  durationSeconds: 120
   cameraShakeTime: 30
   startOnEnable: 1
   debugLogs: 0
