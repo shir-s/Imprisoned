@@ -213,6 +213,31 @@ namespace JellyGame.GamePlay.World.Finish
 
             StartCoroutine(GameWinEvent(other));
         }
+
+        /// <summary>
+        /// Force-activate the portal win sequence, bypassing trigger/layer/death-count checks.
+        /// Used by CutscenePortalSequence to programmatically trigger the portal after a cutscene.
+        /// Runs the full win sequence (freeze player, teleport slime animations, particle fade, GameWin).
+        /// </summary>
+        public void ForceActivatePortal()
+        {
+            if (_triggered && triggerOnce)
+            {
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] ForceActivatePortal: already triggered and triggerOnce is true. Ignoring.", this);
+                return;
+            }
+
+            _triggered = true;
+
+            if (debugLogs)
+                Debug.Log("[FinishTrigger] ForceActivatePortal called — starting win sequence.", this);
+
+            SoundManager.Instance.StopAllSounds();
+            SoundManager.Instance.PlaySound("Win", this.transform);
+
+            StartCoroutine(GameWinEvent(null));
+        }
         
         private bool IsWinConditionMet()
         {
