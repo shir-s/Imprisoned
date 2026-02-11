@@ -105,7 +105,23 @@ namespace JellyGame.GamePlay.Player
                 UpdateParticlesScale(current);
             }
         }
+        
+        private bool _onDisableLogged = false;
 
+        private void OnDisable()
+        {
+            if (!_dead && !_onDisableLogged)
+            {
+                _onDisableLogged = true;
+                Debug.LogWarning($"[CubeScaler] OnDisable (not from death!) on '{gameObject.name}' scene='{gameObject.scene.name}'\nStack: {System.Environment.StackTrace}", this);
+            }
+        }
+
+        private void OnDestroy()
+        {
+            Debug.Log($"[CubeScaler] OnDestroy on '{gameObject.name}' scene='{gameObject.scene.name}' dead={_dead}", this);
+        }
+        
         private void CacheHealthUiStartY()
         {
             if (healthImageRect == null)

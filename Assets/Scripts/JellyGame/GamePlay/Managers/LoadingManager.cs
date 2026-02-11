@@ -22,7 +22,7 @@ namespace JellyGame.GamePlay.Managers
     ///   isn't ready, or for transitions that don't have a preload (GameOver, Main Menu).
     ///
     /// Both paths share the same coroutine logic for neutralizing old scenes, activating the
-    /// new scene, and cleaning up — only the UI and wait steps differ.
+    /// new scene, and cleaning up â€” only the UI and wait steps differ.
     /// </summary>
     [DisallowMultipleComponent]
     public class LoadingManager : MonoBehaviour
@@ -72,7 +72,7 @@ namespace JellyGame.GamePlay.Managers
         private AsyncOperation _preloadOp = null;
         private int _preloadedBuildIndex = -1;
 
-        // The build index of the LoadingScreen scene itself — must never be unloaded
+        // The build index of the LoadingScreen scene itself â€” must never be unloaded
         private int _mySceneBuildIndex = -1;
 
         // Singleton
@@ -114,7 +114,7 @@ namespace JellyGame.GamePlay.Managers
                 DontDestroyOnLoad(loadingCanvas.gameObject);
 
                 if (debugLogs)
-                    Debug.Log("[LoadingManager] Canvas is root object — applied DontDestroyOnLoad.", this);
+                    Debug.Log("[LoadingManager] Canvas is root object â€” applied DontDestroyOnLoad.", this);
             }
 
             // Start hidden
@@ -150,7 +150,7 @@ namespace JellyGame.GamePlay.Managers
 
         /// <summary>
         /// Start preloading a scene in the background.
-        /// The scene will load to ~90% but NOT activate — nothing in it will run.
+        /// The scene will load to ~90% but NOT activate â€” nothing in it will run.
         /// Call TransitionToScene() or TryInstantTransition() later to switch to it.
         /// </summary>
         public void PreloadScene(int buildIndex)
@@ -195,8 +195,8 @@ namespace JellyGame.GamePlay.Managers
 
         /// <summary>
         /// Try to switch to the preloaded scene INSTANTLY (no loading screen).
-        /// Returns true if the scene was preloaded and ready — transition starts immediately.
-        /// Returns false if not ready — caller should use TransitionToScene() instead.
+        /// Returns true if the scene was preloaded and ready â€” transition starts immediately.
+        /// Returns false if not ready â€” caller should use TransitionToScene() instead.
         /// </summary>
         public bool TryInstantTransition(int buildIndex)
         {
@@ -221,7 +221,7 @@ namespace JellyGame.GamePlay.Managers
             }
 
             if (debugLogs)
-                Debug.Log($"[LoadingManager] ⚡ Instant transition to scene {buildIndex} (preload ready!)", this);
+                Debug.Log($"[LoadingManager] âš¡ Instant transition to scene {buildIndex} (preload ready!)", this);
 
             StartCoroutine(TransitionCoroutine(buildIndex, showLoadingScreen: false));
             return true;
@@ -336,7 +336,7 @@ namespace JellyGame.GamePlay.Managers
                             Debug.Log($"[LoadingManager] Scene {buildIndex} ready at {totalElapsed:F2}s.", this);
                     }
 
-                    // Animate fill: 0% → 100% over minimumDisplayTime
+                    // Animate fill: 0% â†’ 100% over minimumDisplayTime
                     float displayProgress;
 
                     if (minimumDisplayTime > 0f)
@@ -388,7 +388,7 @@ namespace JellyGame.GamePlay.Managers
                     Debug.Log($"[LoadingManager] Instant: scene ready ({Time.realtimeSinceStartup - transitionStartTime:F2}s).", this);
             }
 
-            // ---- STEP 4: (Optional) Wait for user input — only with loading screen ----
+            // ---- STEP 4: (Optional) Wait for user input â€” only with loading screen ----
 
             if (showLoadingScreen && waitForUserInput)
             {
@@ -412,7 +412,7 @@ namespace JellyGame.GamePlay.Managers
 
             // ---- STEP 5: Neutralize old scenes ----
             // Destroy players and disable ALL objects. After this, old scenes are functionally
-            // dead — no scripts run, no singletons exist, no rendering.
+            // dead â€” no scripts run, no singletons exist, no rendering.
 
             List<Scene> scenesToUnload = CollectOldScenes(buildIndex);
 
@@ -429,10 +429,69 @@ namespace JellyGame.GamePlay.Managers
                     Debug.Log($"[LoadingManager]   Neutralized: {scene.name} (build {scene.buildIndex})", this);
             }
 
+            // ---- STEP 5.5: Clean up orphaned preload BEFORE activating target scene ----
+            // CRITICAL: Unity queues LoadSceneAsync operations. An earlier operation sitting at
+            // allowSceneActivation=false BLOCKS ALL subsequent async operations from completing
+            // (isDone stays false forever). We MUST activate and dispose of the orphan first,
+            // otherwise the target scene's loadOp.isDone will never become true and the
+            // transition coroutine hangs forever.
+
+            if (orphanedOp != null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Cleaning up orphaned scene {orphanedBuildIndex} (must clear before target can activate)...", this);
+
+                // Register a sceneLoaded callback to neutralize the orphaned scene IMMEDIATELY
+                // when it activates. sceneLoaded fires after Awake() but before Start(), so
+                // deactivating all root objects prevents Start() from running on any scripts
+                // (GameSceneManager, LoadingScreenInitializer, player spawners, etc.).
+                int orphanIdx = orphanedBuildIndex;
+                UnityEngine.Events.UnityAction<Scene, LoadSceneMode> neutralizeOrphan = null;
+                neutralizeOrphan = (scene, mode) =>
+                {
+                    if (scene.buildIndex == orphanIdx)
+                    {
+                        foreach (GameObject obj in scene.GetRootGameObjects())
+                            obj.SetActive(false);
+
+                        SceneManager.sceneLoaded -= neutralizeOrphan;
+
+                        if (debugLogs)
+                            Debug.Log($"[LoadingManager] Orphan scene {orphanIdx} ({scene.name}) neutralized on activation (before Start).", this);
+                    }
+                };
+                SceneManager.sceneLoaded += neutralizeOrphan;
+
+                orphanedOp.allowSceneActivation = true;
+
+                while (!orphanedOp.isDone)
+                    yield return null;
+
+                // Safety: unsubscribe in case the callback didn't fire
+                SceneManager.sceneLoaded -= neutralizeOrphan;
+
+                Scene orphanedScene = SceneManager.GetSceneByBuildIndex(orphanedBuildIndex);
+                if (orphanedScene.isLoaded)
+                {
+                    DestroyPlayersInScene(orphanedScene);
+
+                    // Objects should already be deactivated by the callback above,
+                    // but do it again as a safety net.
+                    foreach (GameObject obj in orphanedScene.GetRootGameObjects())
+                        obj.SetActive(false);
+
+                    if (!scenesToUnload.Contains(orphanedScene))
+                        scenesToUnload.Add(orphanedScene);
+                }
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Orphan scene {orphanedBuildIndex} cleaned up. Async queue unblocked.", this);
+            }
+
             // ---- STEP 6: Activate the new scene ----
             // CRITICAL: Use sceneLoaded callback to set active scene BEFORE Start() runs.
             // Without this, Instantiate() in Start() (e.g. PlayerSpawner) places objects
-            // in the OLD active scene, which then gets unloaded — destroying the player.
+            // in the OLD active scene, which then gets unloaded â€” destroying the player.
 
             if (debugLogs)
                 Debug.Log($"[LoadingManager] Activating scene {buildIndex}...", this);
@@ -479,32 +538,7 @@ namespace JellyGame.GamePlay.Managers
                 }
             }
 
-            // ---- STEP 7: Clean up orphaned preload (if any) ----
-
-            if (orphanedOp != null)
-            {
-                if (debugLogs)
-                    Debug.Log($"[LoadingManager] Cleaning up orphaned scene {orphanedBuildIndex}...", this);
-
-                orphanedOp.allowSceneActivation = true;
-
-                while (!orphanedOp.isDone)
-                    yield return null;
-
-                Scene orphanedScene = SceneManager.GetSceneByBuildIndex(orphanedBuildIndex);
-                if (orphanedScene.isLoaded)
-                {
-                    DestroyPlayersInScene(orphanedScene);
-
-                    foreach (GameObject obj in orphanedScene.GetRootGameObjects())
-                        obj.SetActive(false);
-
-                    if (!scenesToUnload.Contains(orphanedScene))
-                        scenesToUnload.Add(orphanedScene);
-                }
-            }
-
-            // ---- STEP 8: Hide loading screen — new scene becomes visible ----
+            // ---- STEP 8: Hide loading screen â€” new scene becomes visible ----
 
             Time.timeScale = 1f;
 
@@ -597,12 +631,22 @@ namespace JellyGame.GamePlay.Managers
             if (!scene.IsValid() || !scene.isLoaded)
                 return;
 
-            foreach (GameObject player in GameObject.FindGameObjectsWithTag("DrawingCube"))
+            GameObject[] allPlayers = GameObject.FindGameObjectsWithTag("DrawingCube");
+    
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] DestroyPlayersInScene({scene.name}): Found {allPlayers.Length} DrawingCube object(s) total", this);
+
+            foreach (GameObject player in allPlayers)
             {
-                if (player != null && player.scene == scene)
+                if (player == null) continue;
+        
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager]   Found: '{player.name}' in scene '{player.scene.name}' (build {player.scene.buildIndex}). Target scene: '{scene.name}' (build {scene.buildIndex}). Match={player.scene == scene}", this);
+
+                if (player.scene == scene)
                 {
                     if (debugLogs)
-                        Debug.Log($"[LoadingManager]   Destroying player: {player.name} in {scene.name}", this);
+                        Debug.Log($"[LoadingManager]   >>> DESTROYING player: {player.name} in {scene.name}", this);
 
                     Destroy(player);
                 }

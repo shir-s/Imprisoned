@@ -58,8 +58,16 @@ namespace JellyGame.GamePlay.Abilities
         {
             if (Instance != null && Instance != this)
             {
-                Destroy(gameObject);
-                return;
+                // FIX: Only destroy self if the existing instance is actually alive and active.
+                // During scene transitions, an orphaned/deactivated instance from another scene
+                // may still be referenced. In that case, replace it instead of destroying ourselves.
+                if (Instance.gameObject.activeInHierarchy)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+        
+                // Existing instance is dead/inactive — take over
             }
 
             Instance = this;
