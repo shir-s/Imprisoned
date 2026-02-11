@@ -241,10 +241,6 @@ namespace JellyGame.UI.Tutorial
         private readonly List<BehaviourState> _startDisabledSnapshot = new List<BehaviourState>();
 
         // ===================== FIX: Track temporarily disabled behaviours during intro moves =====================
-        /// <summary>
-        /// Tracks behaviours that were temporarily disabled during intro moves.
-        /// This ensures they are ALWAYS restored, even if the coroutine is stopped mid-execution.
-        /// </summary>
         private readonly List<BehaviourState> _introMoveDisabledBehaviours = new List<BehaviourState>();
 
         private void Start()
@@ -281,7 +277,6 @@ namespace JellyGame.UI.Tutorial
 
         public void StartTutorial()
         {
-            // FIX: Restore any temporarily disabled behaviours before stopping routines
             RestoreIntroMoveDisabledBehaviours();
             
             if (_flowRoutine != null) StopCoroutine(_flowRoutine);
@@ -337,7 +332,6 @@ namespace JellyGame.UI.Tutorial
             if (_state != FlowState.ShowingWindow) return;
             if (_currentIndex < 0 || _currentIndex >= WindowCount) return;
 
-            // FIX: Restore any temporarily disabled behaviours before stopping the previous routine
             RestoreIntroMoveDisabledBehaviours();
             
             if (_skipFlowRoutine != null) StopCoroutine(_skipFlowRoutine);
@@ -348,18 +342,12 @@ namespace JellyGame.UI.Tutorial
         {
             int completedIndex = _currentIndex;
 
-            // Hide the window immediately (so intro move doesn't happen "behind" the window)
             HideWindowAtIndex(completedIndex);
-
-            // Apply "complete" actions (this is where you might activate the enemy, enable scripts, etc.)
             ApplyWindowCompleteScriptActions(completedIndex);
-            
             TryClearPaintForSkippedWindow(completedIndex);
             
-            // Make sure enemy is active BEFORE moving so it is visible while moving
             yield return PlayWindowIntroMovesOnCompleteIfAny(completedIndex);
 
-            // Continue the normal flow
             if (TryStartGateForCurrentWindow()) { _skipFlowRoutine = null; yield break; }
             AdvanceToNextWindowOrFinish();
 
@@ -374,7 +362,6 @@ namespace JellyGame.UI.Tutorial
             WindowGate gate = GetGate(_currentIndex);
             if (gate == null || !gate.enabled) return false;
 
-            // window already hidden in SkipCurrentWindowFlow, but keep this safe
             HideWindowAtIndex(_currentIndex);
 
             if (gate.activateObjectOnGateStart != null) gate.activateObjectOnGateStart.SetActive(true);
@@ -498,7 +485,6 @@ namespace JellyGame.UI.Tutorial
             _state = FlowState.Idle;
             _currentIndex = -1;
 
-            // FIX: Restore any temporarily disabled behaviours before stopping routines
             RestoreIntroMoveDisabledBehaviours();
 
             if (_gateRoutine != null) { StopCoroutine(_gateRoutine); _gateRoutine = null; }
@@ -657,15 +643,10 @@ namespace JellyGame.UI.Tutorial
 
         // ===================== FIX: Methods to track and restore temporarily disabled behaviours =====================
         
-        /// <summary>
-        /// Tracks a behaviour that was temporarily disabled during an intro move.
-        /// This allows it to be restored even if the coroutine is interrupted.
-        /// </summary>
         private void TrackIntroMoveDisabledBehaviour(Behaviour b, bool wasEnabled)
         {
             if (b == null) return;
             
-            // Avoid duplicates
             for (int i = 0; i < _introMoveDisabledBehaviours.Count; i++)
             {
                 if (_introMoveDisabledBehaviours[i].b == b)
@@ -678,9 +659,6 @@ namespace JellyGame.UI.Tutorial
                 Debug.Log($"[Tutorial] Tracked disabled behaviour '{b.GetType().Name}' on '{b.gameObject.name}' (wasEnabled={wasEnabled})", this);
         }
 
-        /// <summary>
-        /// Removes a behaviour from tracking (called when it's successfully restored within the coroutine).
-        /// </summary>
         private void UntrackIntroMoveDisabledBehaviour(Behaviour b)
         {
             if (b == null) return;
@@ -699,10 +677,6 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
-        /// <summary>
-        /// Restores ALL temporarily disabled behaviours that were tracked.
-        /// Called before stopping coroutines to ensure no behaviours are left disabled.
-        /// </summary>
         private void RestoreIntroMoveDisabledBehaviours()
         {
             if (_introMoveDisabledBehaviours.Count == 0)
@@ -738,7 +712,6 @@ namespace JellyGame.UI.Tutorial
                 if (a == null || a.windowIndex != windowIndex || a.target == null)
                     continue;
 
-                // Ensure the enemy is ACTIVE (including parents) BEFORE moving
                 GameObject goToActivate =
                     a.activateBeforeMove != null
                         ? a.activateBeforeMove
@@ -752,7 +725,7 @@ namespace JellyGame.UI.Tutorial
                         Debug.Log($"[Tutorial] Activated '{goToActivate.name}' before intro move (target='{a.target.name}').", this);
 
                     if (a.waitOneFrameAfterActivate)
-                        yield return null; // let renderers/animators initialize so it's visible before movement starts
+                        yield return null;
                 }
                 
                 // --- Destroy damage zones if needed ---
@@ -761,16 +734,14 @@ namespace JellyGame.UI.Tutorial
                     DestroyAllDamageZones();
                 }
 
-                // Resume time so the intro is visible
                 bool wasPaused = pauseGameWhileActive && Time.timeScale == 0f;
                 if (wasPaused) ResumeGame();
 
-                // --- FIX: Temporarily disable interfering script with tracking ---
+                // --- Temporarily disable interfering script with tracking ---
                 if (a.temporarilyDisableBehaviour != null)
                 {
                     bool prevEnabledState = a.temporarilyDisableBehaviour.enabled;
                     
-                    // Track BEFORE disabling, so we can restore even if coroutine is stopped
                     TrackIntroMoveDisabledBehaviour(a.temporarilyDisableBehaviour, prevEnabledState);
                     
                     a.temporarilyDisableBehaviour.enabled = false;
@@ -821,11 +792,10 @@ namespace JellyGame.UI.Tutorial
                     );
                 }
 
-                // --- FIX: Restore disabled script and untrack it ---
+                // --- Restore disabled script and untrack it ---
                 if (a.temporarilyDisableBehaviour != null)
                 {
-                    // Find the original state from our tracking list
-                    bool restoredEnabled = true; // default to enabled if not found
+                    bool restoredEnabled = true;
                     for (int j = 0; j < _introMoveDisabledBehaviours.Count; j++)
                     {
                         if (_introMoveDisabledBehaviours[j].b == a.temporarilyDisableBehaviour)
@@ -837,7 +807,6 @@ namespace JellyGame.UI.Tutorial
                     
                     a.temporarilyDisableBehaviour.enabled = restoredEnabled;
                     
-                    // Untrack since we successfully restored it
                     UntrackIntroMoveDisabledBehaviour(a.temporarilyDisableBehaviour);
 
                     if (debugLogs)
@@ -903,6 +872,9 @@ namespace JellyGame.UI.Tutorial
 
             while (t < duration && traveled < distance - 1e-4f)
             {
+                // FIX: Target may be destroyed during scene transition
+                if (introMoveTarget == null) yield break;
+
                 float u01 = Mathf.Clamp01(t / duration);
                 float profile = introSpeedProfile != null ? introSpeedProfile.Evaluate(u01) : u01;
                 float speed = (startSpeed + (maxSpeed - startSpeed) * profile) * k;
@@ -988,6 +960,9 @@ namespace JellyGame.UI.Tutorial
 
             while (t < dur && traveled < dist - 1e-4f)
             {
+                // FIX: Target may be destroyed during scene transition
+                if (target == null) yield break;
+
                 float u01 = Mathf.Clamp01(t / dur);
                 float profile = speedProfile != null ? speedProfile.Evaluate(u01) : u01;
                 float speed = (s0 + (s1 - s0) * profile) * k;
@@ -1041,14 +1016,17 @@ namespace JellyGame.UI.Tutorial
             }
         }
 
+        // FIX: Added null checks to prevent MissingReferenceException when target is destroyed mid-move
         private void ApplyIntroPosition(Transform target, Rigidbody rb, Vector3 pos)
         {
+            if (target == null) return;
             if (!introMoveTransformDirectly && rb != null && !rb.isKinematic) rb.MovePosition(pos);
             else target.position = pos;
         }
 
         private void ApplyIntroPositionWithSettings(Transform target, Rigidbody rb, Vector3 pos, bool moveTransformDirectly)
         {
+            if (target == null) return;
             if (!moveTransformDirectly && rb != null && !rb.isKinematic) rb.MovePosition(pos);
             else target.position = pos;
         }
@@ -1104,7 +1082,6 @@ namespace JellyGame.UI.Tutorial
         /// </summary>
         private void DestroyAllDamageZones()
         {
-            // Find all DamageZoneEffect components in the scene
             var zones = FindObjectsOfType<DamageZoneEffect>();
             
             if (zones.Length == 0)
@@ -1131,7 +1108,6 @@ namespace JellyGame.UI.Tutorial
         // ===================== Safety: Ensure behaviours are restored on destroy =====================
         private void OnDestroy()
         {
-            // Make sure we don't leave any behaviours in a disabled state if the tutorial controller is destroyed
             RestoreIntroMoveDisabledBehaviours();
         }
     }

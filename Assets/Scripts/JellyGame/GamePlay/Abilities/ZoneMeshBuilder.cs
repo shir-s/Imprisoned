@@ -1,76 +1,157 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 namespace JellyGame.GamePlay.Abilities.Zones
 {
     public static class ZoneMeshBuilder
     {
-        public static List<int> TriangulatePolygonXZ(IReadOnlyList<Vector2> polyXZ)
+        public static List<int> TriangulatePolygonXZ(IReadOnlyList<Vector2> polyXZ, out List<Vector2> resultPoly)
         {
+            //default return polygon is the original one (after sanitization), not a convex hull or any other modified version.
+            resultPoly = null;
+
             if (polyXZ == null || polyXZ.Count < 3)
-            {
-                Debug.LogWarning($"[ZoneMeshBuilder] FAIL: Input polygon is null or too small.");
                 return null;
-            }
 
-            // 1. Sanitize (Remove clumps and spikes)
-            List<int> cleanToOriginalMap;
-            List<Vector2> cleanPoly = SanitizePolygon(polyXZ, out cleanToOriginalMap);
+            // 1. Sanitize basic cleanup
+            List<int> map;
+            List<Vector2> cleanPoly = SanitizePolygon(polyXZ, out map);
 
-            if (cleanPoly.Count < 3)
-            {
-                Debug.LogWarning("[ZoneMeshBuilder] Sanitization collapsed polygon too much.");
-                return null;
-            }
+            if (cleanPoly.Count < 3) return null;
 
-            // 2. Ensure CCW Winding
+            // 2. Ensure CCW (clock wise order)
             if (SignedArea(cleanPoly) < 0f)
             {
                 cleanPoly.Reverse();
-                cleanToOriginalMap.Reverse();
+                map.Reverse();
             }
 
-            // 3. TRY STRICT METHOD (Ear Clipping)
-            // This is accurate for concave shapes but fails on self-intersections.
-            List<int> tris = TriangulateEarClip(cleanPoly);
+            // 3. TRY CLEAN METHOD (Standard Ear Clipping)
+            // trys to do it by the book, fails if there are self crosses
+            List<int> tris = TriangulateEarClip(cleanPoly, useValidation: true);
 
-            // 4. FALLBACK: CENTROID FAN
-            // If Ear Clipping failed (likely a self-intersecting "knot"), use a Fan.
-            // This connects the center point to every edge. It handles knots gracefully
-            // by just overlapping triangles. It is robust but technically "Convex-ish".
+            // 4. FALLBACK: DIRTY METHOD (No Validation)
+            // if the clean way failed we turn off security checks (PointInTriangle).
+            // cut off every "ear like" corner .
+            // keeps it (Concave) instead of (Convex)!
             if (tris == null)
             {
-                Debug.LogWarning($"[ZoneMeshBuilder] Strict triangulation failed (twisted polygon?). Switching to Centroid Fan fallback. Points: {cleanPoly.Count}");
-                tris = TriangulateCentroidFan(cleanPoly);
+                //Debug.LogWarning($"[ZoneMeshBuilder] Clean triangulation failed. Switching to DIRTY mode. Points: {cleanPoly.Count}");
+                tris = TriangulateEarClip(cleanPoly, useValidation: false);
             }
 
-            // 5. REMAP INDICES
-            // Map the clean indices back to the original input array
-            if (tris != null)
+            // 5. FINAL FALLBACK: FAN (Center to Edges)
+            // if the dirty fails, use a simple fan triangulation. This will produce bad triangles for complex shapes, but it will at least produce something valid and keep the original vertices.
+            if (tris == null)
             {
-                for (int i = 0; i < tris.Count; i++)
+                Debug.LogWarning($"[ZoneMeshBuilder] Dirty triangulation failed. Using FAN fallback.");
+                tris = TriangulateFan(cleanPoly);
+            }
+
+            // map back to original indices
+            for (int i = 0; i < tris.Count; i++)
+            {
+                tris[i] = map[tris[i]];
+            }
+
+            // return the original polygon cleaned up, not the triangulated version. This allows the caller to have the original vertices for things like physics or visual effects, while still getting a valid triangulation for mesh generation.
+            resultPoly = new List<Vector2>(polyXZ); 
+            return tris;
+        }
+
+        // --- CORE ALGORITHM ---
+
+        private static List<int> TriangulateEarClip(List<Vector2> polyPoints, bool useValidation)
+        {
+            //local copy of points, we will be modifying this list as we clip ears
+            int n = polyPoints.Count;
+            if (n < 3) return null;
+
+            List<int> indices = new List<int>(n);
+            for (int i = 0; i < n; i++) indices.Add(i);
+
+            List<int> tris = new List<int>((n - 2) * 3);
+            int loopGuard = 0;
+
+            while (indices.Count > 2)
+            {
+                loopGuard++;
+                if (loopGuard > 3000) break; // Infinite loop protection
+
+                bool clipped = false;
+
+                for (int i = 0; i < indices.Count; i++)
                 {
-                    // For the Fan method, we might introduce a new "Center" vertex index.
-                    // If index is within range, map it. If it's the extra center, we need to handle it.
-                    // NOTE: To keep this simple for your existing system which expects indices into polyXZ,
-                    // The Fan fallback below ONLY uses existing points (it picks index 0 as pivot).
-                    
-                    int cleanIndex = tris[i];
-                    tris[i] = cleanToOriginalMap[cleanIndex];
+                    int iPrev = indices[(i - 1 + indices.Count) % indices.Count];
+                    int iCurr = indices[i];
+                    int iNext = indices[(i + 1) % indices.Count];
+
+                    Vector2 a = polyPoints[iPrev];
+                    Vector2 b = polyPoints[iCurr];
+                    Vector2 c = polyPoints[iNext];
+
+                    // check 1: is the angle convex? (Convex)
+                    //if useValidation is false, we skip this check, allowing us to cut "ears" even if they are not strictly convex. This can help in cases of self-intersecting polygons or very tight angles, where the strict convexity check might fail but we still want to produce a triangulation.
+                    if (!IsConvex(a, b, c)) continue;
+
+                    // check 2: is there any other point inside the triangle formed by (a,b,c)? (Not Self-Intersecting)
+                    if (useValidation)
+                    {
+                        bool hasPointInside = false;
+                        for (int k = 0; k < indices.Count; k++)
+                        {
+                            int idx = indices[k];
+                            if (idx == iPrev || idx == iCurr || idx == iNext) continue;
+                            if (PointInTriangle(polyPoints[idx], a, b, c))
+                            {
+                                hasPointInside = true;
+                                break;
+                            }
+                        }
+                        if (hasPointInside) continue;
+                    }
+
+                    // cut the ear
+                    tris.Add(iPrev);
+                    tris.Add(iCurr);
+                    tris.Add(iNext);
+                    indices.RemoveAt(i);
+                    clipped = true;
+                    break;
+                }
+
+                //if we went through a full loop without clipping, it means we are stuck. This can happen if the polygon is malformed (e.g., self-intersecting) or if we are in a very degenerate case. In this situation, we have two options:
+                if (!clipped)
+                {
+                    if (useValidation) 
+                    {
+                        // in clean state - this is a failure.
+                        return null; 
+                    }
+                    else
+                    {
+                        //in dirty state - agressive.
+                        // just cut current index with force.
+                        int i0 = indices[indices.Count - 1];
+                        int i1 = indices[0];
+                        int i2 = indices[1];
+                        
+                        tris.Add(i0);
+                        tris.Add(i1);
+                        tris.Add(i2);
+                        indices.RemoveAt(0);
+                    }
                 }
             }
 
             return tris;
         }
 
-        // --- FALLBACK ALGORITHM ---
-        // Simple "Fan" triangulation. Connects point 0 to all other edges.
-        // Good enough for simple convex shapes and prevents the zone from failing entirely.
-        private static List<int> TriangulateCentroidFan(List<Vector2> poly)
+        private static List<int> TriangulateFan(List<Vector2> poly)
         {
             int n = poly.Count;
             List<int> tris = new List<int>((n - 2) * 3);
-
             for (int i = 1; i < n - 1; i++)
             {
                 tris.Add(0);
@@ -80,6 +161,8 @@ namespace JellyGame.GamePlay.Abilities.Zones
             return tris;
         }
 
+        // --- MATH HELPERS ---
+
         private static List<Vector2> SanitizePolygon(IReadOnlyList<Vector2> source, out List<int> indexMap)
         {
             int capacity = source.Count;
@@ -88,8 +171,10 @@ namespace JellyGame.GamePlay.Abilities.Zones
 
             if (capacity == 0) return clean;
 
-            // Aggressive sanitization
-            float minSqDist = 0.08f * 0.08f; 
+            //minimum distance between points to consider them distinct. This helps remove noise and very close vertices that can cause triangulation issues.
+            //float minSqDist = 0.05f * 0.05f; 
+            float minDist = 0.001f; 
+            float minSqDist = minDist * minDist;
 
             clean.Add(source[0]);
             indexMap.Add(0);
@@ -100,56 +185,39 @@ namespace JellyGame.GamePlay.Abilities.Zones
                 Vector2 curr = source[i];
 
                 if ((curr - prev).sqrMagnitude <= minSqDist) continue;
-
-                // Anti-Spike: If we go A->B->A, ignore B
-                if (clean.Count > 1)
-                {
-                    Vector2 prePrev = clean[clean.Count - 2];
-                    if ((curr - prePrev).sqrMagnitude < minSqDist)
-                    {
-                        clean.RemoveAt(clean.Count - 1);
-                        indexMap.RemoveAt(indexMap.Count - 1);
-                        continue;
-                    }
-                }
-
                 clean.Add(curr);
                 indexMap.Add(i);
             }
-
-            // Closure check
-            if (clean.Count > 1)
+            
+            // circular check: if the last point is very close to the first, we can remove it to avoid issues with "almost closed" loops.
+            if (clean.Count > 2)
             {
-                 if ((clean[clean.Count - 1] - clean[0]).sqrMagnitude < minSqDist)
-                 {
-                     clean.RemoveAt(clean.Count - 1);
-                     indexMap.RemoveAt(indexMap.Count - 1);
-                 }
-            }
-
-            // Collinear check
-            if (clean.Count >= 3)
-            {
-                for (int i = clean.Count - 2; i > 0; i--)
+                if ((clean[clean.Count - 1] - clean[0]).sqrMagnitude <= minSqDist)
                 {
-                    if (IsCollinear(clean[i - 1], clean[i], clean[i + 1]))
-                    {
-                        clean.RemoveAt(i);
-                        indexMap.RemoveAt(i);
-                    }
+                    clean.RemoveAt(clean.Count - 1);
+                    indexMap.RemoveAt(indexMap.Count - 1);
                 }
             }
 
             return clean;
         }
 
-        private static bool IsCollinear(Vector2 a, Vector2 b, Vector2 c)
+        private static bool IsConvex(Vector2 a, Vector2 b, Vector2 c)
         {
-            float val = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
-            return Mathf.Abs(val) < 0.05f;
+            // check if the turn was to the left side
+            return ((b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x)) > -0.0001f;
         }
 
-        // --- STANDARD EAR CLIPPING (Unchanged) ---
+        private static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+        {
+            Vector2 v0 = c - a, v1 = b - a, v2 = p - a;
+            float d00 = Vector2.Dot(v0, v0), d01 = Vector2.Dot(v0, v1), d02 = Vector2.Dot(v0, v2);
+            float d11 = Vector2.Dot(v1, v1), d12 = Vector2.Dot(v1, v2);
+            float inv = 1f / (d00 * d11 - d01 * d01);
+            float u = (d11 * d02 - d01 * d12) * inv, v = (d00 * d12 - d01 * d02) * inv;
+            return (u >= 0) && (v >= 0) && (u + v <= 1);
+        }
+
         private static float SignedArea(List<Vector2> p)
         {
             float a = 0f;
@@ -162,70 +230,8 @@ namespace JellyGame.GamePlay.Abilities.Zones
             return a * 0.5f;
         }
 
-        private static List<int> TriangulateEarClip(List<Vector2> poly)
-        {
-            int n = poly.Count;
-            List<int> indices = new List<int>(n);
-            for (int i = 0; i < n; i++) indices.Add(i);
-            List<int> tris = new List<int>((n - 2) * 3);
-            int guard = 0;
-
-            while (indices.Count > 2)
-            {
-                if (guard++ > 2000) return null; // FAIL
-
-                bool clipped = false;
-                for (int i = 0; i < indices.Count; i++)
-                {
-                    int i0 = indices[(i - 1 + indices.Count) % indices.Count];
-                    int i1 = indices[i];
-                    int i2 = indices[(i + 1) % indices.Count];
-
-                    Vector2 a = poly[i0];
-                    Vector2 b = poly[i1];
-                    Vector2 c = poly[i2];
-
-                    if (!IsConvex(a, b, c)) continue;
-
-                    bool hasPointInside = false;
-                    for (int k = 0; k < indices.Count; k++)
-                    {
-                        int ik = indices[k];
-                        if (ik == i0 || ik == i1 || ik == i2) continue;
-                        if (PointInTriangle(poly[ik], a, b, c)) { hasPointInside = true; break; }
-                    }
-
-                    if (hasPointInside) continue;
-
-                    tris.Add(i0); tris.Add(i1); tris.Add(i2);
-                    indices.RemoveAt(i);
-                    clipped = true;
-                    break;
-                }
-                if (!clipped) return null; // FAIL
-            }
-            return tris;
-        }
-
-        private static bool IsConvex(Vector2 a, Vector2 b, Vector2 c)
-        {
-            float cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
-            return cross > -0.001f;
-        }
-
-        private static bool PointInTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
-        {
-            Vector2 v0 = c - a, v1 = b - a, v2 = p - a;
-            float d00 = Vector2.Dot(v0, v0), d01 = Vector2.Dot(v0, v1), d02 = Vector2.Dot(v0, v2);
-            float d11 = Vector2.Dot(v1, v1), d12 = Vector2.Dot(v1, v2);
-            float inv = 1f / (d00 * d11 - d01 * d01);
-            float u = (d11 * d02 - d01 * d12) * inv, v = (d00 * d12 - d01 * d02) * inv;
-            return (u >= -0.01f) && (v >= -0.01f) && (u + v <= 1.01f);
-        }
-
         public static Mesh BuildExtrudedTriangleXZ(Vector2 a, Vector2 b, Vector2 c, float thickness)
         {
-            // Same as before
             float halfY = Mathf.Max(0.001f, thickness * 0.5f);
             Vector3[] v = new Vector3[6];
             v[0] = new Vector3(a.x, +halfY, a.y);

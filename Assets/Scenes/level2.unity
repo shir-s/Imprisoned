@@ -5780,6 +5780,7 @@ PrefabInstance:
     - {fileID: -4613212971095810300, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
     - {fileID: 8327690013015089757, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
     - {fileID: -2094335584723522517, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
+    - {fileID: -5711052370896006010, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       insertIndex: 0
@@ -5800,7 +5801,7 @@ PrefabInstance:
       insertIndex: 5
       addedObject: {fileID: 7710063628095548488}
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: 10
+      insertIndex: 9
       addedObject: {fileID: 1387044943}
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       insertIndex: -1
@@ -5824,18 +5825,6 @@ PrefabInstance:
       insertIndex: 17
       addedObject: {fileID: 1419536853}
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 9045869852228360896, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1457333559}
-    - targetCorrespondingSourceObject: {fileID: 9045869852228360896, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1457333561}
-    - targetCorrespondingSourceObject: {fileID: 4064249708650425741, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1029577481}
-    - targetCorrespondingSourceObject: {fileID: 4064249708650425741, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1029577483}
     - targetCorrespondingSourceObject: {fileID: 7198473457830614759, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 38331901}
@@ -18088,7 +18077,7 @@ MonoBehaviour:
   countLayers:
     serializedVersion: 2
     m_Bits: 2048
-  requiredDeaths: 3
+  requiredDeaths: 7
   autoShowCanvas: 0
   hideOnComplete: 0
   fillTweenDuration: 0.2
@@ -18791,6 +18780,7 @@ MonoBehaviour:
   mainMenuNextScene: 4
   playBackgroundMusic: 1
   nextSceneBuildIndex: 8
+  useInstantTransition: 1
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
@@ -25497,14 +25487,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   requiredDeaths: 7
-  meshOnThisObject: {fileID: 821623315}
-  meshOnChildObject: {fileID: 857962080}
-  additionalRenderers: []
-  gameObjectsToToggle:
-  - {fileID: 2437890829655878560}
-  freezeOnWin: 1
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  releaseDelay: 1
+  hidePlayerAfterGrabDelay: 0.5
+  releaseBoolName: release
+  deactivateAfterReleaseDelay: 1
+  portalParticlesRoot: {fileID: 0}
+  particleFadeDelay: 2
   winFxRoot: {fileID: 727996361}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -41077,55 +41069,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1027945530}
   m_CullTransparentMesh: 1
---- !u!1 &1029577477 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4064249708650425741, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-  m_PrefabInstance: {fileID: 83463182}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &1029577481
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1029577477}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 43.122845, y: 14.228031, z: 41.20104}
-  m_Center: {x: 0, y: -6.716194, z: 0}
---- !u!114 &1029577483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1029577477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 30
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!1 &1030556347 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 897969776699009942, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
@@ -48977,55 +48920,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5137743660189243498, guid: b3ea6eaaf1db54edc881fde24910cd42, type: 3}
   m_PrefabInstance: {fileID: 253244922}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &1457333555 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 9045869852228360896, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-  m_PrefabInstance: {fileID: 83463182}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &1457333559
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1457333555}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 44.984715, y: 10.517983, z: 38.71191}
-  m_Center: {x: 0, y: -4.8611703, z: 0}
---- !u!114 &1457333561
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1457333555}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 30
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!1001 &1463201178
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -81676,13 +81570,16 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   requiredDeaths: 4
-  meshOnThisObject: {fileID: 0}
-  meshOnChildObject: {fileID: 0}
-  additionalRenderers: []
-  gameObjectsToToggle: []
-  freezeOnWin: 1
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  releaseDelay: 1
+  hidePlayerAfterGrabDelay: 0.5
+  releaseBoolName: release
+  deactivateAfterReleaseDelay: 1
+  portalParticlesRoot: {fileID: 0}
+  particleFadeDelay: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1

@@ -56,29 +56,22 @@ namespace JellyGame.GamePlay.World.Finish
                  "Lets the player visually settle inside the portal.")]
         [SerializeField] private float slimeActivateDelay = 0.2f;
 
-        [Tooltip("Delay (seconds) after teleport slimes activate before setting release = true.\n" +
-                 "This is how long the grab animation plays.")]
-        [SerializeField] private float releaseDelay = 1.0f;
-
-        [Tooltip("Delay (seconds) after grab animation starts before hiding the player.\n" +
-                 "Should be <= releaseDelay. The player stays visible during the grab, then disappears.")]
-        [SerializeField] private float hidePlayerAfterGrabDelay = 0.5f;
+        [Tooltip("At what point during the grab animation should the player disappear?\n" +
+                 "0.0 = immediately, 0.5 = halfway, 1.0 = at the very end.\n" +
+                 "The grab animation length is auto-detected from the Animator.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float hidePlayerAtGrabProgress = 0.7f;
 
         [Tooltip("Animator bool parameter name to trigger the release animation.")]
         [SerializeField] private string releaseBoolName = "release";
 
-        [Tooltip("Delay (seconds) after setting release = true before deactivating teleport slimes.\n" +
-                 "This is how long the release/exit animation plays.")]
-        [SerializeField] private float deactivateAfterReleaseDelay = 1.0f;
-
         [Header("Portal Particle Fade")]
         [Tooltip("Root object containing portal particle systems.\n" +
-                 "After release animation, emission rate will be set to 0 so particles fade out naturally.")]
+                 "After release animation, emission smoothly fades to 0.")]
         [SerializeField] private GameObject portalParticlesRoot;
 
-        [Tooltip("Delay (seconds) after setting emission to 0 before triggering GameWin.\n" +
-                 "Lets the remaining particles die out for a fade effect.")]
-        [SerializeField] private float particleFadeDelay = 2.0f;
+        [Tooltip("How long (seconds) it takes for particle emission to smoothly fade from current value to 0.")]
+        [SerializeField] private float particleFadeDuration = 2.0f;
 
         [Header("Win FX (optional)")]
         [Tooltip("Root object that contains particle systems to play on win. Will be SetActive(true) before GameWin.")]
@@ -220,6 +213,31 @@ namespace JellyGame.GamePlay.World.Finish
 
             StartCoroutine(GameWinEvent(other));
         }
+
+        /// <summary>
+        /// Force-activate the portal win sequence, bypassing trigger/layer/death-count checks.
+        /// Used by CutscenePortalSequence to programmatically trigger the portal after a cutscene.
+        /// Runs the full win sequence (freeze player, teleport slime animations, particle fade, GameWin).
+        /// </summary>
+        public void ForceActivatePortal()
+        {
+            if (_triggered && triggerOnce)
+            {
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] ForceActivatePortal: already triggered and triggerOnce is true. Ignoring.", this);
+                return;
+            }
+
+            _triggered = true;
+
+            if (debugLogs)
+                Debug.Log("[FinishTrigger] ForceActivatePortal called — starting win sequence.", this);
+
+            SoundManager.Instance.StopAllSounds();
+            SoundManager.Instance.PlaySound("Win", this.transform);
+
+            StartCoroutine(GameWinEvent(null));
+        }
         
         private bool IsWinConditionMet()
         {
@@ -241,52 +259,83 @@ namespace JellyGame.GamePlay.World.Finish
             // 3) Activate teleport slime objects — they auto-play their grab animation
             ActivateTeleportSlimes();
 
-            if (debugLogs)
-                Debug.Log($"[FinishTrigger] Teleport slimes activated (grab). hidePlayerAfterGrabDelay={hidePlayerAfterGrabDelay}s, releaseDelay={releaseDelay}s", this);
+            // Need to wait one frame for Animators to initialize after SetActive(true)
+            yield return null;
 
-            // 4) Wait for grab animation, then hide the player mid-grab
-            float hideDelay = Mathf.Max(0f, hidePlayerAfterGrabDelay);
-            if (hideDelay > 0f)
-                yield return new WaitForSeconds(hideDelay);
+            // 4) Get the first valid animator to read animation state from
+            Animator refAnimator = GetFirstTeleportSlimeAnimator();
 
-            // 5) Hide the player — it disappears as if "grabbed" by the teleport slimes
-            HidePlayer();
+            if (refAnimator == null)
+            {
+                Debug.LogWarning("[FinishTrigger] No Animator found on teleport slimes! Skipping animation sequence.", this);
+            }
+            else
+            {
+                // 5) Wait for grab animation — hide player partway through
+                if (debugLogs)
+                    Debug.Log($"[FinishTrigger] Waiting for grab animation. Will hide player at {hidePlayerAtGrabProgress:P0} progress.", this);
 
-            if (debugLogs)
-                Debug.Log("[FinishTrigger] Player hidden (grabbed by teleport slimes).", this);
+                // Wait until animator is in the grab state
+                yield return WaitForAnimatorStateEnter(refAnimator, "teleport grab");
 
-            // 6) Wait the remaining time before triggering release animation
-            float remainingBeforeRelease = Mathf.Max(0f, releaseDelay - hideDelay);
-            if (remainingBeforeRelease > 0f)
-                yield return new WaitForSeconds(remainingBeforeRelease);
+                // Now wait for it to finish, hiding player at the configured progress
+                bool playerHidden = false;
+                yield return WaitForAnimatorStateComplete(refAnimator, "teleport grab", hidePlayerAtGrabProgress, () =>
+                {
+                    if (!playerHidden)
+                    {
+                        playerHidden = true;
+                        HidePlayer();
 
-            // 7) Set animator bool "release" = true → triggers release/exit animation
-            SetTeleportSlimeRelease(true);
+                        if (debugLogs)
+                            Debug.Log("[FinishTrigger] Player hidden (grabbed by teleport slimes).", this);
+                    }
+                });
 
-            if (debugLogs)
-                Debug.Log($"[FinishTrigger] Release animation triggered. Waiting {deactivateAfterReleaseDelay}s.", this);
+                // Make sure player is hidden even if progress callback didn't fire
+                if (!playerHidden)
+                    HidePlayer();
 
-            // 8) Wait for release animation to finish
-            if (deactivateAfterReleaseDelay > 0f)
-                yield return new WaitForSeconds(deactivateAfterReleaseDelay);
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] Grab animation complete.", this);
 
-            // 9) Deactivate teleport slime objects
+                // 6) Set animator bool "release" = true → triggers release/exit animation
+                SetTeleportSlimeRelease(true);
+
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] Release animation triggered. Waiting for transition then completion.", this);
+
+                // 7) Wait for the animator to transition INTO the release state,
+                //    then set release=false so "Any State → teleport release" doesn't keep re-triggering
+                //    (which would restart the animation every frame and prevent it from playing).
+                yield return WaitForAnimatorStateEnter(refAnimator, "teleport release");
+
+                // CRITICAL: Clear the bool so the Any State transition stops re-firing
+                SetTeleportSlimeRelease(false);
+
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] Entered release state. Cleared release bool. Waiting for animation to finish.", this);
+
+                // 8) Now wait for the release animation to actually finish
+                yield return WaitForAnimatorStateComplete(refAnimator, "teleport release");
+
+                if (debugLogs)
+                    Debug.Log("[FinishTrigger] Release animation complete.", this);
+            }
+
+            // 8) Deactivate teleport slime objects
             DeactivateTeleportSlimes();
 
             if (debugLogs)
                 Debug.Log("[FinishTrigger] Teleport slimes deactivated.", this);
 
-            // 10) Set portal particle emission to 0 → particles fade out naturally
-            SetPortalParticleEmissionToZero();
-
+            // 9) Smoothly fade portal particle emission to 0
             if (debugLogs)
-                Debug.Log($"[FinishTrigger] Portal particle emission set to 0. Waiting {particleFadeDelay}s for fade.", this);
+                Debug.Log($"[FinishTrigger] Starting particle fade over {particleFadeDuration}s.", this);
 
-            // 11) Wait for particles to fade out
-            if (particleFadeDelay > 0f)
-                yield return new WaitForSeconds(particleFadeDelay);
+            yield return FadePortalParticleEmission(particleFadeDuration);
 
-            // 12) Activate win FX (optional)
+            // 11) Activate win FX (optional)
             if (winFxRoot != null)
             {
                 winFxRoot.SetActive(true);
@@ -310,17 +359,128 @@ namespace JellyGame.GamePlay.World.Finish
                     yield return null;
             }
 
-            // 13) Destroy the player character BEFORE triggering GameWin
+            // 12) Destroy the player character BEFORE triggering GameWin
             if (destroyPlayerBeforeTransition)
             {
                 DestroyAllPlayers();
             }
 
-            // 14) Trigger GameWin → GameSceneManager → LoadingManager starts transition
+            // 13) Trigger GameWin → GameSceneManager → LoadingManager starts transition
             if (debugLogs)
                 Debug.Log("[FinishTrigger] Triggering GameWin event.", this);
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameWin, null);
+        }
+
+        // ===================== Animation Helpers =====================
+
+        /// <summary>
+        /// Gets the first valid Animator from the teleport slime objects.
+        /// Used as a reference to track animation progress (all slimes play the same animation).
+        /// </summary>
+        private Animator GetFirstTeleportSlimeAnimator()
+        {
+            if (teleportSlimeObjects == null) return null;
+
+            for (int i = 0; i < teleportSlimeObjects.Count; i++)
+            {
+                if (teleportSlimeObjects[i] == null) continue;
+
+                Animator animator = teleportSlimeObjects[i].GetComponentInChildren<Animator>();
+                if (animator != null)
+                    return animator;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Waits until the animator enters the named state (and finishes transitioning into it).
+        /// Returns once the animator is fully IN the state. Does NOT wait for it to finish playing.
+        /// </summary>
+        private IEnumerator WaitForAnimatorStateEnter(Animator animator, string stateName)
+        {
+            if (animator == null) yield break;
+
+            float safetyTimeout = 10f;
+            float elapsed = 0f;
+            int stateHash = Animator.StringToHash(stateName);
+
+            while (elapsed < safetyTimeout)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+                
+                if (stateInfo.shortNameHash == stateHash && !animator.IsInTransition(0))
+                {
+                    if (debugLogs)
+                        Debug.Log($"[FinishTrigger] Entered state '{stateName}'.", this);
+                    yield break;
+                }
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            if (debugLogs)
+                Debug.LogWarning($"[FinishTrigger] Timed out waiting to enter state '{stateName}'!", this);
+        }
+
+        /// <summary>
+        /// Waits until the named animation state finishes playing (normalizedTime >= 1.0).
+        /// Assumes the animator is already in (or entering) the target state.
+        /// Optionally fires a callback at a specific progress point.
+        /// </summary>
+        private IEnumerator WaitForAnimatorStateComplete(Animator animator, string stateName, float callbackProgress = -1f, System.Action onProgressReached = null)
+        {
+            if (animator == null) yield break;
+
+            float safetyTimeout = 10f;
+            float elapsed = 0f;
+            bool callbackFired = false;
+            int stateHash = Animator.StringToHash(stateName);
+
+            while (elapsed < safetyTimeout)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+
+                // If we left the state (e.g. another transition happened), we're done
+                if (stateInfo.shortNameHash != stateHash && !animator.IsInTransition(0))
+                    break;
+
+                // Only read progress when actually in the target state
+                if (stateInfo.shortNameHash == stateHash)
+                {
+                    float normalizedTime = stateInfo.normalizedTime;
+
+                    // Fire callback at specified progress
+                    if (!callbackFired && onProgressReached != null && callbackProgress >= 0f && normalizedTime >= callbackProgress)
+                    {
+                        callbackFired = true;
+                        onProgressReached.Invoke();
+                    }
+
+                    // Animation complete
+                    if (normalizedTime >= 1f)
+                    {
+                        if (!callbackFired && onProgressReached != null)
+                        {
+                            callbackFired = true;
+                            onProgressReached.Invoke();
+                        }
+                        yield break;
+                    }
+                }
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Fire callback if it never fired
+            if (!callbackFired && onProgressReached != null)
+                onProgressReached.Invoke();
+
+            if (elapsed >= safetyTimeout && debugLogs)
+                Debug.LogWarning($"[FinishTrigger] Animation '{stateName}' timed out after {safetyTimeout}s!", this);
         }
 
         // ===================== Portal Visibility =====================
@@ -394,14 +554,83 @@ namespace JellyGame.GamePlay.World.Finish
         // ===================== Portal Particle Fade =====================
 
         /// <summary>
-        /// Sets emission rate to 0 on all ParticleSystems under portalParticlesRoot.
-        /// Existing particles will finish their lifetime naturally, creating a fade-out effect.
+        /// Smoothly fades emission rates on all ParticleSystems under portalParticlesRoot from their
+        /// current values down to 0 over the specified duration, then stops the systems.
         /// </summary>
-        private void SetPortalParticleEmissionToZero()
+        private IEnumerator FadePortalParticleEmission(float duration)
         {
-            if (portalParticlesRoot == null) return;
+            if (portalParticlesRoot == null) yield break;
 
             ParticleSystem[] systems = portalParticlesRoot.GetComponentsInChildren<ParticleSystem>(true);
+            if (systems.Length == 0) yield break;
+
+            // Capture starting emission values for each particle system
+            float[] startRateOverTime = new float[systems.Length];
+            float[] startRateOverDistance = new float[systems.Length];
+            float[][] startBurstCounts = new float[systems.Length][];
+
+            for (int i = 0; i < systems.Length; i++)
+            {
+                if (systems[i] == null) continue;
+
+                var emission = systems[i].emission;
+
+                // Read the effective rate (handles Constant, Curve, RandomBetweenTwoConstants, etc.)
+                var rotCurve = emission.rateOverTime;
+                startRateOverTime[i] = rotCurve.mode == ParticleSystemCurveMode.Constant
+                    ? rotCurve.constant
+                    : rotCurve.constantMax;
+
+                var rodCurve = emission.rateOverDistance;
+                startRateOverDistance[i] = rodCurve.mode == ParticleSystemCurveMode.Constant
+                    ? rodCurve.constant
+                    : rodCurve.constantMax;
+
+                // Capture burst counts
+                int burstCount = emission.burstCount;
+                startBurstCounts[i] = new float[burstCount];
+                for (int b = 0; b < burstCount; b++)
+                {
+                    var burst = emission.GetBurst(b);
+                    startBurstCounts[i][b] = burst.count.mode == ParticleSystemCurveMode.Constant
+                        ? burst.count.constant
+                        : burst.count.constantMax;
+                }
+
+                if (debugLogs)
+                    Debug.Log($"[FinishTrigger] Particle '{systems[i].name}': rateOverTime={startRateOverTime[i]}, rateOverDistance={startRateOverDistance[i]}, bursts={burstCount}", this);
+            }
+
+            // Lerp everything to 0 over duration
+            float elapsed = 0f;
+            float fadeDur = Mathf.Max(0.01f, duration);
+
+            while (elapsed < fadeDur)
+            {
+                float t = elapsed / fadeDur;
+
+                for (int i = 0; i < systems.Length; i++)
+                {
+                    if (systems[i] == null) continue;
+
+                    var emission = systems[i].emission;
+                    emission.rateOverTime = Mathf.Lerp(startRateOverTime[i], 0f, t);
+                    emission.rateOverDistance = Mathf.Lerp(startRateOverDistance[i], 0f, t);
+
+                    // Fade bursts too
+                    for (int b = 0; b < startBurstCounts[i].Length; b++)
+                    {
+                        var burst = emission.GetBurst(b);
+                        burst.count = Mathf.Lerp(startBurstCounts[i][b], 0f, t);
+                        emission.SetBurst(b, burst);
+                    }
+                }
+
+                elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Ensure final values are exactly 0 and stop all systems
             for (int i = 0; i < systems.Length; i++)
             {
                 if (systems[i] == null) continue;
@@ -410,7 +639,6 @@ namespace JellyGame.GamePlay.World.Finish
                 emission.rateOverTime = 0f;
                 emission.rateOverDistance = 0f;
 
-                // Also disable burst emissions
                 for (int b = 0; b < emission.burstCount; b++)
                 {
                     var burst = emission.GetBurst(b);
@@ -418,9 +646,15 @@ namespace JellyGame.GamePlay.World.Finish
                     emission.SetBurst(b, burst);
                 }
 
-                if (debugLogs)
-                    Debug.Log($"[FinishTrigger] Emission set to 0 on particle: {systems[i].name}", this);
+                // Stop emitting but let remaining particles finish their lifetime
+                systems[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
             }
+
+            if (debugLogs)
+                Debug.Log("[FinishTrigger] Particle emission fade complete. Systems stopped.", this);
+
+            // Wait a bit for remaining alive particles to die out naturally
+            yield return new WaitForSeconds(1.5f);
         }
 
         // ===================== Player Helpers =====================
@@ -451,8 +685,10 @@ namespace JellyGame.GamePlay.World.Finish
         }
 
         /// <summary>
-        /// Hides the player by deactivating the GameObject.
+        /// Destroys the player immediately.
         /// Called after the grab animation makes the player "disappear".
+        /// Using DestroyImmediate so it's truly gone — prevents singleton conflicts
+        /// when the next scene's slime runs Awake().
         /// </summary>
         private void HidePlayer()
         {
@@ -462,10 +698,10 @@ namespace JellyGame.GamePlay.World.Finish
             {
                 if (player != null)
                 {
-                    player.SetActive(false);
-
                     if (debugLogs)
-                        Debug.Log($"[FinishTrigger] Hid player: {player.name}", this);
+                        Debug.Log($"[FinishTrigger] Destroying player: {player.name}", this);
+
+                    DestroyImmediate(player);
                 }
             }
         }
@@ -485,7 +721,11 @@ namespace JellyGame.GamePlay.World.Finish
                     if (debugLogs)
                         Debug.Log($"[FinishTrigger] Destroying player: {player.name}", this);
 
-                    Destroy(player);
+                    // DestroyImmediate so the player is truly gone NOW.
+                    // Deferred Destroy() leaves it alive for the rest of the frame,
+                    // so if the next scene's slime has a singleton check in Awake(),
+                    // it finds the old one and destroys itself — both slimes end up gone.
+                    DestroyImmediate(player);
                 }
             }
 

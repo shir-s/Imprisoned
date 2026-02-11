@@ -62,8 +62,9 @@ namespace JellyGame.GamePlay.Abilities.Zones
             var shifted = ShiftPolygon(ctx.LocalPolygonXZ, -new Vector2(localCenter.x, localCenter.z));
 
             // 3. Attempt Triangulation
-            var tris = ZoneMeshBuilder.TriangulatePolygonXZ(shifted);
-
+            System.Collections.Generic.List<Vector2> fixedPoly;
+            var tris = ZoneMeshBuilder.TriangulatePolygonXZ(shifted, out fixedPoly);
+            
             // 4. CHECK FOR FAILURE
             if (tris == null || tris.Count < 3)
             {
@@ -79,9 +80,9 @@ namespace JellyGame.GamePlay.Abilities.Zones
                 int ib = tris[i + 1];
                 int ic = tris[i + 2];
 
-                Vector2 a = shifted[ia];
-                Vector2 b = shifted[ib];
-                Vector2 c = shifted[ic];
+                Vector2 a = fixedPoly[ia];
+                Vector2 b = fixedPoly[ib];
+                Vector2 c = fixedPoly[ic];
 
                 GameObject triGo = new GameObject($"ZoneTri_{i / 3}");
                 triGo.transform.SetParent(rt, false);

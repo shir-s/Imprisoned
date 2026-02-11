@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/Painting/Shapes/StrokeTrailAnalyzer.cs
 
+using System;
 using JellyGame.GamePlay.Painting.Trails.Collision;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
 using JellyGame.GamePlay.Map.Surfaces;
@@ -45,6 +46,7 @@ namespace JellyGame.GamePlay.Painting.Shapes
 
         private bool _closureHandled;
 
+        [Obsolete("Obsolete")]
         private void Awake()
         {
             _recorder = GetComponent<StrokeTrailRecorder>();
