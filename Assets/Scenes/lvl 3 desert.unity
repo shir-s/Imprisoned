@@ -40885,7 +40885,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1304203876}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fac22106eacb7e14281f3d3a521ea6bc, type: 3}
   m_Name: 
@@ -52539,6 +52539,7 @@ GameObject:
   - component: {fileID: 1496926457}
   - component: {fileID: 1496926456}
   - component: {fileID: 1496926462}
+  - component: {fileID: 1496926463}
   m_Layer: 0
   m_Name: Main Camera (1)
   m_TagString: MainCamera
@@ -52762,6 +52763,21 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1496926463
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1496926455}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83bea7551c954540988d5cfe44aed15f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CameraAnimatorController
+  camAnimator: {fileID: 1496926462}
+  shakeBoolName: shaking
+  startLvl3Gameplay: start lvl 3 gameplay
 --- !u!1 &1512529354
 GameObject:
   m_ObjectHideFlags: 0
@@ -59065,6 +59081,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
   durationSeconds: 120
+  cameraShakeTime: 30
   startOnEnable: 1
   debugLogs: 0
 --- !u!4 &1592128410
@@ -59270,6 +59287,63 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1598780732}
   m_Mesh: {fileID: -5010424131415906446, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
+--- !u!1001 &1605799389
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -21.19749
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -6.88071
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.31273
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5409582702810622750, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_Name
+      value: LoadingScreenInitializer
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
 --- !u!95 &1619743839 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 183404963193744057, guid: 692d6e5fd5938454183c984fc0c98a15, type: 3}
@@ -95673,3 +95747,4 @@ SceneRoots:
   - {fileID: 1586839703}
   - {fileID: 1592128410}
   - {fileID: 2092624413}
+  - {fileID: 1605799389}

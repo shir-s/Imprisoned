@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using JellyGame.GamePlay.Managers;
 
@@ -5,6 +6,7 @@ public class CameraAnimatorController : MonoBehaviour
 {
     [SerializeField] private Animator camAnimator;
     [SerializeField] private string shakeBoolName = "shaking";
+    [SerializeField] private string startLvl3Gameplay = "start lvl 3 gameplay";
 
     private void OnEnable()
     {
@@ -16,6 +18,11 @@ public class CameraAnimatorController : MonoBehaviour
     {
         EventManager.StopListening(EventManager.GameEvent.CountdownTimerLowTime, StartAnim);
         EventManager.StopListening(EventManager.GameEvent.Explosion, StopAnim);
+    }
+
+    private void Start()
+    {
+        if(camAnimator) camAnimator.SetBool(startLvl3Gameplay, true);
     }
 
     private void StartAnim(object data)
