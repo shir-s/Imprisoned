@@ -36,7 +36,7 @@ Transform:
   m_GameObject: {fileID: 387205316855891604}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0.7071068, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 1.59, z: 0}
+  m_LocalPosition: {x: -17.043133, y: -5.6945705, z: 4.5126457}
   m_LocalScale: {x: 2, y: 2, z: 2}
   m_ConstrainProportionsScale: 1
   m_Children:
@@ -5280,13 +5280,35 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1028626740530007976, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5984875731743598952}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4668239965172672434, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1533627077849924373}
   m_SourcePrefab: {fileID: 100100000, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
 --- !u!4 &1527166188801244451 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 5441257849065209096, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
   m_PrefabInstance: {fileID: 6823708396171706411}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2196143781412890521 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4668239965172672434, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}
+  m_PrefabInstance: {fileID: 6823708396171706411}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1533627077849924373
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2196143781412890521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1c9ffd6ec95a64c81b100138a6d5bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Behaviors.AttackFXHandler
+  attackFX: {fileID: 1369340555538680998}
+  debugLogs: 1
 --- !u!4 &5833503144690585475 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1028626740530007976, guid: 8b76ba489915e404ca5ac8c2e8fe55ff, type: 3}

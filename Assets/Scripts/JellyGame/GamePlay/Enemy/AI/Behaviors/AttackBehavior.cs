@@ -69,6 +69,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
         private SteeringNavigator _navigator;
         private Animator _animator;
+        private AttackFXHandler _attackFXHandler;
 
         private Transform _currentTarget;
         private Collider _currentTargetCollider;
@@ -88,6 +89,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             if (_animator == null)
             {
                 _animator = GetComponent<Animator>();
+            }
+            if (_attackFXHandler == null)
+            {
+                _attackFXHandler = GetComponentInChildren<AttackFXHandler>();
             }
         }
 
@@ -250,6 +255,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             {
                 _animator.SetBool("reg_attac", false);
             }
+            
+            if (_attackFXHandler != null)
+                _attackFXHandler.DeactivateAttackFX();
             
             _navigator.Stop();
             ClearTarget();
