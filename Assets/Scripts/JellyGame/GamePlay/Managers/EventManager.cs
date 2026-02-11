@@ -50,9 +50,10 @@ namespace JellyGame.GamePlay.Managers
             PlayerDamaged,
             SlimePrimeDamaged,
             
-            //level 3 timer
+            //level 3 + timer
             CountdownTimerLowTime, // data: float (remaining time in seconds)
             Explosion,
+            PortalLvl3,
 
             // Legacy JellyGameEvents equivalents
             FirstEnemyDied,      // data: null

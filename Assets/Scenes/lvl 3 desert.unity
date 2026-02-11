@@ -4069,7 +4069,7 @@ GameObject:
   - component: {fileID: 258017189}
   m_Layer: 0
   m_Name: tower + chain (3)
-  m_TagString: Untagged
+  m_TagString: Chains
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -10432,7 +10432,7 @@ GameObject:
   - component: {fileID: 407104265}
   m_Layer: 0
   m_Name: tower + chain
-  m_TagString: Untagged
+  m_TagString: Chains
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -12942,11 +12942,11 @@ GameObject:
   - component: {fileID: 612906149}
   m_Layer: 5
   m_Name: explosion
-  m_TagString: Untagged
+  m_TagString: Explosion
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &612906149
 RectTransform:
   m_ObjectHideFlags: 0
@@ -35533,6 +35533,7 @@ GameObject:
   - component: {fileID: 926447687}
   - component: {fileID: 926447686}
   - component: {fileID: 926447685}
+  - component: {fileID: 926447689}
   m_Layer: 5
   m_Name: Canvas (1)
   m_TagString: Untagged
@@ -35626,6 +35627,27 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &926447689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 926447684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f42b1c728d84d3aa4fb7fc87842ef55, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.UI.Explosion
+  explosionEffect: {fileID: 612906148}
+  effectDuration: 20
+  chainsToExplode:
+  - {fileID: 407104264}
+  - {fileID: 1681961509}
+  - {fileID: 1996416730}
+  - {fileID: 258017188}
+  - {fileID: 919132148266582520}
+  chainFall: {fileID: 1567060461}
 --- !u!1 &949333844
 GameObject:
   m_ObjectHideFlags: 0
@@ -53742,7 +53764,7 @@ GameObject:
   - component: {fileID: 1567060462}
   m_Layer: 0
   m_Name: broken chains fall
-  m_TagString: Untagged
+  m_TagString: ChainFall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -59080,7 +59102,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c44961ca841cec47a575afbbfdd50e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
-  durationSeconds: 120
+  durationSeconds: 10
   cameraShakeTime: 30
   startOnEnable: 1
   debugLogs: 0
@@ -59295,6 +59317,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2696543390535537477, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: loadingScreenBuildIndex
+      value: 3
+      objectReference: {fileID: 0}
     - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
       propertyPath: m_LocalPosition.x
       value: -21.19749
@@ -64504,7 +64530,7 @@ GameObject:
   - component: {fileID: 1681961510}
   m_Layer: 0
   m_Name: tower + chain (2)
-  m_TagString: Untagged
+  m_TagString: Chains
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -82372,7 +82398,7 @@ GameObject:
   - component: {fileID: 1996416731}
   m_Layer: 0
   m_Name: tower + chain (1)
-  m_TagString: Untagged
+  m_TagString: Chains
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -83796,6 +83822,8 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
 --- !u!4 &2092624413
 Transform:
   m_ObjectHideFlags: 0
@@ -94457,7 +94485,7 @@ GameObject:
   - component: {fileID: 543450652473432898}
   m_Layer: 0
   m_Name: world chains v1
-  m_TagString: Untagged
+  m_TagString: Chains
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
