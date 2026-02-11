@@ -12,7 +12,8 @@ namespace JellyGame.GamePlay.Managers
     {
         [Tooltip("Total countdown time in seconds (e.g. 60).")]
         [SerializeField] private float durationSeconds = 60f;
-
+        [SerializeField] private float cameraShakeTime = 30f;
+        
         [Tooltip("If true, timer starts on Enable. If false, call StartTimer() to begin.")]
         [SerializeField] private bool startOnEnable = true;
 
@@ -60,6 +61,11 @@ namespace JellyGame.GamePlay.Managers
             // Always use real time (unscaled) so 120 seconds = 2 real minutes, regardless of Time.timeScale
             //_remaining -= Time.unscaledDeltaTime;
             _remaining -= Time.deltaTime; // Using scaled time so that pausing the game also pauses the timer
+            if (_remaining <= cameraShakeTime)
+            {
+                EventManager.TriggerEvent(EventManager.GameEvent.CountdownTimerLowTime, null);
+            }
+            
             if (_remaining <= 0f)
             {
                 _remaining = 0f;
@@ -72,7 +78,7 @@ namespace JellyGame.GamePlay.Managers
                 }
                 if (debugLogs)
                     Debug.Log("[CountdownTimer] Time's up and player alive → GameWin.", this);
-                EventManager.TriggerEvent(EventManager.GameEvent.GameWin, null);
+                EventManager.TriggerEvent(EventManager.GameEvent.Explosion, null);
             }
         }
 

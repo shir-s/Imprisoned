@@ -4904,6 +4904,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7282814495408184637}
   - component: {fileID: 1944735633257606142}
+  - component: {fileID: 5430928419198147211}
   m_Layer: 0
   m_Name: knight idle anim
   m_TagString: Untagged
@@ -4949,6 +4950,20 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &5430928419198147211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 266085611527626318}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae1c9ffd6ec95a64c81b100138a6d5bf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Enemy.AI.Behaviors.AttackFXHandler
+  attackFX: {fileID: 8386820772909099820}
+  debugLogs: 0
 --- !u!1 &266438879470022759
 GameObject:
   m_ObjectHideFlags: 0
