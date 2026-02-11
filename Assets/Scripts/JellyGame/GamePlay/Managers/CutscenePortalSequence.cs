@@ -18,15 +18,15 @@ namespace JellyGame.GamePlay.Managers
     /// - FinishTrigger    (the portal object → handles win FX, sound, and fires GameWin)
     ///
     /// Flow:
-    /// 1. On Start() → immediately freeze both objects (disable scripts, kinematic, zero velocity)
-    ///    and disable camera follow scripts so nothing moves on its own
-    /// 2. Cutscene plays (Timeline auto-detection or fixed duration)
-    /// 3. Cutscene ends (auto) OR player skips manually → stays on scene
+    /// 1. Cutscene plays normally (Timeline animates everything including objects + camera)
+    /// 2. Cutscene ends (auto) OR player skips manually → stays on scene
+    /// 3. Both objects get frozen (scripts disabled, kinematic, zero velocity)
     /// 4. Canvas appears (e.g. "Press E to continue")
     /// 5. Waits for player input
-    /// 6. Moves two objects (slime + slime prime) in a direction for a distance
-    /// 7. Calls FinishTrigger.ForceActivatePortal() → win sound, FX, GameWin event
-    /// 8. GameSceneManager catches GameWin → transitions to next scene
+    /// 6. Camera animator enabled → camera transition plays
+    /// 7. Moves two objects (slime + slime prime) toward the portal
+    /// 8. Calls FinishTrigger.ForceActivatePortal() → win sound, FX, GameWin event
+    /// 9. GameSceneManager catches GameWin → transitions to next scene
     /// </summary>
     [DisallowMultipleComponent]
     public class CutscenePortalSequence : MonoBehaviour
@@ -78,12 +78,28 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private float continueInputGuardSeconds = 0.3f;
 
         // ===================== Objects to Freeze & Move =====================
-        [Header("Objects (Frozen on Start, Moved After Continue)")]
-        [Tooltip("First object to freeze and move (e.g. the player slime).")]
+        [Header("Objects (Frozen & Moved)")]
+        [Tooltip("First object to move (e.g. the player slime).")]
         [SerializeField] private Transform objectA;
 
-        [Tooltip("Second object to freeze and move (e.g. slime prime).")]
+        [Tooltip("Freeze objectA immediately on Start? Turn OFF if the Timeline animates this object during the cutscene.")]
+        [SerializeField] private bool freezeObjectAOnStart = false;
+
+        [Tooltip("Second object to move (e.g. slime prime).")]
         [SerializeField] private Transform objectB;
+
+        [Tooltip("Freeze objectB immediately on Start? Turn ON if this object has its own movement/physics and the Timeline does NOT animate it.")]
+        [SerializeField] private bool freezeObjectBOnStart = true;
+
+        // ===================== Camera Animation =====================
+        [Header("Camera Animation (After Continue)")]
+        [Tooltip("Animator on the camera. Will be enabled after continue input so the camera transition plays.\n" +
+                 "Leave empty if no camera animation is needed.")]
+        [SerializeField] private Animator cameraAnimator;
+
+        [Tooltip("If true, wait for the camera animation to finish before starting movement.\n" +
+                 "If false, camera animation and movement happen simultaneously.")]
+        [SerializeField] private bool waitForCameraAnimation = true;
 
         // ===================== Movement =====================
         public enum MoveDirectionMode
@@ -111,7 +127,7 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private AnimationCurve speedCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
 
         [Header("Movement Delay")]
-        [Tooltip("Delay (seconds) after continue input before movement starts.")]
+        [Tooltip("Delay (seconds) after continue input (and camera animation if waitForCameraAnimation) before movement starts.")]
         [SerializeField] private float preMovementDelay = 0.2f;
 
         [Tooltip("If true, hide the post-cutscene canvas when movement starts.")]
@@ -148,15 +164,22 @@ namespace JellyGame.GamePlay.Managers
             if (postCutsceneCanvas != null)
                 postCutsceneCanvas.SetActive(false);
 
-            // IMMEDIATELY freeze both objects — no movement, no physics, no scripts
-            FreezeObject(objectA, "ObjectA");
-            FreezeObject(objectB, "ObjectB");
+            // Disable camera animator on start — it will be enabled after continue input
+            if (cameraAnimator != null)
+                cameraAnimator.enabled = false;
+
+            // Freeze objects that should NOT move during the cutscene.
+            // Objects the Timeline animates should NOT be frozen here.
+            if (freezeObjectAOnStart)
+                FreezeObject(objectA, "ObjectA (on Start)");
+            if (freezeObjectBOnStart)
+                FreezeObject(objectB, "ObjectB (on Start)");
 
             // Setup auto-end detection
             SetupCutsceneEndDetection();
 
             if (debugLogs)
-                Debug.Log($"[CutscenePortalSequence] Started in scene: {gameObject.scene.name}. Both objects frozen.", this);
+                Debug.Log($"[CutscenePortalSequence] Started in scene: {gameObject.scene.name}", this);
         }
 
         private void OnDestroy()
@@ -205,7 +228,7 @@ namespace JellyGame.GamePlay.Managers
             }
         }
 
-        // ===================== Freeze Helpers =====================
+        // ===================== Freeze Helper =====================
 
         /// <summary>
         /// Completely freezes a GameObject:
@@ -323,6 +346,13 @@ namespace JellyGame.GamePlay.Managers
                 _autoEndCoroutine = null;
             }
 
+            // Freeze any objects that weren't already frozen on Start.
+            // This catches objects the Timeline was animating during the cutscene.
+            if (!freezeObjectAOnStart)
+                FreezeObject(objectA, "ObjectA (on cutscene end)");
+            if (!freezeObjectBOnStart)
+                FreezeObject(objectB, "ObjectB (on cutscene end)");
+
             StartCoroutine(PostCutsceneSequence());
         }
 
@@ -355,13 +385,34 @@ namespace JellyGame.GamePlay.Managers
             if (debugLogs)
                 Debug.Log("[CutscenePortalSequence] Continue input received.", this);
 
-            // --- Pre-movement delay ---
-            if (preMovementDelay > 0f)
-                yield return new WaitForSecondsRealtime(preMovementDelay);
-
             // --- Hide canvas ---
             if (hideCanvasOnMovementStart && postCutsceneCanvas != null)
                 postCutsceneCanvas.SetActive(false);
+
+            // --- Play camera animation ---
+            if (cameraAnimator != null)
+            {
+                cameraAnimator.enabled = true;
+
+                if (debugLogs)
+                    Debug.Log("[CutscenePortalSequence] Camera animator enabled.", this);
+
+                if (waitForCameraAnimation)
+                {
+                    // Wait one frame for the animator to start
+                    yield return null;
+
+                    // Wait for the current animation clip to finish
+                    yield return WaitForAnimatorToFinish(cameraAnimator);
+
+                    if (debugLogs)
+                        Debug.Log("[CutscenePortalSequence] Camera animation finished.", this);
+                }
+            }
+
+            // --- Pre-movement delay ---
+            if (preMovementDelay > 0f)
+                yield return new WaitForSecondsRealtime(preMovementDelay);
 
             // --- Move objects ---
             if (debugLogs)
@@ -395,12 +446,10 @@ namespace JellyGame.GamePlay.Managers
 
         private IEnumerator WaitForContinueInput()
         {
-            // Guard: ignore input briefly so the skip press doesn't immediately count as continue
             float canvasShownTime = Time.realtimeSinceStartup;
 
             while (true)
             {
-                // Input guard
                 if (Time.realtimeSinceStartup - canvasShownTime < continueInputGuardSeconds)
                 {
                     yield return null;
@@ -428,11 +477,40 @@ namespace JellyGame.GamePlay.Managers
             }
         }
 
+        // ===================== Camera Animation Helper =====================
+
+        /// <summary>
+        /// Waits for an Animator to finish playing its current clip on layer 0.
+        /// Works with both scaled and unscaled time.
+        /// </summary>
+        private IEnumerator WaitForAnimatorToFinish(Animator animator)
+        {
+            if (animator == null) yield break;
+
+            float safetyTimeout = 15f;
+            float elapsed = 0f;
+
+            // Wait until the animator is actually playing something (not in transition from entry)
+            while (elapsed < safetyTimeout)
+            {
+                AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
+
+                // Animation is done when normalizedTime >= 1 and not looping
+                if (stateInfo.normalizedTime >= 1f && !stateInfo.loop && !animator.IsInTransition(0))
+                    yield break;
+
+                elapsed += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            if (debugLogs)
+                Debug.LogWarning("[CutscenePortalSequence] Camera animation wait timed out!", this);
+        }
+
         // ===================== Movement =====================
 
         private IEnumerator MoveObjects()
         {
-            // Compute direction BEFORE movement starts (objects are frozen in place, positions are stable)
             Vector3 dir = ComputeMoveDirection();
 
             if (dir.sqrMagnitude < 0.0001f)
@@ -449,7 +527,6 @@ namespace JellyGame.GamePlay.Managers
             float duration = Mathf.Max(0.01f, moveDuration);
             float distance = Mathf.Max(0f, moveDistance);
 
-            // Capture start positions (objects are frozen, so these are stable)
             Vector3 startA = objectA != null ? objectA.position : Vector3.zero;
             Vector3 startB = objectB != null ? objectB.position : Vector3.zero;
 
@@ -457,7 +534,6 @@ namespace JellyGame.GamePlay.Managers
             ReZeroVelocity(objectA);
             ReZeroVelocity(objectB);
 
-            // Animate movement using unscaled time (works even if timeScale is modified)
             float elapsed = 0f;
 
             while (elapsed < duration)
@@ -465,11 +541,9 @@ namespace JellyGame.GamePlay.Managers
                 elapsed += Time.unscaledDeltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
 
-                // Evaluate the curve to get normalized progress (0→1)
                 float curveValue = speedCurve != null ? speedCurve.Evaluate(t) : t;
                 float currentDistance = curveValue * distance;
 
-                // Set position directly — all scripts are disabled so nothing fights this
                 if (objectA != null)
                     objectA.position = startA + dir * currentDistance;
 
@@ -479,7 +553,6 @@ namespace JellyGame.GamePlay.Managers
                 yield return null;
             }
 
-            // Snap to final position
             if (objectA != null)
                 objectA.position = startA + dir * distance;
 
@@ -498,7 +571,6 @@ namespace JellyGame.GamePlay.Managers
                         return Vector3.forward;
                     }
 
-                    // Compute direction from midpoint of both objects toward the target
                     Vector3 midpoint = Vector3.zero;
                     int count = 0;
 
@@ -509,8 +581,6 @@ namespace JellyGame.GamePlay.Managers
                         midpoint /= count;
 
                     Vector3 toTarget = moveDirectionTarget.position - midpoint;
-
-                    // Flatten to XZ plane (ground movement — ignore height differences)
                     toTarget.y = 0f;
 
                     if (debugLogs)
@@ -524,10 +594,6 @@ namespace JellyGame.GamePlay.Managers
             }
         }
 
-        /// <summary>
-        /// Safety: re-zero velocity on an object's Rigidbodies.
-        /// Objects should already be kinematic from FreezeObject(), but this ensures no residual velocity.
-        /// </summary>
         private static void ReZeroVelocity(Transform obj)
         {
             if (obj == null) return;

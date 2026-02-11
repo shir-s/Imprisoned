@@ -46,6 +46,10 @@ namespace JellyGame.GamePlay.World.Finish
         [Tooltip("Tag used to find the player character for destruction.")]
         [SerializeField] private string playerTag = "DrawingCube";
 
+        [Tooltip("Additional objects to destroy alongside the player (e.g. slime prime in cutscene scenes).\n" +
+                 "These get DestroyImmediate'd at the same time as the player during the grab animation.")]
+        [SerializeField] private List<GameObject> additionalObjectsToDestroyWithPlayer = new List<GameObject>();
+
         [Header("Teleport Slime Animation")]
         [Tooltip("The 4 teleport slime parent objects (each has a child with an Animator).\n" +
                  "They start deactivated. On player enter they activate and auto-play intro animation.\n" +
@@ -702,6 +706,22 @@ namespace JellyGame.GamePlay.World.Finish
                         Debug.Log($"[FinishTrigger] Destroying player: {player.name}", this);
 
                     DestroyImmediate(player);
+                }
+            }
+
+            // Destroy additional objects (e.g. slime prime) at the same time
+            if (additionalObjectsToDestroyWithPlayer != null)
+            {
+                for (int i = 0; i < additionalObjectsToDestroyWithPlayer.Count; i++)
+                {
+                    GameObject obj = additionalObjectsToDestroyWithPlayer[i];
+                    if (obj != null)
+                    {
+                        if (debugLogs)
+                            Debug.Log($"[FinishTrigger] Destroying additional object: {obj.name}", this);
+
+                        DestroyImmediate(obj);
+                    }
                 }
             }
         }
