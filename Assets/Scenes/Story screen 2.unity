@@ -24491,6 +24491,298 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &627175704
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 627175707}
+  - component: {fileID: 627175706}
+  - component: {fileID: 627175705}
+  m_Layer: 0
+  m_Name: SceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &627175705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627175704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e4827b97b5adbc409436904d0bb8a3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.Tutorial.TutorialSequenceController
+  windows:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  windowAudioNames: []
+  pauseGameWhileActive: 0
+  restorePreviousTimeScaleOnFinish: 1
+  skipCooldownSeconds: 0.75
+  skipKey: 101
+  gamepadSkipButtons: 4a0100004b010000
+  requireKeyDown: 1
+  autoStart: 1
+  endImmediatelyIfNoWindows: 1
+  showOnlyOneRandomWindow: 0
+  rerollRandomWindowEachStart: 1
+  disableOnTutorialStart:
+  - {fileID: 0}
+  - {fileID: 0}
+  restoreDisabledScriptsOnFinish: 1
+  deactivateOnTutorialStart: []
+  restoreDeactivatedObjectsOnFinish: 1
+  windowScriptActions:
+  - windowIndex: 3
+    enableOnShow:
+    - {fileID: 0}
+    - {fileID: 0}
+    disableOnShow: []
+    activateOnShow: []
+    deactivateOnShow: []
+    enableOnComplete: []
+    disableOnComplete: []
+    activateOnComplete: []
+    deactivateOnComplete: []
+  - windowIndex: 7
+    enableOnShow:
+    - {fileID: 0}
+    - {fileID: 0}
+    disableOnShow: []
+    activateOnShow: []
+    deactivateOnShow: []
+    enableOnComplete: []
+    disableOnComplete: []
+    activateOnComplete: []
+    deactivateOnComplete: []
+  playIntroMoveBeforeTutorial: 1
+  introMoveTarget: {fileID: 0}
+  introDirectionMode: 0
+  introWorldDirection: {x: 0, y: 0, z: 1}
+  introDirectionReference: {fileID: 0}
+  introDistance: 12
+  introDuration: 2
+  introStartSpeed: 100
+  introMaxSpeed: 10000
+  introSpeedProfile:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.49443972
+      value: 0.99366
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  introWobbleAmplitude: 0.1
+  introWobbleCycles: 3
+  introMoveTransformDirectly: 1
+  introForceKinematicIfRigidBody: 1
+  trailPainter: {fileID: 0}
+  clearPaintWhenSkippingSpecificWindows: 0
+  clearPaintOnSkippedWindowIndices: 
+  windowIntroMovesOnComplete: []
+  windowGates:
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 0
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 1
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 2
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 1
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 3
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 1
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  gateUpKey: 273
+  gateDownKey: 274
+  gateLeftKey: 276
+  gateRightKey: 275
+  gateVerticalAxis: Vertical
+  gateHorizontalAxis: Horizontal
+  axisThreshold: 0.5
+  debugLogs: 0
+--- !u!114 &627175706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627175704}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 11
+  playBackgroundMusic: 1
+  nextSceneBuildIndex: 13
+  useInstantTransition: 1
+  gameOverSceneBuildIndex: 0
+  gameOverOnVictimLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  gameOverPortalDestination: -1
+  tutorialSceneBuildIndex: -1
+  winFxRoot: {fileID: 0}
+  disableWinFxRootOnStart: 1
+  stopWinFxOnStart: 1
+  winFxDelay: 0
+  pauseGameplayOnWin: 0
+  debugLogs: 1
+  gameOverKey: 114
+  winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
+  gameOverControllerKeys: 5001000054010000
+  mainMenuControllerKeys: 5301000056010000
+--- !u!4 &627175707
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 627175704}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 22.24466, y: 0, z: 77.24139}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &634710132
 GameObject:
   m_ObjectHideFlags: 0
@@ -25442,6 +25734,135 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3548779528716352785, guid: e6daccd395c5841ce861f110eb8ad06e, type: 3}
   m_PrefabInstance: {fileID: 789547699}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &799853057
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 799853059}
+  - component: {fileID: 799853058}
+  m_Layer: 0
+  m_Name: story 2 sound
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!82 &799853058
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 799853057}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_Resource: {fileID: 8300000, guid: ce841e8a62f4e4d4a95b8b8ddd33a7c6, type: 3}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 150
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!4 &799853059
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 799853057}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -10.26626, y: 0, z: 62.61113}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &824042365
 GameObject:
   m_ObjectHideFlags: 0
@@ -38794,6 +39215,7 @@ GameObject:
   - component: {fileID: 1168796370}
   - component: {fileID: 1168796369}
   - component: {fileID: 1168796368}
+  - component: {fileID: 1168796372}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -38889,6 +39311,35 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1168796372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1168796367}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a84b95b0c1bd70347ac83c1f2ab2c63a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.SequentialTextDisplay
+  entries:
+  - target: {fileID: 1590414461}
+    delayBeforeShow: 0
+    visibleDuration: 10
+    onShow:
+      m_PersistentCalls:
+        m_Calls: []
+    onHide:
+      m_PersistentCalls:
+        m_Calls: []
+  autoStart: 1
+  hideLastEntry: 1
+  useUnscaledTime: 1
+  onSequenceComplete:
+    m_PersistentCalls:
+      m_Calls: []
+  debugLogs: 1
 --- !u!1 &1187356009
 GameObject:
   m_ObjectHideFlags: 0
@@ -44347,6 +44798,60 @@ ParticleSystem:
         m_PostInfinity: 2
         m_RotationOrder: 4
     vectorLabel1_3: W
+--- !u!1 &1262805269
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1262805271}
+  - component: {fileID: 1262805270}
+  m_Layer: 0
+  m_Name: Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1262805270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1262805269}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e2ddfa2a274b0943ad72f658df1eb75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CutsceneSceneTransition
+  nextSceneBuildIndex: 13
+  allowManualSkip: 1
+  skipKey: 101
+  controllerSkipButtons: 4c0100004d010000
+  enableAutoSkip: 1
+  autoSkipDelay: 1
+  detectCutsceneEnd: 1
+  fixedCutsceneDuration: 10
+  inputGuardSeconds: 0.5
+  debugLogs: 1
+--- !u!4 &1262805271
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1262805269}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -9.15442, y: 0, z: -1.39754}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1274650752
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -51142,6 +51647,7 @@ MonoBehaviour:
   inputCamera: {fileID: 0}
   flipModelPhysicsX: 0
   flipModelPhysicsZ: 0
+  resetTiltOnDisable: 1
 --- !u!54 &1492453608
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -53227,6 +53733,53 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 3548779528716352785, guid: e6daccd395c5841ce861f110eb8ad06e, type: 3}
   m_PrefabInstance: {fileID: 1731898084}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1745171508
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1745171510}
+  - component: {fileID: 1745171509}
+  m_Layer: 0
+  m_Name: LoadingScreenInitializer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1745171509
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1745171508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fa9f0d7ac86be2408eafa7d633b4215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.LoadingScreenInitializer
+  loadingScreenBuildIndex: 3
+  checkIfAlreadyLoaded: 1
+  debugLogs: 1
+--- !u!4 &1745171510
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1745171508}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -6.33237, y: 1.47499, z: -6.99134}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1748880766
 GameObject:
   m_ObjectHideFlags: 0
@@ -67581,3 +68134,7 @@ SceneRoots:
   - {fileID: 1309862075}
   - {fileID: 1866466600}
   - {fileID: 1525211671}
+  - {fileID: 799853059}
+  - {fileID: 1745171510}
+  - {fileID: 1262805271}
+  - {fileID: 627175707}
