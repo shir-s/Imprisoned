@@ -5047,6 +5047,7 @@ GameObject:
   - component: {fileID: 1226094683}
   - component: {fileID: 1226094682}
   - component: {fileID: 1226094681}
+  - component: {fileID: 1226094685}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -5140,6 +5141,44 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1226094685
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1226094680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a84b95b0c1bd70347ac83c1f2ab2c63a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.SequentialTextDisplay
+  entries:
+  - target: {fileID: 617664166}
+    delayBeforeShow: 0
+    visibleDuration: 6
+    onShow:
+      m_PersistentCalls:
+        m_Calls: []
+    onHide:
+      m_PersistentCalls:
+        m_Calls: []
+  - target: {fileID: 396945644}
+    delayBeforeShow: 2
+    visibleDuration: 6
+    onShow:
+      m_PersistentCalls:
+        m_Calls: []
+    onHide:
+      m_PersistentCalls:
+        m_Calls: []
+  autoStart: 1
+  hideLastEntry: 1
+  useUnscaledTime: 1
+  onSequenceComplete:
+    m_PersistentCalls:
+      m_Calls: []
+  debugLogs: 1
 --- !u!1 &1232812913
 GameObject:
   m_ObjectHideFlags: 0
