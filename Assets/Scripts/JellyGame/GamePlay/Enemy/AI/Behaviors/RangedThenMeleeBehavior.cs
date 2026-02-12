@@ -39,6 +39,24 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [SerializeField] private float leadSmoothingTime = 0.15f;
         [SerializeField] private float maxLeadOffset = 2.0f;
 
+        [Header("Adaptive Range (Approach On Miss)")]
+        [Tooltip("Seconds of continuous shooting without a hit before the enemy starts approaching closer.")]
+        [SerializeField] private float missTimeBeforeApproach = 3.0f;
+
+        [Tooltip("How much the effective shoot range shrinks per second while missing (units/sec).")]
+        [SerializeField] private float rangeShrinkPerSecond = 2.0f;
+
+        [Tooltip("The minimum effective shoot range — enemy won't shrink below this distance.")]
+        [SerializeField] private float minEffectiveShootRange = 3.0f;
+
+        [Tooltip("How fast the effective range recovers back to full after a hit (units/sec). 0 = instant reset.")]
+        [SerializeField] private float rangeRecoveryPerSecond = 0f;
+
+        [Tooltip("Scale down target leading at long range to reduce overshoot. " +
+                 "At distances >= shootRange, lead is multiplied by this factor.")]
+        [Range(0f, 1f)]
+        [SerializeField] private float longRangeLeadScale = 0.4f;
+
         [Header("Slow Window -> Chase & Melee")]
         [SerializeField] private float slowDurationSecondsOverride = -1f;
 
@@ -71,15 +89,27 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         private Vector3 _lastTargetPos;
         private Vector3 _estimatedTargetVel;
 
+        // ===== Adaptive range state =====
+        /// <summary>Current effective shoot range. Shrinks on miss streaks, resets on hit.</summary>
+        private float _effectiveShootRange;
+
+        /// <summary>Time.time when the last projectile successfully hit the target.</summary>
+        private float _lastHitTime;
+
+        /// <summary>Time.time when the enemy first started shooting at the current target without landing a hit.</summary>
+        private float _shootingWithoutHitSince;
+
+        /// <summary>Total shots fired at the current target since the last hit (for debug).</summary>
+        private int _shotsSinceLastHit;
+
         private void Awake()
         {
             _nav = GetComponent<SteeringNavigator>();
-            // Look for Animator on this object or in children (for rigged models)
             _animator = GetComponentInChildren<Animator>();
             if (_animator == null)
-            {
                 _animator = GetComponent<Animator>();
-            }
+
+            _effectiveShootRange = shootRange;
         }
 
         public bool CanActivate()
@@ -96,9 +126,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             bool hasTarget = TryAcquireTarget();
             if (!hasTarget)
-            {
                 UpdateAttackAnimation(false);
-            }
             return hasTarget;
         }
 
@@ -118,8 +146,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nextMeleeHitTime = Time.time;
             _slowWindowEndTime = -1f;
 
-            _lastTargetPos = GetAimPosition(); // important: start from aim pos
+            _lastTargetPos = GetAimPosition();
             _estimatedTargetVel = Vector3.zero;
+
+            // Reset adaptive range for fresh engagement
+            ResetAdaptiveRange();
         }
 
         public void Tick(float dt)
@@ -141,6 +172,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             }
 
             UpdateTargetVelocityEstimate(dt);
+            UpdateAdaptiveRange(dt);
 
             if (_phase == Phase.ChasingDuringSlow && Time.time >= _slowWindowEndTime)
             {
@@ -155,11 +187,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (_phase == Phase.Shooting)
             {
-                // Update attack animation - shooting when in range
                 UpdateAttackAnimation(true);
-                
-                if (distXZ > shootRange)
+
+                if (distXZ > _effectiveShootRange)
                 {
+                    // Move closer — either because out of base range, or adaptive range shrank
                     _nav.SetDestination(tpos);
                 }
                 else
@@ -172,9 +204,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (_phase == Phase.ChasingDuringSlow)
             {
-                // Not shooting during chase phase - return to idle
                 UpdateAttackAnimation(false);
-                
+
                 if (distXZ > meleeAttackRadius)
                 {
                     _nav.SetDestination(tpos);
@@ -198,158 +229,164 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             UpdateAttackAnimation(false);
         }
 
-    private void TryShootAtTarget()
-    {
-        if (projectilePrefab == null) return;
-        if (Time.time < _nextShootTime) return;
+        // ===================== Adaptive Range Logic =====================
 
-        _nextShootTime = Time.time + Mathf.Max(0.05f, shootCooldownSeconds);
-
-        Transform spawnT = muzzle != null ? muzzle : transform;
-        Vector3 baseAimPos = GetAimPosition(); // Target Center
-        Vector3 gravity = GetEffectiveProjectileGravity();
-        
-        // 1. Target Leading (Skip if velocity is tiny to avoid jitter)
-        Vector3 finalTargetPos = baseAimPos;
-        if (useTargetLead && _estimatedTargetVel.sqrMagnitude > 0.1f)
+        /// <summary>
+        /// Reset adaptive range to full shoot range. Called on new engagement or successful hit.
+        /// </summary>
+        private void ResetAdaptiveRange()
         {
-            // Simple linear prediction based on flight time of ~0.5s
-            float predictTime = Mathf.Clamp(Vector3.Distance(spawnT.position, baseAimPos) / 20f, 0f, 1f);
-            Vector3 lead = _estimatedTargetVel * predictTime * leadStrength;
-            if (lead.magnitude > maxLeadOffset) lead = lead.normalized * maxLeadOffset;
-            finalTargetPos += lead;
+            _effectiveShootRange = shootRange;
+            _lastHitTime = Time.time;
+            _shootingWithoutHitSince = Time.time;
+            _shotsSinceLastHit = 0;
         }
 
-        // 2. Physics Calculation
-        // We compare two modes: "Preferred Flat Shot" vs "Optimal High Shot"
-        
-        // A. The "Flat" Shot (Fast, direct, tries to hit within maxTimeToTarget)
-        // We try to solve for exactly maxTimeToTarget (e.g. 1.2s).
-        Vector3 vFlat = BallisticAimSolver.SolveVelocityForTime(spawnT.position, finalTargetPos, maxTimeToTarget, gravity);
-        
-        // B. The "Optimal" Shot (The Minimum Energy/Speed required to reach distance)
-        // This creates a ~45 degree parabola. It is the furthest possible shot for a given speed.
-        Vector3 toTarget = finalTargetPos - spawnT.position;
-        float y = toTarget.y;
-        Vector3 xz = new Vector3(toTarget.x, 0, toTarget.z);
-        float x = xz.magnitude;
-        float g = gravity.magnitude;
-        
-        // Derived formula for time of minimum initial speed: t = sqrt( (sqrt(x^2 + y^2) + y) / (g/2) )
-        float b = Mathf.Sqrt(x * x + y * y);
-        float tOptimal = Mathf.Sqrt((b + y) / (0.5f * g));
-        Vector3 vOptimal = BallisticAimSolver.SolveVelocityForTime(spawnT.position, finalTargetPos, tOptimal, gravity);
+        /// <summary>
+        /// Called when a projectile successfully hits the target.
+        /// Resets (or starts recovering) the effective shoot range.
+        /// </summary>
+        private void OnProjectileHitTarget()
+        {
+            _lastHitTime = Time.time;
+            _shootingWithoutHitSince = Time.time;
+            _shotsSinceLastHit = 0;
 
-        // 3. Select the best trajectory
-        Vector3 finalVelocity;
+            if (rangeRecoveryPerSecond <= 0f)
+            {
+                // Instant reset
+                _effectiveShootRange = shootRange;
+            }
 
-        // Check if the Flat shot is within our Speed Limit
-        if (vFlat.magnitude <= maxLaunchSpeed)
-        {
-            // We have enough power to shoot flat! Do it.
-            finalVelocity = vFlat;
-        }
-        else if (vOptimal.magnitude <= maxLaunchSpeed)
-        {
-            // Flat shot is impossible (too weak), but High Arc is possible. Use High Arc.
-            finalVelocity = vOptimal;
-        }
-        else
-        {
-            // Even the optimal shot requires more speed than we have. 
-            // We are physically out of range. 
-            // Fire at Max Speed using the Optimal Arc angle (45 deg) to get as close as possible.
-            finalVelocity = vOptimal.normalized * maxLaunchSpeed;
+            if (debugLogs)
+                Debug.Log($"[RangedAdaptive] HIT! Effective range reset to {_effectiveShootRange:F1}", this);
         }
 
-        // 4. Fire
-        Vector3 flatV = new Vector3(finalVelocity.x, 0f, finalVelocity.z);
-        if (flatV.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(flatV.normalized, Vector3.up);
+        /// <summary>
+        /// Each frame during Shooting phase: shrink range if missing too long, recover if recently hit.
+        /// </summary>
+        private void UpdateAdaptiveRange(float dt)
+        {
+            if (_phase != Phase.Shooting)
+                return;
 
-        BallisticFireProjectile proj = Instantiate(projectilePrefab, spawnT.position, Quaternion.identity);
-        proj.OnHit += HandleProjectileHit;
-        
-        // SAFETY: Force drag to zero to ensure projectile behaves like the math says
-        if (proj.GetComponent<Rigidbody>()) proj.GetComponent<Rigidbody>().linearDamping = 0f; 
-        
-        proj.Launch(finalVelocity);
+            float timeSinceHit = Time.time - _lastHitTime;
 
-        if(debugLogs) Debug.Log($"[Ranged] Fire Speed: {finalVelocity.magnitude:F1} (Max: {maxLaunchSpeed})");
-    }
+            // Recovery: if we recently hit and range is below max, grow it back
+            if (rangeRecoveryPerSecond > 0f && _effectiveShootRange < shootRange && timeSinceHit < missTimeBeforeApproach)
+            {
+                _effectiveShootRange = Mathf.Min(shootRange, _effectiveShootRange + rangeRecoveryPerSecond * dt);
+                return;
+            }
+
+            // Shrink: if we've been missing for too long, start reducing effective range
+            float timeMissing = Time.time - _shootingWithoutHitSince;
+            if (timeMissing > missTimeBeforeApproach)
+            {
+                float prevRange = _effectiveShootRange;
+                _effectiveShootRange = Mathf.Max(minEffectiveShootRange, _effectiveShootRange - rangeShrinkPerSecond * dt);
+
+                if (debugLogs && !Mathf.Approximately(prevRange, _effectiveShootRange) && Time.frameCount % 30 == 0)
+                    Debug.Log($"[RangedAdaptive] Missing for {timeMissing:F1}s ({_shotsSinceLastHit} shots). " +
+                              $"Effective range: {_effectiveShootRange:F1}/{shootRange:F1}", this);
+            }
+        }
+
+        // ===================== Shooting =====================
+
+        private void TryShootAtTarget()
+        {
+            if (projectilePrefab == null) return;
+            if (Time.time < _nextShootTime) return;
+
+            _nextShootTime = Time.time + Mathf.Max(0.05f, shootCooldownSeconds);
+            _shotsSinceLastHit++;
+
+            Transform spawnT = muzzle != null ? muzzle : transform;
+            Vector3 baseAimPos = GetAimPosition();
+            Vector3 gravity = GetEffectiveProjectileGravity();
+
+            // 1. Target Leading — scale down at long range to reduce overshoot
+            Vector3 finalTargetPos = baseAimPos;
+            if (useTargetLead && _estimatedTargetVel.sqrMagnitude > 0.1f)
+            {
+                float distToTarget = Vector3.Distance(spawnT.position, baseAimPos);
+
+                // Scale lead strength based on distance: full strength up close, reduced at range
+                float distRatio = Mathf.Clamp01(distToTarget / Mathf.Max(1f, shootRange));
+                float scaledLeadStrength = Mathf.Lerp(leadStrength, leadStrength * longRangeLeadScale, distRatio);
+
+                float predictTime = Mathf.Clamp(distToTarget / 20f, 0f, 1f);
+                Vector3 lead = _estimatedTargetVel * predictTime * scaledLeadStrength;
+                if (lead.magnitude > maxLeadOffset) lead = lead.normalized * maxLeadOffset;
+                finalTargetPos += lead;
+            }
+
+            // 2. Physics Calculation — Flat vs Optimal
+            Vector3 vFlat = BallisticAimSolver.SolveVelocityForTime(spawnT.position, finalTargetPos, maxTimeToTarget, gravity);
+
+            Vector3 toTarget = finalTargetPos - spawnT.position;
+            float y = toTarget.y;
+            Vector3 xz = new Vector3(toTarget.x, 0, toTarget.z);
+            float x = xz.magnitude;
+            float g = gravity.magnitude;
+
+            float b = Mathf.Sqrt(x * x + y * y);
+            float tOptimal = Mathf.Sqrt((b + y) / (0.5f * g));
+            Vector3 vOptimal = BallisticAimSolver.SolveVelocityForTime(spawnT.position, finalTargetPos, tOptimal, gravity);
+
+            // 3. Select the best trajectory
+            Vector3 finalVelocity;
+
+            if (vFlat.magnitude <= maxLaunchSpeed)
+            {
+                finalVelocity = vFlat;
+            }
+            else if (vOptimal.magnitude <= maxLaunchSpeed)
+            {
+                finalVelocity = vOptimal;
+            }
+            else
+            {
+                finalVelocity = vOptimal.normalized * maxLaunchSpeed;
+            }
+
+            // 4. Face target
+            Vector3 flatV = new Vector3(finalVelocity.x, 0f, finalVelocity.z);
+            if (flatV.sqrMagnitude > 0.001f)
+                transform.rotation = Quaternion.LookRotation(flatV.normalized, Vector3.up);
+
+            // 5. Fire
+            BallisticFireProjectile proj = Instantiate(projectilePrefab, spawnT.position, Quaternion.identity);
+            proj.OnHit += HandleProjectileHit;
+
+            // Safety: Force drag to zero to ensure projectile behaves like the math says
+            Rigidbody projRb = proj.GetComponent<Rigidbody>();
+            if (projRb != null) projRb.linearDamping = 0f;
+
+            proj.Launch(finalVelocity);
+
+            if (debugLogs)
+                Debug.Log($"[Ranged] Fire Speed: {finalVelocity.magnitude:F1} (Max: {maxLaunchSpeed}), " +
+                          $"EffRange: {_effectiveShootRange:F1}/{shootRange:F1}, " +
+                          $"Shots since hit: {_shotsSinceLastHit}", this);
+        }
 
         private Vector3 GetAimPosition()
         {
-            // Preferred: explicit aim point provider in target hierarchy
             var provider = _target != null ? _target.GetComponentInParent<ITargetAimPoint>() : null;
             if (provider != null && provider.AimPoint != null)
                 return provider.AimPoint.position;
 
-            // Fallback 1: collider bounds center
             if (_targetCol != null)
                 return _targetCol.bounds.center;
 
-            // Fallback 2: target transform position
             return _target != null ? _target.position : transform.position;
         }
 
         private Vector3 GetEffectiveProjectileGravity()
         {
             return Physics.gravity * projectilePrefab.GravityMultiplier + Vector3.down * projectilePrefab.ExtraDownwardAccel;
-        }
-
-        private float ChooseTimeForSpeedCap(Vector3 startPos, Vector3 targetPos, Vector3 gravity)
-        {
-            // Start with the user's preferred window
-            float tMin = Mathf.Max(0.05f, minTimeToTarget);
-            float tMax = Mathf.Max(tMin + 0.01f, maxTimeToTarget);
-
-            // 1. Check if the FASTEST shot (tMin) is valid
-            float speedAtMin = BallisticAimSolver.SolveVelocityForTime(startPos, targetPos, tMin, gravity).magnitude;
-            if (speedAtMin <= maxLaunchSpeed)
-                return tMin;
-
-            // 2. Check if the SLOWEST PREFERRED shot (tMax) is valid
-            float speedAtMax = BallisticAimSolver.SolveVelocityForTime(startPos, targetPos, tMax, gravity).magnitude;
-            
-            // If even the slowest shot is too fast, it means we are shooting too "flat".
-            // We must INCREASE time (lob higher) to reduce speed requirements.
-            if (speedAtMax > maxLaunchSpeed)
-            {
-                // Try extending time up to 2.5 seconds (high arc)
-                // This loop looks for a valid time where speed < maxLaunchSpeed
-                float extendedTime = tMax;
-                for (int k = 0; k < 10; k++)
-                {
-                    extendedTime += 0.2f; 
-                    float s = BallisticAimSolver.SolveVelocityForTime(startPos, targetPos, extendedTime, gravity).magnitude;
-                    if (s <= maxLaunchSpeed)
-                        return extendedTime; // Found a valid "Lob" shot
-                }
-                
-                // If we get here, the target is likely out of physical range for this speed limit.
-                // We return the longest time tried to get as close as possible.
-                return extendedTime;
-            }
-
-            // 3. Binary Search
-            // If we are here, tMin requires TOO MUCH speed, and tMax is OK.
-            // We want to find the fastest shot (smallest t) that is still under the speed limit.
-            float lo = tMin;
-            float hi = tMax;
-
-            for (int i = 0; i < 8; i++)
-            {
-                float mid = (lo + hi) * 0.5f;
-                float s = BallisticAimSolver.SolveVelocityForTime(startPos, targetPos, mid, gravity).magnitude;
-
-                if (s > maxLaunchSpeed)
-                    lo = mid; // Too fast, need more time (higher arc)
-                else
-                    hi = mid; // Valid speed, try to go faster/flatter
-            }
-
-            return hi;
         }
 
         private void HandleProjectileHit(Collider hit)
@@ -359,8 +396,10 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (hit.transform == _target || hit.transform.IsChildOf(_target))
             {
-                // NEW: allow "ranged-only" mode.
-                // If set to 0, we NEVER enter the melee/chase phase.
+                // Notify adaptive range system of the successful hit
+                OnProjectileHitTarget();
+
+                // Allow "ranged-only" mode: if set to 0, never enter melee/chase phase
                 if (Mathf.Approximately(slowDurationSecondsOverride, 0f))
                     return;
 
@@ -371,6 +410,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                 _phase = Phase.ChasingDuringSlow;
             }
         }
+
+        // ===================== Melee =====================
 
         private void TryDealMeleeDamage()
         {
@@ -388,12 +429,14 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             dmg.ApplyDamage(damagePerHit);
         }
 
+        // ===================== Target Tracking =====================
+
         private void UpdateTargetVelocityEstimate(float dt)
         {
             if (!useTargetLead) return;
             if (dt <= 0f) return;
 
-            Vector3 now = GetAimPosition(); // important: estimate based on aim point, not root
+            Vector3 now = GetAimPosition();
             Vector3 raw = (now - _lastTargetPos) / dt;
             raw.y = 0f;
 
@@ -458,7 +501,11 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nextShootTime = 0f;
             _nextMeleeHitTime = 0f;
             _slowWindowEndTime = -1f;
-            
+
+            // Reset adaptive range for next engagement
+            _effectiveShootRange = shootRange;
+            _shotsSinceLastHit = 0;
+
             UpdateAttackAnimation(false);
         }
 
@@ -468,11 +515,9 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             string attackParam = string.IsNullOrEmpty(attackParamName) ? "ran_attac" : attackParamName;
             _animator.SetBool(attackParam, isAttacking);
-            
+
             if (debugLogs && Time.frameCount % 60 == 0)
-            {
                 Debug.Log($"[RangedThenMelee] Attack animation - {attackParam}: {isAttacking}", this);
-            }
         }
     }
 }
