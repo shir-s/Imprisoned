@@ -105,6 +105,7 @@ namespace JellyGame.GamePlay.Audio.Core
         {
             foreach (var sound in activeSounds)
             {
+                if (sound == null || sound.gameObject == null) continue;
                 sound.Reset(); 
                 sound.gameObject.SetActive(false);
                 SoundPool.Instance.Return(sound);
