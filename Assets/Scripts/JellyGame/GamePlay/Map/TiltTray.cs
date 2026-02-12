@@ -63,6 +63,10 @@ namespace JellyGame.GamePlay.Map
         [Header("Model Fixes")]
         [SerializeField] private bool flipModelPhysicsX = false;
         [SerializeField] private bool flipModelPhysicsZ = false;
+
+        [Header("Reset On Disable")]
+        [Tooltip("When disabled, snap tray back to flat so the slime stops sliding.")]
+        [SerializeField] private bool resetTiltOnDisable = true;
         
 
         private Rigidbody _rb;
@@ -101,6 +105,18 @@ namespace JellyGame.GamePlay.Map
             // If this tray is being disabled/destroyed, clear the static reference
             if (_current == this)
                 _current = null;
+
+            // Reset tilt to flat so the slime doesn't keep sliding
+            if (resetTiltOnDisable)
+            {
+                _targetTiltXZ = Vector2.zero;
+                _currentTiltXZ = Vector2.zero;
+
+                if (_rb && _rb.isKinematic)
+                    _rb.MoveRotation(_baseRot);
+                else
+                    transform.rotation = _baseRot;
+            }
         }
 
         private void OnMouseDown() { SelectThis(); }

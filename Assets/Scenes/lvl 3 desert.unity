@@ -23229,6 +23229,7 @@ MonoBehaviour:
   inputCamera: {fileID: 1304203881}
   flipModelPhysicsX: 0
   flipModelPhysicsZ: 0
+  resetTiltOnDisable: 1
 --- !u!54 &965892456
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -42812,7 +42813,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c44961ca841cec47a575afbbfdd50e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
-  durationSeconds: 120
+  durationSeconds: 20
   startOnEnable: 0
   debugLogs: 0
 --- !u!4 &1592128410
