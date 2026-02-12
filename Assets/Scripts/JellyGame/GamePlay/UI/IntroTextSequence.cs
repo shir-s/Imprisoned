@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/JellyGame/UI/IntroTextSequence.cs
 using System.Collections.Generic;
+using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -24,6 +25,10 @@ namespace JellyGame.UI
         [Tooltip("Each entry is a GameObject to show. Only one is active at a time. Player advances with input.")]
         [SerializeField] private List<GameObject> windows = new List<GameObject>();
 
+        [Header("Audio")]
+        [Tooltip("List of audio names (from AudioSettings) matching the order of windows above.")]
+        [SerializeField] private List<string> windowAudioNames = new List<string>();
+        
         [Header("Input")]
         [Tooltip("Keyboard key to advance to next window.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
@@ -56,6 +61,7 @@ namespace JellyGame.UI
         private float _canSkipAtUnscaledTime;
         private float _prevTimeScale = 1f;
         private bool _active;
+        private AudioSourceWrapper _currentVoiceover;
 
         private void Start()
         {
@@ -102,6 +108,14 @@ namespace JellyGame.UI
 
         private void Advance()
         {
+            if (_currentVoiceover != null && _currentVoiceover.IsPlaying())
+            {
+                _currentVoiceover.Reset(); 
+                _currentVoiceover.gameObject.SetActive(false); 
+                SoundPool.Instance.Return(_currentVoiceover); 
+                _currentVoiceover = null;
+            }
+            
             // Hide current
             if (_currentIndex >= 0 && _currentIndex < windows.Count && windows[_currentIndex] != null)
                 windows[_currentIndex].SetActive(false);
@@ -112,6 +126,15 @@ namespace JellyGame.UI
             {
                 EndSequence();
                 return;
+            }
+            
+            if (windowAudioNames != null && _currentIndex < windowAudioNames.Count)
+            {
+                string audioName = windowAudioNames[_currentIndex];
+                if (!string.IsNullOrEmpty(audioName))
+                {
+                    SoundManager.Instance.PlaySound(audioName, transform);
+                }
             }
 
             // Show next
@@ -143,7 +166,12 @@ namespace JellyGame.UI
 
             if (debugLogs)
                 Debug.Log("[IntroTextSequence] Sequence complete. Game started.", this);
-
+            if (_currentVoiceover != null)
+            {
+                _currentVoiceover.Reset();
+                SoundPool.Instance.Return(_currentVoiceover);
+                _currentVoiceover = null;
+            }
             onSequenceComplete?.Invoke();
         }
 

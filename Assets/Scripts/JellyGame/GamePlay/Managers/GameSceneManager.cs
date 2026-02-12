@@ -129,7 +129,7 @@ namespace JellyGame.GamePlay.Managers
                     Debug.Log($"[GameSceneManager] Player died in Tutorial (scene {tutorialSceneBuildIndex}) -> portal returns to Tutorial.", this);
             }
 
-            PlayBackgroundMusic();
+            //PlayBackgroundMusic();
             StartPreloading();
         }
 
