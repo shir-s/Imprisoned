@@ -157,20 +157,35 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             Vector3 pos = transform.position;
             Vector3 targetPos = _currentTarget.position;
 
-            // Use distance to surface (closest point) when we have a collider, so we deal damage when at the cube's surface
+            // ===================== FIX: Robust distance calculation =====================
+            // ClosestPoint returns the nearest point ON THE SURFACE of the collider.
+            // When the enemy is OUTSIDE, this works perfectly (distance shrinks as they approach).
+            // When the enemy is INSIDE the collider, ClosestPoint returns the surface point
+            // BEHIND the enemy, so the distance INCREASES — the enemy can never "reach" the target.
+            //
+            // Fix: compute both surface-distance and center-distance, use the smaller one.
+            // If the enemy is inside the collider, center-distance will be small and correct.
+            
             float distToTarget;
+            
+            Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
+            Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
+            float distToCenter = Vector3.Distance(selfXZ, targetXZ);
+            
             if (_currentTargetCollider != null && _currentTargetCollider.enabled)
             {
                 Vector3 closest = _currentTargetCollider.ClosestPoint(pos);
-                Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
                 Vector3 closestXZ = new Vector3(closest.x, 0f, closest.z);
-                distToTarget = Vector3.Distance(selfXZ, closestXZ);
+                float distToSurface = Vector3.Distance(selfXZ, closestXZ);
+                
+                // Use the SMALLER of surface-distance and center-distance.
+                // Outside the collider: surface < center (correct, we want surface).
+                // Inside the collider:  surface > center (bugged, we want center).
+                distToTarget = Mathf.Min(distToSurface, distToCenter);
             }
             else
             {
-                Vector3 selfXZ = new Vector3(pos.x, 0f, pos.z);
-                Vector3 targetXZ = new Vector3(targetPos.x, 0f, targetPos.z);
-                distToTarget = Vector3.Distance(selfXZ, targetXZ);
+                distToTarget = distToCenter;
             }
 
             float effectiveAttackRadius = _currentTargetAttackRadius > 0f ? _currentTargetAttackRadius : attackRadius;
@@ -192,7 +207,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (debugLogs && _tickCount % 60 == 0)
             {
-                Debug.Log($"[AttackBehavior] Chasing target. Dist: {distToTarget:F1}", this);
+                Debug.Log($"[AttackBehavior] Chasing target. Dist: {distToTarget:F1} (center: {distToCenter:F1})", this);
             }
         }
 
@@ -270,7 +285,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             // -------------------------------
         }
 
-        // --- Target acquisition / validity (unchanged from your pasted file) ---
+        // --- Target acquisition / validity ---
 
         private bool TryAcquireTarget()
         {
@@ -383,7 +398,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nextHitTime = 0f;
         }
 
-        // --- Sound interface (unchanged) ---
+        // --- Sound interface ---
         public SoundPlaybackMode GetSoundMode() => enableSound ? soundMode : SoundPlaybackMode.None;
         public float GetSoundInterval() => soundInterval;
         public float GetMaxSoundInterval() => maxRandomInterval;

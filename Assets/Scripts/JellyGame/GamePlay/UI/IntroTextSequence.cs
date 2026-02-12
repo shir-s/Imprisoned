@@ -1,22 +1,15 @@
 // FILEPATH: Assets/Scripts/JellyGame/UI/IntroTextSequence.cs
 using System.Collections.Generic;
-using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using UnityEngine.Events;
-
 namespace JellyGame.UI
 {
     /// <summary>
     /// Simple intro text sequence for levels.
     /// 
-    /// On Start:
-    /// 1. Freezes time (timeScale = 0)
-    /// 2. Activates the first GameObject from the list (deactivates all others)
-    /// 3. Waits for player input to advance to the next one
-    /// 4. When all are shown and skipped, hides everything, restores time, game begins
-    /// 
-    /// Each entry in the list is a GameObject (e.g. a UI panel with text/images).
-    /// Only one is active at a time.
+    /// On Awake: Freezes time immediately (before any Start runs) + disables listed scripts
+    /// On Start: Shows first window, waits for input to advance
+    /// When done: Restores time, re-enables scripts, fires onSequenceComplete
     /// </summary>
     [DisallowMultipleComponent]
     public class IntroTextSequence : MonoBehaviour
@@ -25,10 +18,6 @@ namespace JellyGame.UI
         [Tooltip("Each entry is a GameObject to show. Only one is active at a time. Player advances with input.")]
         [SerializeField] private List<GameObject> windows = new List<GameObject>();
 
-        [Header("Audio")]
-        [Tooltip("List of audio names (from AudioSettings) matching the order of windows above.")]
-        [SerializeField] private List<string> windowAudioNames = new List<string>();
-        
         [Header("Input")]
         [Tooltip("Keyboard key to advance to next window.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
@@ -50,6 +39,15 @@ namespace JellyGame.UI
         [Tooltip("Restore the previous timeScale when done (otherwise sets to 1).")]
         [SerializeField] private bool restorePreviousTimeScale = true;
 
+        [Header("Pause During Intro")]
+        [Tooltip("Scripts to disable during the intro and re-enable when done.\n" +
+                 "Use for scripts that use unscaledDeltaTime (e.g. CountdownTimer, spawners)\n" +
+                 "since timeScale=0 won't stop them.")]
+        [SerializeField] private List<Behaviour> disableDuringIntro = new List<Behaviour>();
+
+        [Tooltip("GameObjects to deactivate during the intro and reactivate when done.")]
+        [SerializeField] private List<GameObject> deactivateDuringIntro = new List<GameObject>();
+
         [Header("Events")]
         [Tooltip("Fired when the entire sequence finishes and game resumes.")]
         public UnityEvent onSequenceComplete;
@@ -61,7 +59,53 @@ namespace JellyGame.UI
         private float _canSkipAtUnscaledTime;
         private float _prevTimeScale = 1f;
         private bool _active;
-        private AudioSourceWrapper _currentVoiceover;
+
+        // Snapshot of original states so we restore correctly
+        private struct BehaviourSnapshot { public Behaviour b; public bool wasEnabled; }
+        private struct GameObjectSnapshot { public GameObject go; public bool wasActive; }
+
+        private readonly List<BehaviourSnapshot> _disabledSnapshot = new List<BehaviourSnapshot>();
+        private readonly List<GameObjectSnapshot> _deactivatedSnapshot = new List<GameObjectSnapshot>();
+
+        private void Awake()
+        {
+            if (windows == null || windows.Count == 0)
+                return;
+
+            // Freeze time IMMEDIATELY in Awake, before any other script's Start() runs.
+            if (freezeTime)
+            {
+                _prevTimeScale = Time.timeScale;
+                Time.timeScale = 0f;
+
+                if (debugLogs)
+                    Debug.Log($"[IntroTextSequence] Time frozen in Awake (was {_prevTimeScale}).", this);
+            }
+
+            // Disable scripts that use unscaledDeltaTime (e.g. CountdownTimer)
+            if (disableDuringIntro != null)
+            {
+                for (int i = 0; i < disableDuringIntro.Count; i++)
+                {
+                    Behaviour b = disableDuringIntro[i];
+                    if (b == null) continue;
+                    _disabledSnapshot.Add(new BehaviourSnapshot { b = b, wasEnabled = b.enabled });
+                    b.enabled = false;
+                }
+            }
+
+            // Deactivate GameObjects (e.g. spawner roots)
+            if (deactivateDuringIntro != null)
+            {
+                for (int i = 0; i < deactivateDuringIntro.Count; i++)
+                {
+                    GameObject go = deactivateDuringIntro[i];
+                    if (go == null) continue;
+                    _deactivatedSnapshot.Add(new GameObjectSnapshot { go = go, wasActive = go.activeSelf });
+                    go.SetActive(false);
+                }
+            }
+        }
 
         private void Start()
         {
@@ -92,31 +136,12 @@ namespace JellyGame.UI
         private void BeginSequence()
         {
             _active = true;
-
-            if (freezeTime)
-            {
-                _prevTimeScale = Time.timeScale;
-                Time.timeScale = 0f;
-
-                if (debugLogs)
-                    Debug.Log($"[IntroTextSequence] Time frozen (was {_prevTimeScale}).", this);
-            }
-
             _currentIndex = -1;
             Advance();
         }
 
         private void Advance()
         {
-            if (_currentVoiceover != null && _currentVoiceover.IsPlaying())
-            {
-                _currentVoiceover.Reset(); 
-                _currentVoiceover.gameObject.SetActive(false); 
-                SoundPool.Instance.Return(_currentVoiceover); 
-                _currentVoiceover = null;
-            }
-            
-            // Hide current
             if (_currentIndex >= 0 && _currentIndex < windows.Count && windows[_currentIndex] != null)
                 windows[_currentIndex].SetActive(false);
 
@@ -127,17 +152,7 @@ namespace JellyGame.UI
                 EndSequence();
                 return;
             }
-            
-            if (windowAudioNames != null && _currentIndex < windowAudioNames.Count)
-            {
-                string audioName = windowAudioNames[_currentIndex];
-                if (!string.IsNullOrEmpty(audioName))
-                {
-                    SoundManager.Instance.PlaySound(audioName, transform);
-                }
-            }
 
-            // Show next
             if (windows[_currentIndex] != null)
                 windows[_currentIndex].SetActive(true);
 
@@ -153,6 +168,23 @@ namespace JellyGame.UI
 
             HideAll();
 
+            // Restore disabled scripts
+            for (int i = 0; i < _disabledSnapshot.Count; i++)
+            {
+                if (_disabledSnapshot[i].b != null)
+                    _disabledSnapshot[i].b.enabled = _disabledSnapshot[i].wasEnabled;
+            }
+            _disabledSnapshot.Clear();
+
+            // Restore deactivated GameObjects
+            for (int i = 0; i < _deactivatedSnapshot.Count; i++)
+            {
+                if (_deactivatedSnapshot[i].go != null)
+                    _deactivatedSnapshot[i].go.SetActive(_deactivatedSnapshot[i].wasActive);
+            }
+            _deactivatedSnapshot.Clear();
+
+            // Restore time
             if (freezeTime)
             {
                 Time.timeScale = restorePreviousTimeScale ? _prevTimeScale : 1f;
@@ -166,12 +198,7 @@ namespace JellyGame.UI
 
             if (debugLogs)
                 Debug.Log("[IntroTextSequence] Sequence complete. Game started.", this);
-            if (_currentVoiceover != null)
-            {
-                _currentVoiceover.Reset();
-                SoundPool.Instance.Return(_currentVoiceover);
-                _currentVoiceover = null;
-            }
+
             onSequenceComplete?.Invoke();
         }
 
