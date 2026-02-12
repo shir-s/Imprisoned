@@ -352,6 +352,7 @@ namespace JellyGame.GamePlay.World.Finish
 
         private void ActivateTeleportSlimes()
         {
+            SoundManager.Instance.PlaySound("PortalShow", this.transform);
             if (teleportSlimeObjects == null) return;
             for (int i = 0; i < teleportSlimeObjects.Count; i++)
                 if (teleportSlimeObjects[i] != null) teleportSlimeObjects[i].SetActive(true);
