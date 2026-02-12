@@ -10,6 +10,12 @@ namespace JellyGame.GamePlay.Audio
 
         private void Start()
         {
+            if (SoundManager.Instance == null)
+            {
+                Debug.LogWarning($"[SceneMusicTrigger] SoundManager.Instance is missing in this scene! Music '{musicName}' will not play.");
+                return;
+            }
+
             if (!string.IsNullOrEmpty(musicName))
             {
                 SoundManager.Instance.PlayBackgroundMusic(musicName);
