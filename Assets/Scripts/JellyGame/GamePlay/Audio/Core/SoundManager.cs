@@ -43,7 +43,8 @@ namespace JellyGame.GamePlay.Audio.Core
     
             return soundObject; 
         }
-         private AudioSourceWrapper PlayLoopingSound(string audioName, Transform spawnTransform)
+
+        public AudioSourceWrapper PlayLoopingSound(string audioName, Transform spawnTransform)
         {
             var config = FindAudioConfig(audioName);
             if (config == null) return null;

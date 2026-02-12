@@ -116,7 +116,7 @@ public class KinematicSurfaceSlider : MonoBehaviour, ISpeedMultiplierSink, IMove
             }
 
             // Now safe to play
-            _movementSound = soundManager.PlayLoopingSound("SlimeWalk", transform);
+            _movementSound = SoundManager.Instance.PlayLoopingSound("SlimeWalk", transform);
         }
         catch (System.Exception ex)
         {
