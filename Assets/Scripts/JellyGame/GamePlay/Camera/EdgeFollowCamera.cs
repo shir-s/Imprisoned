@@ -8,7 +8,10 @@ public class EdgeFollowCamera : MonoBehaviour
 {
     [Header("References")]
     [SerializeField] private Camera cam;
+    [Tooltip("Who to follow. If empty, will try to find the player at runtime (by tag or type).")]
     [SerializeField] private Transform target;
+    [Tooltip("Tag used to find player when target is not set. Your player (PlayerJelly) uses DrawingCube.")]
+    [SerializeField] private string playerTag = "DrawingCube";
 
     [Header("Start / Safety")]
     [Tooltip("On Start/Enable, reposition camera so target is centered.")]
@@ -75,12 +78,29 @@ public class EdgeFollowCamera : MonoBehaviour
 
     private void Start()
     {
-        if (snapToTargetOnStart)
+        if (target == null)
+            TryFindPlayer();
+        if (snapToTargetOnStart && target != null)
             SnapTargetToViewportCenter();
+    }
+
+    /// <summary>Find player at runtime when target is not set (player spawns per level). Uses tag DrawingCube (PlayerJelly).</summary>
+    private void TryFindPlayer()
+    {
+        if (target != null) return;
+        string tagToUse = string.IsNullOrEmpty(playerTag) ? "DrawingCube" : playerTag;
+        GameObject player = GameObject.FindGameObjectWithTag(tagToUse);
+        if (player != null)
+        {
+            target = player.transform;
+            _velocity = Vector3.zero;
+        }
     }
 
     private void LateUpdate()
     {
+        if (target == null)
+            TryFindPlayer();
         // STOP updating if we are missing refs OR if we are in the middle of the death zoom
         if (cam == null || target == null || _inDeathSequence)
             return;

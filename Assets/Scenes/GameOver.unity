@@ -11618,6 +11618,67 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 13.686341, y: 28.024473, z: 19.298199}
   m_Center: {x: 12.914658, y: 15.59921, z: -0.53912544}
+--- !u!1001 &184931028
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -21.19749
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -7.532
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 42.73534
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4634286399411260040, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: musicName
+      value: Tutorial
+      objectReference: {fileID: 0}
+    - target: {fileID: 7070366434276691378, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_Name
+      value: BackgroundMusic
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
 --- !u!1 &187895506
 GameObject:
   m_ObjectHideFlags: 0
@@ -14112,6 +14173,10 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
+  gameOverControllerKeys: 5001000054010000
+  mainMenuControllerKeys: 5301000056010000
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -14144,6 +14209,11 @@ MonoBehaviour:
   - {fileID: 854833247}
   - {fileID: 409934584}
   - {fileID: 964219293}
+  windowAudioNames:
+  - SP3
+  - SP6
+  - SP4
+  - SP5
   pauseGameWhileActive: 1
   restorePreviousTimeScaleOnFinish: 1
   skipCooldownSeconds: 0.75
@@ -34178,6 +34248,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 1621034874765817570}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -49159,3 +49230,4 @@ SceneRoots:
   - {fileID: 28017796}
   - {fileID: 90232020}
   - {fileID: 1992985246}
+  - {fileID: 184931028}

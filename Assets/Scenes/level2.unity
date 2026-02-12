@@ -18786,6 +18786,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   gameOverPortalDestination: -1
+  tutorialSceneBuildIndex: -1
   winFxRoot: {fileID: 128629144}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
@@ -18794,6 +18795,8 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 0
   winKey: 0
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -25479,6 +25482,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -25489,14 +25493,14 @@ MonoBehaviour:
   requiredDeaths: 7
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
-  releaseDelay: 1
-  hidePlayerAfterGrabDelay: 0.5
+  hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
-  deactivateAfterReleaseDelay: 1
   portalParticlesRoot: {fileID: 0}
-  particleFadeDelay: 2
+  extraObjectToActivate: {fileID: 0}
+  particleFadeDuration: 2
   winFxRoot: {fileID: 727996361}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -48117,6 +48121,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 1259213360}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -81562,6 +81567,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -81572,14 +81578,14 @@ MonoBehaviour:
   requiredDeaths: 4
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
-  releaseDelay: 1
-  hidePlayerAfterGrabDelay: 0.5
+  hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
-  deactivateAfterReleaseDelay: 1
   portalParticlesRoot: {fileID: 0}
-  particleFadeDelay: 2
+  extraObjectToActivate: {fileID: 0}
+  particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -82201,8 +82207,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.70698005, y: 0.70698005, z: -0.013389464, w: -0.013389464}
   m_LocalPosition: {x: 0.52, y: 2.3731444, z: -0.14}
-  m_LocalScale: {x: 0.7006314, y: 0.5993258, z: 0.70046115}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 2.5, y: 2.1385202, z: 2.4993925}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 3481801202206618170}
   - {fileID: 6246416207476788211}
