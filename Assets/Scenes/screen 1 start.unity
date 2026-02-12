@@ -2107,6 +2107,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   gameOverPortalDestination: -1
+  tutorialSceneBuildIndex: -1
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
@@ -2115,6 +2116,8 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -2151,6 +2154,7 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
+  windowAudioNames: []
   pauseGameWhileActive: 1
   restorePreviousTimeScaleOnFinish: 1
   skipCooldownSeconds: 0.75
@@ -13507,6 +13511,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -13517,14 +13522,13 @@ MonoBehaviour:
   requiredDeaths: 4
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
-  releaseDelay: 1
-  hidePlayerAfterGrabDelay: 0.5
-  releaseBoolName: release
-  deactivateAfterReleaseDelay: 1
+  hidePlayerAtGrabProgress: 0.7
   portalParticlesRoot: {fileID: 0}
-  particleFadeDelay: 2
+  extraObjectToActivate: {fileID: 0}
+  particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -19420,6 +19424,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 663472628}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -20194,6 +20199,67 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1458545816}
   m_Mesh: {fileID: -8884434060482971766, guid: 209c409bb1af64f5397ff036758eacef, type: 3}
+--- !u!1001 &1459198805
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -21.19749
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -6.88071
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.31273
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4031389739360529425, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4634286399411260040, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: musicName
+      value: Tutorial
+      objectReference: {fileID: 0}
+    - target: {fileID: 7070366434276691378, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
+      propertyPath: m_Name
+      value: BackgroundMusic
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: c1f73915f243f4ef389627fab2c3c4b6, type: 3}
 --- !u!1001 &1472928643
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -30979,3 +31045,4 @@ SceneRoots:
   - {fileID: 28017796}
   - {fileID: 1746006130}
   - {fileID: 1263565962}
+  - {fileID: 1459198805}

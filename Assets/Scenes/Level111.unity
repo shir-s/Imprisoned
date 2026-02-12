@@ -12565,6 +12565,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -12573,11 +12574,15 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   requiredDeaths: 5
-  meshOnThisObject: {fileID: 443225181}
-  meshOnChildObject: {fileID: 971792923}
-  additionalRenderers: []
-  gameObjectsToToggle:
-  - {fileID: 919132148779239613}
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  hidePlayerAtGrabProgress: 0.7
+  portalParticlesRoot: {fileID: 0}
+  extraObjectToActivate: {fileID: 0}
+  particleFadeDuration: 2
   winFxRoot: {fileID: 1233512572}
   winFxDelaySeconds: 0.5
   playParticleSystemsOnWin: 1
@@ -17662,23 +17667,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
   isMainMenu: 0
   mainMenuNextScene: 4
-  pressAnyKeyText: Press Any Key to Start
   playBackgroundMusic: 1
+  nextSceneBuildIndex: -1
+  useInstantTransition: 1
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
     m_Bits: 128
-  useLoadingScreenForWin: 1
-  winScenesToLoad: 0600000007000000
   gameOverPortalDestination: 5
+  tutorialSceneBuildIndex: -1
   winFxRoot: {fileID: 128629144}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
-  winSceneLoadDelay: 2
+  winFxDelay: 0
   pauseGameplayOnWin: 0
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
+  gameOverControllerKeys: 
+  mainMenuControllerKeys: 
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -46840,6 +46849,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 663472628}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -65294,6 +65304,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -65302,10 +65313,15 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 2048
   requiredDeaths: 5
-  meshOnThisObject: {fileID: 1604427324014506475}
-  meshOnChildObject: {fileID: 8978657641268886434}
-  additionalRenderers: []
-  gameObjectsToToggle: []
+  destroyPlayerBeforeTransition: 1
+  playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
+  teleportSlimeObjects: []
+  slimeActivateDelay: 0.2
+  hidePlayerAtGrabProgress: 0.7
+  portalParticlesRoot: {fileID: 0}
+  extraObjectToActivate: {fileID: 0}
+  particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1
@@ -65623,11 +65639,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 2186528266329314058}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &919132148779239613 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 5ae7a314b08c34f108c2509c29141110, type: 3}
-  m_PrefabInstance: {fileID: 699266540}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &919132148884694207
 GameObject:
   m_ObjectHideFlags: 0
@@ -66841,10 +66852,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3793594676184193298}
     m_Modifications:
-    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[0]'
-      value: 
-      objectReference: {fileID: 3260622557042798612}
     - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: healthImageRect
       value: 

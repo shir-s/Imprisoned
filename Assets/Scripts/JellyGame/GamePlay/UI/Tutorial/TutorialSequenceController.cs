@@ -184,7 +184,8 @@ namespace JellyGame.UI.Tutorial
 
         // ===================== Gates =====================
         private enum RequirementType { PressAllArrowKeysOnce, AreaClosedOnce, PickupCollectedOnce, EnemyKilledOnce, OrderedTriggerSequenceOnce }
-
+        private AudioSourceWrapper _currentVoiceover;
+        
         [Serializable]
         private class WindowGate
         {
@@ -489,6 +490,16 @@ namespace JellyGame.UI.Tutorial
             HideAllWindows();
             _state = FlowState.Idle;
             _currentIndex = -1;
+            
+            if (_currentVoiceover != null)
+            {
+                _currentVoiceover.Reset();
+                if (_currentVoiceover.gameObject.activeSelf) 
+                {
+                    SoundPool.Instance.Return(_currentVoiceover);
+                }
+                _currentVoiceover = null;
+            }
 
             RestoreIntroMoveDisabledBehaviours();
 
@@ -507,13 +518,21 @@ namespace JellyGame.UI.Tutorial
 
             ApplyWindowShowScriptActions(_currentIndex);
             
+            if (_currentVoiceover != null && _currentVoiceover.IsPlaying())
+            {
+                _currentVoiceover.Reset();
+                _currentVoiceover.gameObject.SetActive(false);
+                SoundPool.Instance.Return(_currentVoiceover);
+                _currentVoiceover = null;
+            }
+            
             if (windowAudioNames != null && index < windowAudioNames.Count)
             {
                 string audioName = windowAudioNames[index];
-        
+
                 if (!string.IsNullOrEmpty(audioName))
                 {
-                    SoundManager.Instance.PlaySound(audioName, this.transform);
+                    _currentVoiceover = SoundManager.Instance.PlaySound(audioName, this.transform);
                 }
             }
             

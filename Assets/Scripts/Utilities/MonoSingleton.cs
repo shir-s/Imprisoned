@@ -9,9 +9,16 @@ namespace Utils
     public class MonoSingleton<T> : MonoBehaviour where T : MonoBehaviour
     {
         private static T _instance;
-        
-        private void Awake()
+
+        protected virtual void Awake()
         {
+            if (_instance != null && _instance != this)
+            {
+                Destroy(this.gameObject);
+                return;
+            }
+            _instance = this as T;
+            transform.SetParent(null); 
             DontDestroyOnLoad(gameObject);
         }
 
@@ -19,14 +26,15 @@ namespace Utils
         {
             get
             {
-                if (_instance != null)
-                    return _instance;
-
-                _instance = FindFirstObjectByType<T>();
                 if (_instance == null)
                 {
-                    var singletonObject = new GameObject(typeof(T).Name);
-                    _instance = singletonObject.AddComponent<T>();
+                    _instance = FindFirstObjectByType<T>();
+
+                    if (_instance == null)
+                    {
+                        var singletonObject = new GameObject(typeof(T).Name);
+                        _instance = singletonObject.AddComponent<T>();
+                    }
                 }
 
                 return _instance;

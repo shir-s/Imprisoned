@@ -32,6 +32,7 @@ namespace JellyGame.GamePlay.Audio.Core
 
         public void Reset()
         {
+            if (this == null || audioSource == null) return;
             if (audioSource.isPlaying)
             {
                 audioSource.Stop();
@@ -43,6 +44,7 @@ namespace JellyGame.GamePlay.Audio.Core
     
         public bool IsPlaying()
         {
+            if (this == null || audioSource == null) return false;
             return audioSource != null && audioSource.isPlaying;
         }
 
