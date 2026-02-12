@@ -1,6 +1,7 @@
 // FILEPATH: Assets/Scripts/Managers/CutscenePortalSequence.cs
 using System.Collections;
 using System.Collections.Generic;
+using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using UnityEngine.Playables;
 using JellyGame.GamePlay.World.Finish;
@@ -374,6 +375,8 @@ namespace JellyGame.GamePlay.Managers
             if (postCutsceneCanvas != null)
             {
                 postCutsceneCanvas.SetActive(true);
+                SoundManager.Instance.PlaySound("SP2", objectA != null ? objectA : this.transform, 1f);
+
 
                 if (debugLogs)
                     Debug.Log("[CutscenePortalSequence] Canvas shown. Waiting for continue input.", this);
@@ -388,7 +391,7 @@ namespace JellyGame.GamePlay.Managers
             // --- Hide canvas ---
             if (hideCanvasOnMovementStart && postCutsceneCanvas != null)
                 postCutsceneCanvas.SetActive(false);
-
+            
             // --- Play camera animation ---
             if (cameraAnimator != null)
             {
