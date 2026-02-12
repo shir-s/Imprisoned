@@ -12,13 +12,17 @@ namespace JellyGame.GamePlay.Managers
     /// 
     /// Responsibilities:
     /// - On Start(), tell LoadingManager to preload the next scene in the background
-    /// - Listen for GameWin â†’ transition to next scene (instant if preloaded, loading screen otherwise)
-    /// - Listen for EntityDied â†’ trigger GameOver â†’ transition to GameOver scene
+    /// - Listen for GameWin → transition to next scene (instant if preloaded, loading screen otherwise)
+    /// - Listen for EntityDied → trigger GameOver → transition to GameOver scene
     /// - Play win FX before transitioning
     /// - Handle Main Menu "Press Any Key" flow
     /// 
     /// IMPORTANT: Configure nextSceneBuildIndex in the Inspector for each level!
     /// This is the scene that will be preloaded and transitioned to on win.
+    /// 
+    /// For cutscene destinations: enable "fullyPreloadNextScene" to load the scene to 100%
+    /// in the background (dormant). This allows truly zero-delay transitions — the cutscene
+    /// scene is fully loaded and just needs its root objects re-enabled.
     /// </summary>
     public class GameSceneManager : MonoBehaviour
     {
@@ -35,10 +39,10 @@ namespace JellyGame.GamePlay.Managers
         [Header("Scene Flow")]
         [Tooltip("Build index of the NEXT scene after winning this level.\n" +
                  "Examples:\n" +
-                 "- Tutorial â†’ Level 1 build index\n" +
-                 "- Level 1 â†’ Cutscene 1 build index\n" +
-                 "- Level 3 â†’ Win Scene build index\n" +
-                 "- Win Scene â†’ Main Menu build index\n" +
+                 "- Tutorial → Level 1 build index\n" +
+                 "- Level 1 → Cutscene 1 build index\n" +
+                 "- Level 3 → Win Scene build index\n" +
+                 "- Win Scene → Main Menu build index\n" +
                  "Set to -1 to disable preloading.")]
         [SerializeField] private int nextSceneBuildIndex = -1;
 
@@ -46,11 +50,20 @@ namespace JellyGame.GamePlay.Managers
                  "If false, always show the loading screen for at least the minimum display time.")]
         [SerializeField] private bool useInstantTransition = true;
 
+        [Tooltip("If true, preload the next scene to 100%% (dormant) instead of 90%%.\n" +
+                 "The scene is fully activated but all root objects are disabled.\n" +
+                 "On transition, objects are simply re-enabled — ZERO load delay.\n\n" +
+                 "USE THIS FOR: Cutscene scenes that gate their start on an Animator bool.\n" +
+                 "The cutscene won't play until CutsceneStartTrigger sets the bool after re-enable.\n\n" +
+                 "DO NOT USE FOR: Gameplay scenes with player spawning, physics, etc.\n" +
+                 "Those should use standard preload (this = false).")]
+        [SerializeField] private bool fullyPreloadNextScene = false;
+
         [Header("Game Over")]
         [Tooltip("Build index of the GameOver scene.")]
         [SerializeField] private int gameOverSceneBuildIndex = 0;
 
-        [Tooltip("If an EntityDied event victim layer matches this mask â†’ trigger GameOver.")]
+        [Tooltip("If an EntityDied event victim layer matches this mask → trigger GameOver.")]
         [SerializeField] private LayerMask gameOverOnVictimLayers;
 
         [Header("Special Case: GameOver Scene Portal")]
@@ -116,7 +129,6 @@ namespace JellyGame.GamePlay.Managers
 
         private void Start()
         {
-
             // Override GameOver portal destination if player died in tutorial
             if (tutorialSceneBuildIndex >= 0 && LastDeathSceneBuildIndex == tutorialSceneBuildIndex)
             {
@@ -156,14 +168,12 @@ namespace JellyGame.GamePlay.Managers
             if (isMainMenu && Input.anyKeyDown)
             {
                 if (debugLogs)
-                    Debug.Log("[GameSceneManager] Main Menu: key pressed â†’ loading next scene.", this);
+                    Debug.Log("[GameSceneManager] Main Menu: key pressed → loading next scene.", this);
 
                 isMainMenu = false;
                 TransitionTo(mainMenuNextScene);
                 return;
             }
-            
-            
 
             // Keyboard (single key) + Controller (list)
             if ((mainMenuKey != KeyCode.None && Input.GetKeyDown(mainMenuKey)) ||
@@ -222,10 +232,20 @@ namespace JellyGame.GamePlay.Managers
             // Normal level preloads next scene
             if (nextSceneBuildIndex >= 0)
             {
-                LoadingManager.Instance.PreloadScene(nextSceneBuildIndex);
+                if (fullyPreloadNextScene)
+                {
+                    LoadingManager.Instance.PreloadSceneFully(nextSceneBuildIndex);
 
-                if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Preloading next scene: {nextSceneBuildIndex}", this);
+                    if (debugLogs)
+                        Debug.Log($"[GameSceneManager] FULLY preloading next scene: {nextSceneBuildIndex} (cutscene/dormant mode)", this);
+                }
+                else
+                {
+                    LoadingManager.Instance.PreloadScene(nextSceneBuildIndex);
+
+                    if (debugLogs)
+                        Debug.Log($"[GameSceneManager] Preloading next scene: {nextSceneBuildIndex}", this);
+                }
             }
         }
 
@@ -241,7 +261,7 @@ namespace JellyGame.GamePlay.Managers
                 return;
 
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] EntityDied on matching layer â†’ GameOver.", this);
+                Debug.Log($"[GameSceneManager] EntityDied on matching layer → GameOver.", this);
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
         }
@@ -252,7 +272,7 @@ namespace JellyGame.GamePlay.Managers
             LastDeathSceneBuildIndex = SceneManager.GetActiveScene().buildIndex;
 
             if (debugLogs)
-                Debug.Log($"[GameSceneManager] GameOver â†’ loading scene {gameOverSceneBuildIndex}", this);
+                Debug.Log($"[GameSceneManager] GameOver → loading scene {gameOverSceneBuildIndex}", this);
 
             TransitionTo(gameOverSceneBuildIndex);
         }
@@ -282,7 +302,7 @@ namespace JellyGame.GamePlay.Managers
                 destination = gameOverPortalDestination;
 
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] Win in GameOver scene â†’ going to {destination}", this);
+                    Debug.Log($"[GameSceneManager] Win in GameOver scene → going to {destination}", this);
             }
 
             if (destination < 0)
@@ -299,7 +319,7 @@ namespace JellyGame.GamePlay.Managers
             if (pauseGameplayOnWin)
                 Time.timeScale = 0f;
 
-            // Wait for FX â€” always use realtime because timeScale may be 0
+            // Wait for FX — always use realtime because timeScale may be 0
             if (delay > 0f)
             {
                 yield return new WaitForSecondsRealtime(delay);
@@ -308,7 +328,7 @@ namespace JellyGame.GamePlay.Managers
             // Always restore timeScale before transition
             Time.timeScale = 1f;
 
-            // Transition â€” try instant first, fall back to loading screen
+            // Transition — try instant first, fall back to loading screen
             TransitionTo(destination);
         }
 
@@ -331,15 +351,15 @@ namespace JellyGame.GamePlay.Managers
             if (useInstantTransition && LoadingManager.Instance.TryInstantTransition(buildIndex))
             {
                 if (debugLogs)
-                    Debug.Log($"[GameSceneManager] âš¡ Instant transition to scene {buildIndex} (preload was ready).", this);
+                    Debug.Log($"[GameSceneManager] ⚡ Instant transition to scene {buildIndex} (preload was ready).", this);
                 return;
             }
 
-            // Preload not ready or instant disabled â€” use full loading screen
+            // Preload not ready or instant disabled — use full loading screen
             if (debugLogs)
             {
                 string reason = useInstantTransition ? "preload not ready" : "instant transition disabled";
-                Debug.Log($"[GameSceneManager] {reason} â†’ using loading screen for scene {buildIndex}.", this);
+                Debug.Log($"[GameSceneManager] {reason} → using loading screen for scene {buildIndex}.", this);
             }
 
             LoadingManager.Instance.TransitionToScene(buildIndex);

@@ -219,6 +219,7 @@ GameObject:
   - component: {fileID: 56156074}
   - component: {fileID: 56156073}
   - component: {fileID: 56156072}
+  - component: {fileID: 56156075}
   m_Layer: 0
   m_Name: SceneManager
   m_TagString: Untagged
@@ -467,6 +468,7 @@ MonoBehaviour:
   playBackgroundMusic: 1
   nextSceneBuildIndex: 12
   useInstantTransition: 1
+  fullyPreloadNextScene: 1
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
@@ -500,6 +502,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &56156075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 56156071}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8183a2326f454a499baac80760c94d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CutsceneStartTrigger
+  triggers:
+  - animator: {fileID: 830035204}
+    boolParameterName: start_story_2
+    useTriggerInsteadOfBool: 0
+  waitFrames: 2
+  additionalDelaySeconds: 0
+  autoStart: 1
+  debugLogs: 1
 --- !u!1 &90306066
 GameObject:
   m_ObjectHideFlags: 0
@@ -977,7 +999,7 @@ MonoBehaviour:
   enableAutoSkip: 1
   autoSkipDelay: 1
   detectCutsceneEnd: 1
-  fixedCutsceneDuration: 10
+  fixedCutsceneDuration: 17
   inputGuardSeconds: 0.5
   debugLogs: 1
 --- !u!4 &229211375

@@ -9,19 +9,22 @@ namespace JellyGame.GamePlay.Managers
     /// <summary>
     /// Triggers the start of a cutscene after the scene is fully loaded and visually ready.
     ///
-    /// PROBLEM:
-    /// Cutscene scenes are preloaded and activated instantly (no loading screen).
-    /// The designers have added a bool parameter in the camera Animator that gates
-    /// the cutscene start — it only plays when that bool is set to true.
-    /// We need to set it at the right moment: after the scene is rendered and visible.
+    /// WORKS WITH FULL PRELOAD (LoadingManager.PreloadSceneFully):
+    /// When a scene is fully preloaded, all root objects are disabled after Awake but before Start.
+    /// On transition, LoadingManager re-enables them. This causes:
+    ///   1. OnEnable() fires on all scripts
+    ///   2. Start() fires on the next frame (first time only)
+    ///   3. This script's Start() kicks off the wait-and-trigger coroutine
+    ///   4. After a few frames (rendering stabilizes), the Animator bool is set
+    ///   5. Camera animation transitions → cutscene plays from the beginning, fully visible
+    ///
+    /// ALSO WORKS WITH STANDARD PRELOAD:
+    /// Scene activates normally, Start() runs, same trigger logic applies.
     ///
     /// USAGE:
     /// 1. Drop this on any GameObject in the cutscene scene.
     /// 2. Drag the camera's Animator into the "triggers" list.
     /// 3. Set the parameter name to match the designer's bool (e.g. "StartCutscene").
-    /// 4. The component waits for rendering to stabilize, then sets the bool to true.
-    ///
-    /// Supports multiple triggers (e.g. camera animator + a secondary animator).
     /// </summary>
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(-50)]
@@ -47,8 +50,10 @@ namespace JellyGame.GamePlay.Managers
         [SerializeField] private List<AnimatorTrigger> triggers = new List<AnimatorTrigger>();
 
         [Header("Timing")]
-        [Tooltip("Number of frames to wait after scene activation before triggering.\n" +
-                 "2 frames is usually enough for rendering to stabilize.")]
+        [Tooltip("Number of frames to wait after Start() before triggering.\n" +
+                 "2 frames is usually enough for rendering to stabilize.\n" +
+                 "With full preload, the scene is already loaded — this just ensures " +
+                 "the first rendered frame is visible before the cutscene starts.")]
         [SerializeField] private int waitFrames = 2;
 
         [Tooltip("Optional additional real-time delay (seconds) after frame wait.\n" +
@@ -90,11 +95,14 @@ namespace JellyGame.GamePlay.Managers
 
         private IEnumerator WaitAndTrigger()
         {
+            if (debugLogs)
+                Debug.Log($"[CutsceneStartTrigger] Waiting {waitFrames} frame(s) before triggering...", this);
+
             // Wait N frames for rendering to stabilize
             for (int i = 0; i < waitFrames; i++)
                 yield return null;
 
-            // Optional additional delay
+            // Optional additional delay (real-time, works even if timeScale = 0)
             if (additionalDelaySeconds > 0f)
                 yield return new WaitForSecondsRealtime(additionalDelaySeconds);
 
