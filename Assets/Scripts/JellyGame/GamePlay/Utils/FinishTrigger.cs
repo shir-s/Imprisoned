@@ -62,8 +62,10 @@ namespace JellyGame.GamePlay.World.Finish
         [Range(0f, 1f)]
         [SerializeField] private float hidePlayerAtGrabProgress = 0.7f;
 
-        [Header("Portal Particle Fade")]
+        [Header("Portal & Extra Object")]
         [SerializeField] private GameObject portalParticlesRoot;
+        [Tooltip("Object (e.g. key) hidden at start, activated when all enemies are dead, same as portal.")]
+        [SerializeField] private GameObject extraObjectToActivate;
         [SerializeField] private float particleFadeDuration = 2.0f;
 
         [Header("Win FX (optional)")]
@@ -344,6 +346,8 @@ namespace JellyGame.GamePlay.World.Finish
         {
             if (portalParticlesRoot != null)
                 portalParticlesRoot.SetActive(visible);
+            if (extraObjectToActivate != null)
+                extraObjectToActivate.SetActive(visible);
         }
 
         private void ActivateTeleportSlimes()

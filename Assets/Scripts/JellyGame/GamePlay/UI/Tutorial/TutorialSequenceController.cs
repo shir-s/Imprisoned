@@ -7,6 +7,7 @@ using UnityEngine.Events;
 using JellyGame.GamePlay.Managers;
 using JellyGame.GamePlay.Painting.Trails.Visibility;
 using JellyGame.GamePlay.Abilities.Zones;
+using JellyGame.GamePlay.Audio.Core;
 
 namespace JellyGame.UI.Tutorial
 {
@@ -16,6 +17,10 @@ namespace JellyGame.UI.Tutorial
         // ===================== Windows =====================
         [Header("Windows (in order)")]
         [SerializeField] private List<GameObject> windows = new List<GameObject>();
+        // ======================Audio========================
+        [Header("Audio Per Window")]
+        [Tooltip("Fill this list to match the number of Windows above. Put the AudioName string for each step.")]
+        [SerializeField] private List<string> windowAudioNames = new List<string>();
 
         // ===================== Pause =====================
         [Header("Pause")]
@@ -501,6 +506,17 @@ namespace JellyGame.UI.Tutorial
             _currentIndex = index;
 
             ApplyWindowShowScriptActions(_currentIndex);
+            
+            if (windowAudioNames != null && index < windowAudioNames.Count)
+            {
+                string audioName = windowAudioNames[index];
+        
+                if (!string.IsNullOrEmpty(audioName))
+                {
+                    SoundManager.Instance.PlaySound(audioName, this.transform);
+                }
+            }
+            
             if (windows[_currentIndex] != null) windows[_currentIndex].SetActive(true);
 
             _canSkipAtUnscaledTime = Time.unscaledTime + Mathf.Max(0f, skipCooldownSeconds);

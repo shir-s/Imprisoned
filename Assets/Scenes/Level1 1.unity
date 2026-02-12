@@ -12749,6 +12749,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   gameOverPortalDestination: -1
+  tutorialSceneBuildIndex: -1
   winFxRoot: {fileID: 0}
   disableWinFxRootOnStart: 1
   stopWinFxOnStart: 1
@@ -12757,6 +12758,8 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -21822,6 +21825,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 0}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
@@ -30512,6 +30516,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -30522,14 +30527,13 @@ MonoBehaviour:
   requiredDeaths: 5
   destroyPlayerBeforeTransition: 1
   playerTag: DrawingCube
+  additionalObjectsToDestroyWithPlayer: []
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
-  releaseDelay: 1
-  hidePlayerAfterGrabDelay: 0.5
+  hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
-  deactivateAfterReleaseDelay: 1
   portalParticlesRoot: {fileID: 0}
-  particleFadeDelay: 2
+  particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
   playParticleSystemsOnWin: 1

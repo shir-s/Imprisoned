@@ -37170,6 +37170,19 @@ MonoBehaviour:
   - {fileID: 636945453}
   - {fileID: 682704277}
   - {fileID: 398407351}
+  windowAudioNames:
+  - SP1
+  - SP2
+  - SP3
+  - SP4
+  - SP5
+  - SP6
+  - SP7
+  - SP8
+  - SP9
+  - SP10
+  - SP1
+  - SP2
   pauseGameWhileActive: 1
   restorePreviousTimeScaleOnFinish: 1
   skipCooldownSeconds: 0.75
@@ -74818,6 +74831,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -83086,6 +83100,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 1621034874765817570}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.45
