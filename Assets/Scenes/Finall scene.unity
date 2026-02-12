@@ -45288,6 +45288,7 @@ GameObject:
   - component: {fileID: 1357325462}
   - component: {fileID: 1357325465}
   - component: {fileID: 1357325466}
+  - component: {fileID: 1357325467}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -45435,6 +45436,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &1357325467
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1357325461}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48be836ceb239854881bba5b6bab5710, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.CanvasActivator
+  targetCanvas: {fileID: 1364958964}
 --- !u!1 &1359619955
 GameObject:
   m_ObjectHideFlags: 0
@@ -45542,7 +45556,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &1364958962
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -66423,6 +66437,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1953062385}
   - component: {fileID: 1953062384}
+  - component: {fileID: 1953062386}
   m_Layer: 0
   m_Name: SceneManager
   m_TagString: Untagged
@@ -66481,6 +66496,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1953062386
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953062382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8183a2326f454a499baac80760c94d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CutsceneStartTrigger
+  triggers:
+  - animator: {fileID: 1357325466}
+    boolParameterName: start_camera_movement
+    useTriggerInsteadOfBool: 0
+  waitFrames: 2
+  additionalDelaySeconds: 0
+  autoStart: 1
+  debugLogs: 1
 --- !u!1 &1958643324
 GameObject:
   m_ObjectHideFlags: 0
