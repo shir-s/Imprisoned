@@ -15,14 +15,20 @@ namespace JellyGame.GamePlay.Managers
     ///   Nothing in the preloaded scene runs (no Awake, no Start, no visual scripting, no Timeline).
     ///   Scene loads to ~90% and waits.
     ///
-    /// - TryInstantTransition(): If the preloaded scene is ready (>= 90%), switch to it
-    ///   IMMEDIATELY without showing any loading screen. Seamless transition.
+    /// - PreloadSceneFully(): Loads a scene to 100% and activates it, but immediately disables
+    ///   all root GameObjects via a sceneLoaded callback. The scene is fully loaded (Awake runs,
+    ///   but Start does NOT because objects are deactivated before the first frame). On transition,
+    ///   objects are simply re-enabled — ZERO load delay.
+    ///   Perfect for cutscene scenes that gate their start on an Animator bool.
+    ///
+    /// - TryInstantTransition(): If the preloaded scene is ready (>= 90% or fully preloaded),
+    ///   switch to it IMMEDIATELY without showing any loading screen. Seamless transition.
     ///
     /// - TransitionToScene(): Full loading screen transition. Used as fallback when preload
     ///   isn't ready, or for transitions that don't have a preload (GameOver, Main Menu).
     ///
     /// Both paths share the same coroutine logic for neutralizing old scenes, activating the
-    /// new scene, and cleaning up â€” only the UI and wait steps differ.
+    /// new scene, and cleaning up — only the UI and wait steps differ.
     /// </summary>
     [DisallowMultipleComponent]
     public class LoadingManager : MonoBehaviour
@@ -68,11 +74,16 @@ namespace JellyGame.GamePlay.Managers
         private bool _continuePressed = false;
         private bool _acceptContinueInput = false;
 
-        // Preloading
+        // Standard preloading (90%)
         private AsyncOperation _preloadOp = null;
         private int _preloadedBuildIndex = -1;
 
-        // The build index of the LoadingScreen scene itself â€” must never be unloaded
+        // Full preloading (100%, dormant)
+        private int _fullyPreloadedBuildIndex = -1;
+        private bool _isFullyPreloading = false;
+        private Coroutine _fullPreloadCoroutine = null;
+
+        // The build index of the LoadingScreen scene itself — must never be unloaded
         private int _mySceneBuildIndex = -1;
 
         // Singleton
@@ -114,7 +125,7 @@ namespace JellyGame.GamePlay.Managers
                 DontDestroyOnLoad(loadingCanvas.gameObject);
 
                 if (debugLogs)
-                    Debug.Log("[LoadingManager] Canvas is root object â€” applied DontDestroyOnLoad.", this);
+                    Debug.Log("[LoadingManager] Canvas is root object — applied DontDestroyOnLoad.", this);
             }
 
             // Start hidden
@@ -149,8 +160,8 @@ namespace JellyGame.GamePlay.Managers
         // ===================== PUBLIC API =====================
 
         /// <summary>
-        /// Start preloading a scene in the background.
-        /// The scene will load to ~90% but NOT activate â€” nothing in it will run.
+        /// Start preloading a scene in the background (standard 90% preload).
+        /// The scene will load to ~90% but NOT activate — nothing in it will run.
         /// Call TransitionToScene() or TryInstantTransition() later to switch to it.
         /// </summary>
         public void PreloadScene(int buildIndex)
@@ -161,11 +172,19 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
-            // Already preloading this exact scene?
+            // Already preloading this exact scene (standard)?
             if (_preloadedBuildIndex == buildIndex && _preloadOp != null)
             {
                 if (debugLogs)
                     Debug.Log($"[LoadingManager] Scene {buildIndex} already preloading. Skipping.", this);
+                return;
+            }
+
+            // Already fully preloaded?
+            if (_fullyPreloadedBuildIndex == buildIndex)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Scene {buildIndex} already fully preloaded. Skipping.", this);
                 return;
             }
 
@@ -185,7 +204,153 @@ namespace JellyGame.GamePlay.Managers
             _preloadedBuildIndex = buildIndex;
         }
 
-        /// <summary>Check if a specific scene is preloaded and ready to activate.</summary>
+        /// <summary>
+        /// Preload a scene to 100% — fully loaded and activated, but dormant (all root objects disabled).
+        /// 
+        /// HOW IT WORKS:
+        /// 1. Loads scene additively to 90% (allowSceneActivation = false).
+        /// 2. Registers a sceneLoaded callback that immediately disables all root GameObjects.
+        /// 3. Sets allowSceneActivation = true — scene activates to 100%.
+        /// 4. Awake() runs on all scripts, but Start() does NOT because objects are disabled
+        ///    before the next frame.
+        /// 5. On transition, objects are simply re-enabled — Start() runs, zero load delay.
+        ///
+        /// PERFECT FOR: Cutscene scenes where the cutscene is gated by an Animator bool.
+        /// The Animator initializes in Awake (default state = waiting), and CutsceneStartTrigger
+        /// fires in Start() after re-enable to set the bool and start the cutscene.
+        /// </summary>
+        public void PreloadSceneFully(int buildIndex)
+        {
+            if (!IsValidBuildIndex(buildIndex))
+            {
+                Debug.LogError($"[LoadingManager] PreloadSceneFully: invalid build index {buildIndex}", this);
+                return;
+            }
+
+            // Already fully preloaded?
+            if (_fullyPreloadedBuildIndex == buildIndex && !_isFullyPreloading)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Scene {buildIndex} already fully preloaded. Skipping.", this);
+                return;
+            }
+
+            // Already doing a full preload for a different scene? Cancel it.
+            if (_fullPreloadCoroutine != null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Cancelling in-progress full preload of scene {_fullyPreloadedBuildIndex}.", this);
+
+                StopCoroutine(_fullPreloadCoroutine);
+                _fullPreloadCoroutine = null;
+                _isFullyPreloading = false;
+                // Note: the partially loaded scene becomes an orphan — cleaned up on next transition.
+            }
+
+            // Cancel any standard preload for this scene (we're upgrading to full)
+            if (_preloadedBuildIndex == buildIndex && _preloadOp != null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Upgrading standard preload of scene {buildIndex} to full preload.", this);
+
+                // Reuse the existing AsyncOperation
+                _fullPreloadCoroutine = StartCoroutine(FullPreloadCoroutine(buildIndex, _preloadOp));
+                _preloadOp = null;
+                _preloadedBuildIndex = -1;
+                return;
+            }
+
+            // Drop any existing standard preload for a different scene
+            if (_preloadOp != null && _preloadedBuildIndex >= 0)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Dropping standard preload of scene {_preloadedBuildIndex} " +
+                              $"in favor of full preload of {buildIndex}.", this);
+            }
+            _preloadOp = null;
+            _preloadedBuildIndex = -1;
+
+            _fullPreloadCoroutine = StartCoroutine(FullPreloadCoroutine(buildIndex, null));
+        }
+
+        private IEnumerator FullPreloadCoroutine(int buildIndex, AsyncOperation existingOp)
+        {
+            _isFullyPreloading = true;
+            _fullyPreloadedBuildIndex = buildIndex;
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Full preload starting for scene {buildIndex}...", this);
+
+            // Step 1: Get or create the async load operation
+            AsyncOperation loadOp = existingOp;
+            if (loadOp == null)
+            {
+                loadOp = SceneManager.LoadSceneAsync(buildIndex, LoadSceneMode.Additive);
+                loadOp.allowSceneActivation = false;
+            }
+
+            // Step 2: Wait for 90%
+            while (loadOp.progress < 0.9f)
+                yield return null;
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Full preload: scene {buildIndex} at 90%. Activating dormant...", this);
+
+            // Step 3: Register callback to neutralize the scene THE MOMENT it activates.
+            // sceneLoaded fires after Awake() but before Start(), so disabling root objects
+            // prevents Start() from running on any scripts.
+            int idx = buildIndex;
+            bool neutralized = false;
+
+            UnityEngine.Events.UnityAction<Scene, LoadSceneMode> neutralizeOnLoad = null;
+            neutralizeOnLoad = (scene, mode) =>
+            {
+                if (scene.buildIndex == idx)
+                {
+                    foreach (GameObject obj in scene.GetRootGameObjects())
+                        obj.SetActive(false);
+
+                    neutralized = true;
+                    SceneManager.sceneLoaded -= neutralizeOnLoad;
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Full preload: scene {idx} ({scene.name}) neutralized on activation. " +
+                                  "Awake() ran, Start() blocked.", this);
+                }
+            };
+            SceneManager.sceneLoaded += neutralizeOnLoad;
+
+            // Step 4: Let it fully activate
+            loadOp.allowSceneActivation = true;
+
+            while (!loadOp.isDone)
+                yield return null;
+
+            // Safety: unsubscribe if callback didn't fire
+            if (!neutralized)
+            {
+                SceneManager.sceneLoaded -= neutralizeOnLoad;
+
+                Scene loadedScene = SceneManager.GetSceneByBuildIndex(buildIndex);
+                if (loadedScene.isLoaded)
+                {
+                    foreach (GameObject obj in loadedScene.GetRootGameObjects())
+                        obj.SetActive(false);
+                }
+
+                if (debugLogs)
+                    Debug.LogWarning($"[LoadingManager] Full preload: callback didn't fire for scene {buildIndex}. " +
+                                     "Neutralized manually.", this);
+            }
+
+            _isFullyPreloading = false;
+            _fullPreloadCoroutine = null;
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Full preload COMPLETE: scene {buildIndex} is 100% loaded and dormant.", this);
+        }
+
+        /// <summary>Check if a specific scene is preloaded (standard 90%) and ready to activate.</summary>
         public bool IsScenePreloaded(int buildIndex)
         {
             return _preloadedBuildIndex == buildIndex
@@ -193,38 +358,60 @@ namespace JellyGame.GamePlay.Managers
                 && _preloadOp.progress >= 0.9f;
         }
 
+        /// <summary>Check if a specific scene is fully preloaded (100%, dormant) and ready for instant switch.</summary>
+        public bool IsSceneFullyPreloaded(int buildIndex)
+        {
+            return _fullyPreloadedBuildIndex == buildIndex
+                && !_isFullyPreloading;
+        }
+
         /// <summary>
         /// Try to switch to the preloaded scene INSTANTLY (no loading screen).
-        /// Returns true if the scene was preloaded and ready â€” transition starts immediately.
-        /// Returns false if not ready â€” caller should use TransitionToScene() instead.
+        /// Works with both standard preload (90%) and full preload (100% dormant).
+        /// Full preload is prioritized — truly zero-delay switch.
+        /// Returns true if transition starts. Returns false if not ready.
         /// </summary>
         public bool TryInstantTransition(int buildIndex)
         {
             if (_isTransitioning)
             {
                 if (debugLogs)
-                    Debug.Log($"[LoadingManager] TryInstantTransition: already transitioning.", this);
+                    Debug.Log("[LoadingManager] TryInstantTransition: already transitioning.", this);
                 return false;
             }
 
-            if (!IsScenePreloaded(buildIndex))
+            // Priority 1: Fully preloaded (100% dormant) — zero delay
+            if (IsSceneFullyPreloaded(buildIndex))
             {
                 if (debugLogs)
-                {
-                    float progress = (_preloadedBuildIndex == buildIndex && _preloadOp != null)
-                        ? _preloadOp.progress
-                        : -1f;
-                    Debug.Log($"[LoadingManager] TryInstantTransition: scene {buildIndex} not ready " +
-                              $"(preloaded={_preloadedBuildIndex}, progress={progress:F2}). Using loading screen.", this);
-                }
-                return false;
+                    Debug.Log($"[LoadingManager] ⚡ Instant transition to FULLY preloaded scene {buildIndex} (zero delay!)", this);
+
+                StartCoroutine(FullyPreloadedTransitionCoroutine(buildIndex));
+                return true;
+            }
+
+            // Priority 2: Standard preload (90%) — minimal delay
+            if (IsScenePreloaded(buildIndex))
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] ⚡ Instant transition to scene {buildIndex} (preload ready!)", this);
+
+                StartCoroutine(TransitionCoroutine(buildIndex, showLoadingScreen: false));
+                return true;
             }
 
             if (debugLogs)
-                Debug.Log($"[LoadingManager] âš¡ Instant transition to scene {buildIndex} (preload ready!)", this);
-
-            StartCoroutine(TransitionCoroutine(buildIndex, showLoadingScreen: false));
-            return true;
+            {
+                float progress = (_preloadedBuildIndex == buildIndex && _preloadOp != null)
+                    ? _preloadOp.progress
+                    : -1f;
+                bool isFullyPreloading = (_fullyPreloadedBuildIndex == buildIndex && _isFullyPreloading);
+                Debug.Log($"[LoadingManager] TryInstantTransition: scene {buildIndex} not ready " +
+                          $"(preloaded={_preloadedBuildIndex}, progress={progress:F2}, " +
+                          $"fullyPreloaded={_fullyPreloadedBuildIndex}, isFullyPreloading={isFullyPreloading}). " +
+                          "Using loading screen.", this);
+            }
+            return false;
         }
 
         /// <summary>
@@ -244,13 +431,197 @@ namespace JellyGame.GamePlay.Managers
                 return;
             }
 
+            // If scene is fully preloaded, use the fast path even for loading screen requests
+            if (IsSceneFullyPreloaded(buildIndex))
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] TransitionToScene({buildIndex}): scene is fully preloaded, using fast path.", this);
+
+                StartCoroutine(FullyPreloadedTransitionCoroutine(buildIndex));
+                return;
+            }
+
             if (debugLogs)
                 Debug.Log($"[LoadingManager] === TransitionToScene({buildIndex}) with loading screen ===", this);
 
             StartCoroutine(TransitionCoroutine(buildIndex, showLoadingScreen: true));
         }
 
-        // ===================== Transition Coroutine =====================
+        // ===================== Fully Preloaded Transition =====================
+
+        /// <summary>
+        /// Fast transition for scenes that are already 100% loaded and dormant.
+        /// Just neutralizes old scenes, re-enables the target scene, and sets it as active.
+        /// No async loading, no waiting — instant.
+        /// </summary>
+        private IEnumerator FullyPreloadedTransitionCoroutine(int buildIndex)
+        {
+            _isTransitioning = true;
+            _continuePressed = false;
+            _acceptContinueInput = false;
+            float transitionStartTime = Time.realtimeSinceStartup;
+
+            // Consume the full preload state
+            _fullyPreloadedBuildIndex = -1;
+
+            // Also clear any standard preload state to avoid confusion
+            AsyncOperation orphanedOp = null;
+            int orphanedBuildIndex = -1;
+
+            if (_preloadOp != null && _preloadedBuildIndex >= 0)
+            {
+                orphanedOp = _preloadOp;
+                orphanedBuildIndex = _preloadedBuildIndex;
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Orphaned standard preload: scene {_preloadedBuildIndex}.", this);
+            }
+            _preloadOp = null;
+            _preloadedBuildIndex = -1;
+
+            // ---- STEP 1: Neutralize old scenes ----
+
+            List<Scene> scenesToUnload = CollectOldScenes(buildIndex);
+
+            foreach (Scene scene in scenesToUnload)
+            {
+                if (!scene.isLoaded) continue;
+
+                DestroyPlayersInScene(scene);
+
+                foreach (GameObject obj in scene.GetRootGameObjects())
+                    obj.SetActive(false);
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager]   Neutralized: {scene.name} (build {scene.buildIndex})", this);
+            }
+
+            // ---- STEP 1.5: Clean up orphaned standard preload if any ----
+
+            if (orphanedOp != null)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Cleaning up orphaned preload scene {orphanedBuildIndex}...", this);
+
+                int orphanIdx = orphanedBuildIndex;
+                UnityEngine.Events.UnityAction<Scene, LoadSceneMode> neutralizeOrphan = null;
+                neutralizeOrphan = (scene, mode) =>
+                {
+                    if (scene.buildIndex == orphanIdx)
+                    {
+                        foreach (GameObject obj in scene.GetRootGameObjects())
+                            obj.SetActive(false);
+
+                        SceneManager.sceneLoaded -= neutralizeOrphan;
+                    }
+                };
+                SceneManager.sceneLoaded += neutralizeOrphan;
+
+                orphanedOp.allowSceneActivation = true;
+
+                while (!orphanedOp.isDone)
+                    yield return null;
+
+                SceneManager.sceneLoaded -= neutralizeOrphan;
+
+                Scene orphanedScene = SceneManager.GetSceneByBuildIndex(orphanedBuildIndex);
+                if (orphanedScene.isLoaded)
+                {
+                    DestroyPlayersInScene(orphanedScene);
+                    foreach (GameObject obj in orphanedScene.GetRootGameObjects())
+                        obj.SetActive(false);
+
+                    if (!scenesToUnload.Contains(orphanedScene))
+                        scenesToUnload.Add(orphanedScene);
+                }
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Orphan scene {orphanedBuildIndex} cleaned up.", this);
+            }
+
+            // ---- STEP 2: Re-enable the fully preloaded scene ----
+
+            Scene targetScene = SceneManager.GetSceneByBuildIndex(buildIndex);
+
+            if (!targetScene.isLoaded)
+            {
+                Debug.LogError($"[LoadingManager] Fully preloaded scene {buildIndex} is not loaded! Falling back.", this);
+                _isTransitioning = false;
+                yield break;
+            }
+
+            // Set as active scene BEFORE re-enabling objects, so any Instantiate() in Start()
+            // goes to the right scene.
+            SceneManager.SetActiveScene(targetScene);
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Active scene set: {targetScene.name}", this);
+
+            // Re-enable all root objects — this triggers OnEnable(), then Start() on the next frame
+            foreach (GameObject obj in targetScene.GetRootGameObjects())
+                obj.SetActive(true);
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Re-enabled {targetScene.name} root objects. Scene is now live.", this);
+
+            // ---- STEP 3: Finalize ----
+
+            Time.timeScale = 1f;
+            _isTransitioning = false;
+            _acceptContinueInput = false;
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] Fully preloaded transition complete ({Time.realtimeSinceStartup - transitionStartTime:F4}s).", this);
+
+            // ---- STEP 4: Unload old scenes in background ----
+
+            if (scenesToUnload.Count > 0)
+            {
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Unloading {scenesToUnload.Count} old scene(s)...", this);
+
+                List<AsyncOperation> unloadOps = new List<AsyncOperation>();
+
+                foreach (Scene scene in scenesToUnload)
+                {
+                    if (!scene.isLoaded) continue;
+
+                    AsyncOperation op = SceneManager.UnloadSceneAsync(scene);
+                    if (op != null)
+                    {
+                        unloadOps.Add(op);
+
+                        if (debugLogs)
+                            Debug.Log($"[LoadingManager]   Unloading: {scene.name}", this);
+                    }
+                }
+
+                float unloadStartTime = Time.realtimeSinceStartup;
+                const float unloadTimeout = 10f;
+
+                while (unloadOps.Count > 0)
+                {
+                    unloadOps.RemoveAll(op => op.isDone);
+
+                    if (Time.realtimeSinceStartup - unloadStartTime > unloadTimeout)
+                    {
+                        Debug.LogWarning($"[LoadingManager] Unload timeout! {unloadOps.Count} scene(s) still unloading.", this);
+                        break;
+                    }
+
+                    yield return null;
+                }
+
+                if (debugLogs)
+                    Debug.Log("[LoadingManager] All old scenes unloaded.", this);
+            }
+
+            if (debugLogs)
+                Debug.Log($"[LoadingManager] === Fully preloaded transition fully complete " +
+                          $"({Time.realtimeSinceStartup - transitionStartTime:F2}s) ===", this);
+        }
+
+        // ===================== Standard Transition Coroutine =====================
 
         /// <summary>
         /// Core transition logic used by both instant and loading-screen paths.
@@ -283,6 +654,7 @@ namespace JellyGame.GamePlay.Managers
             AsyncOperation loadOp;
             AsyncOperation orphanedOp = null;
             int orphanedBuildIndex = -1;
+            int orphanedFullBuildIndex = -1;
 
             if (_preloadedBuildIndex == buildIndex && _preloadOp != null)
             {
@@ -317,11 +689,26 @@ namespace JellyGame.GamePlay.Managers
                 loadOp.allowSceneActivation = false;
             }
 
+            // Handle orphaned full preload (transitioning to a different scene than what was fully preloaded)
+            if (_fullyPreloadedBuildIndex >= 0 && _fullyPreloadedBuildIndex != buildIndex && !_isFullyPreloading)
+            {
+                orphanedFullBuildIndex = _fullyPreloadedBuildIndex;
+
+                if (debugLogs)
+                    Debug.Log($"[LoadingManager] Orphaned full preload: scene {_fullyPreloadedBuildIndex}.", this);
+            }
+            if (_fullPreloadCoroutine != null)
+            {
+                StopCoroutine(_fullPreloadCoroutine);
+                _fullPreloadCoroutine = null;
+                _isFullyPreloading = false;
+            }
+            _fullyPreloadedBuildIndex = -1;
+
             // ---- STEP 3: Wait for scene to be ready ----
 
             if (showLoadingScreen)
             {
-                // Full loading screen: wait for 0.9 + minimum display time with progress animation
                 bool sceneReady = false;
 
                 while (true)
@@ -336,7 +723,6 @@ namespace JellyGame.GamePlay.Managers
                             Debug.Log($"[LoadingManager] Scene {buildIndex} ready at {totalElapsed:F2}s.", this);
                     }
 
-                    // Animate fill: 0% â†’ 100% over minimumDisplayTime
                     float displayProgress;
 
                     if (minimumDisplayTime > 0f)
@@ -375,7 +761,6 @@ namespace JellyGame.GamePlay.Managers
             }
             else
             {
-                // Instant transition: scene should already be at 0.9, but wait just in case
                 while (loadOp.progress < 0.9f)
                 {
                     if (debugLogs && Time.frameCount % 30 == 0)
@@ -388,7 +773,7 @@ namespace JellyGame.GamePlay.Managers
                     Debug.Log($"[LoadingManager] Instant: scene ready ({Time.realtimeSinceStartup - transitionStartTime:F2}s).", this);
             }
 
-            // ---- STEP 4: (Optional) Wait for user input â€” only with loading screen ----
+            // ---- STEP 4: (Optional) Wait for user input — only with loading screen ----
 
             if (showLoadingScreen && waitForUserInput)
             {
@@ -411,8 +796,6 @@ namespace JellyGame.GamePlay.Managers
             }
 
             // ---- STEP 5: Neutralize old scenes ----
-            // Destroy players and disable ALL objects. After this, old scenes are functionally
-            // dead â€” no scripts run, no singletons exist, no rendering.
 
             List<Scene> scenesToUnload = CollectOldScenes(buildIndex);
 
@@ -429,22 +812,13 @@ namespace JellyGame.GamePlay.Managers
                     Debug.Log($"[LoadingManager]   Neutralized: {scene.name} (build {scene.buildIndex})", this);
             }
 
-            // ---- STEP 5.5: Clean up orphaned preload BEFORE activating target scene ----
-            // CRITICAL: Unity queues LoadSceneAsync operations. An earlier operation sitting at
-            // allowSceneActivation=false BLOCKS ALL subsequent async operations from completing
-            // (isDone stays false forever). We MUST activate and dispose of the orphan first,
-            // otherwise the target scene's loadOp.isDone will never become true and the
-            // transition coroutine hangs forever.
+            // ---- STEP 5.5: Clean up orphaned preloads BEFORE activating target scene ----
 
             if (orphanedOp != null)
             {
                 if (debugLogs)
-                    Debug.Log($"[LoadingManager] Cleaning up orphaned scene {orphanedBuildIndex} (must clear before target can activate)...", this);
+                    Debug.Log($"[LoadingManager] Cleaning up orphaned scene {orphanedBuildIndex}...", this);
 
-                // Register a sceneLoaded callback to neutralize the orphaned scene IMMEDIATELY
-                // when it activates. sceneLoaded fires after Awake() but before Start(), so
-                // deactivating all root objects prevents Start() from running on any scripts
-                // (GameSceneManager, LoadingScreenInitializer, player spawners, etc.).
                 int orphanIdx = orphanedBuildIndex;
                 UnityEngine.Events.UnityAction<Scene, LoadSceneMode> neutralizeOrphan = null;
                 neutralizeOrphan = (scene, mode) =>
@@ -457,7 +831,7 @@ namespace JellyGame.GamePlay.Managers
                         SceneManager.sceneLoaded -= neutralizeOrphan;
 
                         if (debugLogs)
-                            Debug.Log($"[LoadingManager] Orphan scene {orphanIdx} ({scene.name}) neutralized on activation (before Start).", this);
+                            Debug.Log($"[LoadingManager] Orphan scene {orphanIdx} ({scene.name}) neutralized.", this);
                     }
                 };
                 SceneManager.sceneLoaded += neutralizeOrphan;
@@ -467,7 +841,6 @@ namespace JellyGame.GamePlay.Managers
                 while (!orphanedOp.isDone)
                     yield return null;
 
-                // Safety: unsubscribe in case the callback didn't fire
                 SceneManager.sceneLoaded -= neutralizeOrphan;
 
                 Scene orphanedScene = SceneManager.GetSceneByBuildIndex(orphanedBuildIndex);
@@ -475,8 +848,6 @@ namespace JellyGame.GamePlay.Managers
                 {
                     DestroyPlayersInScene(orphanedScene);
 
-                    // Objects should already be deactivated by the callback above,
-                    // but do it again as a safety net.
                     foreach (GameObject obj in orphanedScene.GetRootGameObjects())
                         obj.SetActive(false);
 
@@ -485,13 +856,23 @@ namespace JellyGame.GamePlay.Managers
                 }
 
                 if (debugLogs)
-                    Debug.Log($"[LoadingManager] Orphan scene {orphanedBuildIndex} cleaned up. Async queue unblocked.", this);
+                    Debug.Log($"[LoadingManager] Orphan scene {orphanedBuildIndex} cleaned up.", this);
+            }
+
+            // Clean up orphaned fully preloaded scene (already activated but dormant — just unload)
+            if (orphanedFullBuildIndex >= 0)
+            {
+                Scene orphanFullScene = SceneManager.GetSceneByBuildIndex(orphanedFullBuildIndex);
+                if (orphanFullScene.isLoaded && !scenesToUnload.Contains(orphanFullScene))
+                {
+                    scenesToUnload.Add(orphanFullScene);
+
+                    if (debugLogs)
+                        Debug.Log($"[LoadingManager] Orphaned fully preloaded scene {orphanedFullBuildIndex} queued for unload.", this);
+                }
             }
 
             // ---- STEP 6: Activate the new scene ----
-            // CRITICAL: Use sceneLoaded callback to set active scene BEFORE Start() runs.
-            // Without this, Instantiate() in Start() (e.g. PlayerSpawner) places objects
-            // in the OLD active scene, which then gets unloaded â€” destroying the player.
 
             if (debugLogs)
                 Debug.Log($"[LoadingManager] Activating scene {buildIndex}...", this);
@@ -519,7 +900,7 @@ namespace JellyGame.GamePlay.Managers
             while (!loadOp.isDone)
                 yield return null;
 
-            // Safety: ensure active scene is set (in case callback didn't fire)
+            // Safety: ensure active scene is set
             if (!activeSceneSet)
             {
                 SceneManager.sceneLoaded -= onSceneLoaded;
@@ -538,7 +919,7 @@ namespace JellyGame.GamePlay.Managers
                 }
             }
 
-            // ---- STEP 8: Hide loading screen â€” new scene becomes visible ----
+            // ---- STEP 8: Hide loading screen ----
 
             Time.timeScale = 1f;
 
@@ -554,7 +935,7 @@ namespace JellyGame.GamePlay.Managers
                 Debug.Log($"[LoadingManager] Transition complete ({mode}, {Time.realtimeSinceStartup - transitionStartTime:F2}s).", this);
             }
 
-            // ---- STEP 9: Unload old scenes (background cleanup) ----
+            // ---- STEP 9: Unload old scenes ----
 
             if (scenesToUnload.Count > 0)
             {
@@ -577,7 +958,6 @@ namespace JellyGame.GamePlay.Managers
                     }
                 }
 
-                // Wait for all unloads (with safety timeout)
                 float unloadStartTime = Time.realtimeSinceStartup;
                 const float unloadTimeout = 10f;
 
@@ -587,7 +967,7 @@ namespace JellyGame.GamePlay.Managers
 
                     if (Time.realtimeSinceStartup - unloadStartTime > unloadTimeout)
                     {
-                        Debug.LogWarning($"[LoadingManager] Unload timeout ({unloadTimeout}s)! {unloadOps.Count} scene(s) still unloading.", this);
+                        Debug.LogWarning($"[LoadingManager] Unload timeout! {unloadOps.Count} scene(s) still unloading.", this);
                         break;
                     }
 
@@ -604,9 +984,6 @@ namespace JellyGame.GamePlay.Managers
 
         // ===================== Scene Unloading =====================
 
-        /// <summary>
-        /// Collect all loaded scenes that should be unloaded (everything except target + LoadingScreen + DDOL).
-        /// </summary>
         private List<Scene> CollectOldScenes(int keepBuildIndex)
         {
             List<Scene> result = new List<Scene>();
@@ -641,7 +1018,8 @@ namespace JellyGame.GamePlay.Managers
                 if (player == null) continue;
         
                 if (debugLogs)
-                    Debug.Log($"[LoadingManager]   Found: '{player.name}' in scene '{player.scene.name}' (build {player.scene.buildIndex}). Target scene: '{scene.name}' (build {scene.buildIndex}). Match={player.scene == scene}", this);
+                    Debug.Log($"[LoadingManager]   Found: '{player.name}' in scene '{player.scene.name}' (build {player.scene.buildIndex}). " +
+                              $"Target scene: '{scene.name}' (build {scene.buildIndex}). Match={player.scene == scene}", this);
 
                 if (player.scene == scene)
                 {
