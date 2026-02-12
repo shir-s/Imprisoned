@@ -21382,6 +21382,53 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 7056867680684220958, guid: 5ad347cc5307f4ac8875e4c5e9014638, type: 3}
   m_PrefabInstance: {fileID: 303031502}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &308013608
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 308013610}
+  - component: {fileID: 308013609}
+  m_Layer: 0
+  m_Name: LoadingScreenInitializer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &308013609
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308013608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4fa9f0d7ac86be2408eafa7d633b4215, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.LoadingScreenInitializer
+  loadingScreenBuildIndex: 3
+  checkIfAlreadyLoaded: 1
+  debugLogs: 1
+--- !u!4 &308013610
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 308013608}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -6.33237, y: 1.47499, z: -6.99134}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &321638543
 GameObject:
   m_ObjectHideFlags: 0
@@ -24265,6 +24312,60 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!1 &621269518
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 621269520}
+  - component: {fileID: 621269519}
+  m_Layer: 0
+  m_Name: Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &621269519
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621269518}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e2ddfa2a274b0943ad72f658df1eb75, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CutsceneSceneTransition
+  nextSceneBuildIndex: 13
+  allowManualSkip: 1
+  skipKey: 101
+  controllerSkipButtons: 4c0100004d010000
+  enableAutoSkip: 1
+  autoSkipDelay: 1
+  detectCutsceneEnd: 1
+  fixedCutsceneDuration: 10
+  inputGuardSeconds: 0.5
+  debugLogs: 1
+--- !u!4 &621269520
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 621269518}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -9.15442, y: 0, z: -1.39754}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &634045995
 GameObject:
   m_ObjectHideFlags: 0
@@ -24596,6 +24697,298 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 5137743660189243498, guid: b3ea6eaaf1db54edc881fde24910cd42, type: 3}
   m_PrefabInstance: {fileID: 641875578}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &644036566
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 644036569}
+  - component: {fileID: 644036568}
+  - component: {fileID: 644036567}
+  m_Layer: 0
+  m_Name: SceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &644036567
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 644036566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9e4827b97b5adbc409436904d0bb8a3b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.UI.Tutorial.TutorialSequenceController
+  windows:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  windowAudioNames: []
+  pauseGameWhileActive: 0
+  restorePreviousTimeScaleOnFinish: 1
+  skipCooldownSeconds: 0.75
+  skipKey: 101
+  gamepadSkipButtons: 4a0100004b010000
+  requireKeyDown: 1
+  autoStart: 1
+  endImmediatelyIfNoWindows: 1
+  showOnlyOneRandomWindow: 0
+  rerollRandomWindowEachStart: 1
+  disableOnTutorialStart:
+  - {fileID: 0}
+  - {fileID: 0}
+  restoreDisabledScriptsOnFinish: 1
+  deactivateOnTutorialStart: []
+  restoreDeactivatedObjectsOnFinish: 1
+  windowScriptActions:
+  - windowIndex: 3
+    enableOnShow:
+    - {fileID: 0}
+    - {fileID: 0}
+    disableOnShow: []
+    activateOnShow: []
+    deactivateOnShow: []
+    enableOnComplete: []
+    disableOnComplete: []
+    activateOnComplete: []
+    deactivateOnComplete: []
+  - windowIndex: 7
+    enableOnShow:
+    - {fileID: 0}
+    - {fileID: 0}
+    disableOnShow: []
+    activateOnShow: []
+    deactivateOnShow: []
+    enableOnComplete: []
+    disableOnComplete: []
+    activateOnComplete: []
+    deactivateOnComplete: []
+  playIntroMoveBeforeTutorial: 1
+  introMoveTarget: {fileID: 0}
+  introDirectionMode: 0
+  introWorldDirection: {x: 0, y: 0, z: 1}
+  introDirectionReference: {fileID: 0}
+  introDistance: 12
+  introDuration: 2
+  introStartSpeed: 100
+  introMaxSpeed: 10000
+  introSpeedProfile:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.49443972
+      value: 0.99366
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  introWobbleAmplitude: 0.1
+  introWobbleCycles: 3
+  introMoveTransformDirectly: 1
+  introForceKinematicIfRigidBody: 1
+  trailPainter: {fileID: 0}
+  clearPaintWhenSkippingSpecificWindows: 0
+  clearPaintOnSkippedWindowIndices: 
+  windowIntroMovesOnComplete: []
+  windowGates:
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 0
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 1
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 2
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 1
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 1
+    requirement: 3
+    afterCompleteCountdownSeconds: 3
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 1
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  - enabled: 0
+    requirement: 0
+    afterCompleteCountdownSeconds: 0
+    activateObjectOnGateStart: {fileID: 0}
+    orderedTriggerSequence: {fileID: 0}
+    deactivateObjectOnGateComplete: 0
+    enemyLayerName: Enemy
+    onGateStart:
+      m_PersistentCalls:
+        m_Calls: []
+    onGateComplete:
+      m_PersistentCalls:
+        m_Calls: []
+  gateUpKey: 273
+  gateDownKey: 274
+  gateLeftKey: 276
+  gateRightKey: 275
+  gateVerticalAxis: Vertical
+  gateHorizontalAxis: Horizontal
+  axisThreshold: 0.5
+  debugLogs: 0
+--- !u!114 &644036568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 644036566}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 11
+  playBackgroundMusic: 1
+  nextSceneBuildIndex: 13
+  useInstantTransition: 1
+  gameOverSceneBuildIndex: 0
+  gameOverOnVictimLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  gameOverPortalDestination: -1
+  tutorialSceneBuildIndex: -1
+  winFxRoot: {fileID: 0}
+  disableWinFxRootOnStart: 1
+  stopWinFxOnStart: 1
+  winFxDelay: 0
+  pauseGameplayOnWin: 0
+  debugLogs: 1
+  gameOverKey: 114
+  winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
+  gameOverControllerKeys: 5001000054010000
+  mainMenuControllerKeys: 5301000056010000
+--- !u!4 &644036569
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 644036566}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 22.24466, y: 0, z: 77.24139}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &659367274
 GameObject:
   m_ObjectHideFlags: 0
@@ -67353,3 +67746,6 @@ SceneRoots:
   - {fileID: 1309862075}
   - {fileID: 1866466600}
   - {fileID: 1525211671}
+  - {fileID: 644036569}
+  - {fileID: 308013610}
+  - {fileID: 621269520}

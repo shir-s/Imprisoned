@@ -22855,21 +22855,32 @@ MonoBehaviour:
   - {fileID: 1910475410}
   - {fileID: 1032344072}
   - {fileID: 1239033090}
-  windowAudioNames:
-  - SP2
-  - SP8
-  - SP9
-  - SP3
-  - SP5
   skipKey: 101
   gamepadSkipButtons: 4a0100004b010000
   skipCooldownSeconds: 0.5
   freezeTime: 1
   restorePreviousTimeScale: 1
+  disableDuringIntro:
+  - {fileID: 2113107691}
+  - {fileID: 309405192}
+  - {fileID: 965892455}
+  deactivateDuringIntro: []
   onSequenceComplete:
     m_PersistentCalls:
-      m_Calls: []
-  debugLogs: 0
+      m_Calls:
+      - m_Target: {fileID: 1592128409}
+        m_TargetAssemblyTypeName: JellyGame.GamePlay.Managers.CountdownTimer, Assembly-CSharp
+        m_MethodName: StartTimer
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  debugLogs: 1
 --- !u!1 &949333844
 GameObject:
   m_ObjectHideFlags: 0
@@ -23218,6 +23229,7 @@ MonoBehaviour:
   inputCamera: {fileID: 1304203881}
   flipModelPhysicsX: 0
   flipModelPhysicsZ: 0
+  resetTiltOnDisable: 1
 --- !u!54 &965892456
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -42802,7 +42814,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
   durationSeconds: 120
-  startOnEnable: 1
+  startOnEnable: 0
   debugLogs: 0
 --- !u!4 &1592128410
 Transform:
