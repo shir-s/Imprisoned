@@ -44933,6 +44933,7 @@ GameObject:
   - component: {fileID: 1232075108}
   - component: {fileID: 1232075107}
   - component: {fileID: 1232075106}
+  - component: {fileID: 1232075109}
   m_Layer: 0
   m_Name: SceneManager
   m_TagString: Untagged
@@ -45214,6 +45215,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1232075109
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1232075105}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8183a2326f454a499baac80760c94d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CutsceneStartTrigger
+  triggers:
+  - animator: {fileID: 875837211}
+    boolParameterName: start_story_2
+    useTriggerInsteadOfBool: 0
+  waitFrames: 2
+  additionalDelaySeconds: 0
+  autoStart: 1
+  debugLogs: 1
 --- !u!1 &1234909416
 GameObject:
   m_ObjectHideFlags: 0
@@ -67291,63 +67312,6 @@ Transform:
   - {fileID: 1674997050}
   m_Father: {fileID: 276876060}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &1525211671
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -21.19749
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -12.15156
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -5.60594
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6756179185354810334, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_Name
-      value: SoundSystem
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
 --- !u!1 &1525905995
 GameObject:
   m_ObjectHideFlags: 0
@@ -82725,7 +82689,6 @@ SceneRoots:
   - {fileID: 2004646052}
   - {fileID: 1309862075}
   - {fileID: 1866466600}
-  - {fileID: 1525211671}
   - {fileID: 565865651}
   - {fileID: 1312649827}
   - {fileID: 1230713765}
