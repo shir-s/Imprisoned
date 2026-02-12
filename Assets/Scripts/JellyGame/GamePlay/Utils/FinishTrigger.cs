@@ -8,17 +8,15 @@ using UnityEngine;
 namespace JellyGame.GamePlay.World.Finish
 {
     /// <summary>
-    /// Triggers GameWin when player enters the trigger AND all enemies are dead.
-    /// Listens to EventManager.GameEvent.EntityDied.
+    /// Triggers GameWin when player enters the trigger AND win condition is met.
     /// 
     /// Win sequence:
     /// 1. Player enters portal → player frozen (scripts disabled, still visible)
     /// 2. Teleport slime objects activate → auto-play grab animation
-    /// 3. After grab delay → player hidden (SetActive false)
-    /// 4. After release delay → set animator bool "release" = true (release animation)
-    /// 5. After release animation → deactivate teleport slime objects
-    /// 6. Particle emission set to 0 → portal fades away gradually
-    /// 7. Player destroyed → GameWin event fires → LoadingManager starts transition
+    /// 3. After grab progress → player hidden (destroyed)
+    /// 4. Deactivate teleport slime objects
+    /// 5. Particle emission set to 0 → portal fades away gradually
+    /// 6. Player destroyed → GameWin event fires → LoadingManager starts transition
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Collider))]
@@ -26,8 +24,8 @@ namespace JellyGame.GamePlay.World.Finish
     {
         public enum WinConditionMode
         {
-            KillEnemies,    // Standard mode: Player must kill X enemies
-            ExternalEvent   // New mode: Portal opens only when the function is called externally
+            KillEnemies,
+            ExternalEvent
         }
 
         [Header("Win Settings")]
@@ -49,15 +47,13 @@ namespace JellyGame.GamePlay.World.Finish
         [SerializeField] private int requiredDeaths = 4;
 
         [Header("Win Sequence - Player")]
-        [Tooltip("Destroy the player character before triggering GameWin.\n" +
-                 "Prevents duplicate-player issues when the new scene spawns its own player.")]
+        [Tooltip("Destroy the player character before triggering GameWin.")]
         [SerializeField] private bool destroyPlayerBeforeTransition = true;
 
         [Tooltip("Tag used to find the player character for destruction.")]
         [SerializeField] private string playerTag = "DrawingCube";
 
-        [Tooltip("Additional objects to destroy alongside the player (e.g. slime prime in cutscene scenes).\n" +
-                 "These get DestroyImmediate'd at the same time as the player during the grab animation.")]
+        [Tooltip("Additional objects to destroy alongside the player.")]
         [SerializeField] private List<GameObject> additionalObjectsToDestroyWithPlayer = new List<GameObject>();
 
         [Header("Teleport Slime Animation")]
@@ -65,7 +61,6 @@ namespace JellyGame.GamePlay.World.Finish
         [SerializeField] private float slimeActivateDelay = 0.2f;
         [Range(0f, 1f)]
         [SerializeField] private float hidePlayerAtGrabProgress = 0.7f;
-        [SerializeField] private string releaseBoolName = "release";
 
         [Header("Portal Particle Fade")]
         [SerializeField] private GameObject portalParticlesRoot;
@@ -81,8 +76,6 @@ namespace JellyGame.GamePlay.World.Finish
 
         private bool _triggered;
         private int _deathCount = 0;
-        
-        // Track if the external event has been triggered
         private bool _manualEventMet = false;
 
         private void Reset()
@@ -95,28 +88,18 @@ namespace JellyGame.GamePlay.World.Finish
         private void Awake()
         {
             EnsureKinematicRigidbody();
-
-            // Hide portal particles until win condition is met
             UpdatePortalVisibility(IsWinConditionMet());
-
-            // Deactivate teleport slimes on start
             DeactivateTeleportSlimes();
 
             if (winFxRoot != null)
                 winFxRoot.SetActive(false);
 
             if (debugLogs)
-            {
-                Debug.Log(
-                    $"[FinishTrigger] Initialized. Mode: {winMode}, Required Deaths: {requiredDeaths}",
-                    this
-                );
-            }
+                Debug.Log($"[FinishTrigger] Initialized. Mode: {winMode}, Required Deaths: {requiredDeaths}", this);
         }
 
         private void OnEnable()
         {
-            // Listen for enemy deaths only if we are in 'KillEnemies' mode
             if (winMode == WinConditionMode.KillEnemies)
             {
                 EventManager.StartListening(EventManager.GameEvent.EntityDied, OnEntityDied);
@@ -141,18 +124,12 @@ namespace JellyGame.GamePlay.World.Finish
         private void OnDisable()
         {
             if (winMode == WinConditionMode.KillEnemies)
-            {
                 EventManager.StopListening(EventManager.GameEvent.EntityDied, OnEntityDied);
-            }
+
             if (winMode == WinConditionMode.ExternalEvent)
-            {
                 EventManager.StopListening(EventManager.GameEvent.PortalLvl3, UnlockManualCondition);
-            }
         }
 
-        /// <summary>
-        /// Call this function externally to unlock the portal when WinMode is set to 'ExternalEvent'.
-        /// </summary>
         public void UnlockManualCondition(object eventData)
         {
             if (winMode != WinConditionMode.ExternalEvent)
@@ -161,10 +138,10 @@ namespace JellyGame.GamePlay.World.Finish
                 return;
             }
 
-            if (_manualEventMet) return; // Already unlocked
+            if (_manualEventMet) return;
 
             _manualEventMet = true;
-            
+
             if (debugLogs) Debug.Log("[FinishTrigger] Manual external condition met!", this);
 
             UpdatePortalVisibility(true);
@@ -173,18 +150,11 @@ namespace JellyGame.GamePlay.World.Finish
         private void OnEntityDied(object eventData)
         {
             if (_triggered) return;
-            
-            // If in ExternalEvent mode, ignore enemy deaths
             if (winMode == WinConditionMode.ExternalEvent) return;
-
             if (eventData is not EntityDiedEventData e) return;
 
             int layer = e.VictimLayer;
-
-            if ((countLayers.value & (1 << layer)) == 0)
-            {
-                return;
-            }
+            if ((countLayers.value & (1 << layer)) == 0) return;
 
             _deathCount++;
 
@@ -239,15 +209,12 @@ namespace JellyGame.GamePlay.World.Finish
 
             StartCoroutine(GameWinEvent(null));
         }
-        
+
         private bool IsWinConditionMet()
         {
-            // Check based on the selected mode
             if (winMode == WinConditionMode.ExternalEvent)
-            {
                 return _manualEventMet;
-            }
-            else // Default: KillEnemies
+            else
             {
                 if (requiredDeaths <= 0) return true;
                 return _deathCount >= requiredDeaths;
@@ -281,12 +248,6 @@ namespace JellyGame.GamePlay.World.Finish
                 });
 
                 if (!playerHidden) HidePlayer();
-
-                SetTeleportSlimeRelease(true);
-                yield return WaitForAnimatorStateEnter(refAnimator, "teleport release");
-
-                SetTeleportSlimeRelease(false);
-                yield return WaitForAnimatorStateComplete(refAnimator, "teleport release");
             }
 
             DeactivateTeleportSlimes();
@@ -301,15 +262,13 @@ namespace JellyGame.GamePlay.World.Finish
                     var ps = winFxRoot.GetComponentsInChildren<ParticleSystem>(true);
                     for (int i = 0; i < ps.Length; i++) { ps[i].Clear(true); ps[i].Play(true); }
                 }
-                
+
                 if (winFxDelaySeconds > 0f) yield return new WaitForSeconds(winFxDelaySeconds);
                 else yield return null;
             }
 
             if (destroyPlayerBeforeTransition)
-            {
                 DestroyAllPlayers();
-            }
 
             EventManager.TriggerEvent(EventManager.GameEvent.GameWin, null);
         }
@@ -391,29 +350,14 @@ namespace JellyGame.GamePlay.World.Finish
         {
             if (teleportSlimeObjects == null) return;
             for (int i = 0; i < teleportSlimeObjects.Count; i++)
-            {
                 if (teleportSlimeObjects[i] != null) teleportSlimeObjects[i].SetActive(true);
-            }
         }
 
         private void DeactivateTeleportSlimes()
         {
             if (teleportSlimeObjects == null) return;
             for (int i = 0; i < teleportSlimeObjects.Count; i++)
-            {
                 if (teleportSlimeObjects[i] != null) teleportSlimeObjects[i].SetActive(false);
-            }
-        }
-
-        private void SetTeleportSlimeRelease(bool value)
-        {
-            if (teleportSlimeObjects == null) return;
-            for (int i = 0; i < teleportSlimeObjects.Count; i++)
-            {
-                if (teleportSlimeObjects[i] == null) continue;
-                Animator animator = teleportSlimeObjects[i].GetComponentInChildren<Animator>();
-                if (animator != null) animator.SetBool(releaseBoolName, value);
-            }
         }
 
         private IEnumerator FadePortalParticleEmission(float duration)
