@@ -14112,6 +14112,8 @@ MonoBehaviour:
   debugLogs: 1
   gameOverKey: 114
   winKey: 116
+  mainMenuKey: 0
+  mainMenuBuildIndex: 0
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -14144,6 +14146,11 @@ MonoBehaviour:
   - {fileID: 854833247}
   - {fileID: 409934584}
   - {fileID: 964219293}
+  windowAudioNames:
+  - SP3
+  - SP6
+  - SP4
+  - SP5
   pauseGameWhileActive: 1
   restorePreviousTimeScaleOnFinish: 1
   skipCooldownSeconds: 0.75
@@ -34178,6 +34185,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 1621034874765817570}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.3
