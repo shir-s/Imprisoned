@@ -61,6 +61,7 @@ namespace JellyGame.UI
         private float _canSkipAtUnscaledTime;
         private float _prevTimeScale = 1f;
         private bool _active;
+        private AudioSourceWrapper _currentVoiceover;
 
         private void Start()
         {
@@ -107,6 +108,14 @@ namespace JellyGame.UI
 
         private void Advance()
         {
+            if (_currentVoiceover != null && _currentVoiceover.IsPlaying())
+            {
+                _currentVoiceover.Reset(); 
+                _currentVoiceover.gameObject.SetActive(false); 
+                SoundPool.Instance.Return(_currentVoiceover); 
+                _currentVoiceover = null;
+            }
+            
             // Hide current
             if (_currentIndex >= 0 && _currentIndex < windows.Count && windows[_currentIndex] != null)
                 windows[_currentIndex].SetActive(false);
@@ -157,7 +166,12 @@ namespace JellyGame.UI
 
             if (debugLogs)
                 Debug.Log("[IntroTextSequence] Sequence complete. Game started.", this);
-
+            if (_currentVoiceover != null)
+            {
+                _currentVoiceover.Reset();
+                SoundPool.Instance.Return(_currentVoiceover);
+                _currentVoiceover = null;
+            }
             onSequenceComplete?.Invoke();
         }
 

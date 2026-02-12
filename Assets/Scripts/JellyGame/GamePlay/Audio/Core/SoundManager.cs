@@ -10,6 +10,8 @@ namespace JellyGame.GamePlay.Audio.Core
     public class SoundManager : MonoSingleton<SoundManager>
     {
         [SerializeField] private AudioSettings settings;
+        private AudioSourceWrapper _currentBackgroundMusic;
+        private string _currentMusicName;
         //private AudioSourceWrapper _backgroundMusic;
         
         // private void Start()
@@ -55,19 +57,21 @@ namespace JellyGame.GamePlay.Audio.Core
 
         private readonly HashSet<AudioSourceWrapper> activeSounds = new HashSet<AudioSourceWrapper>();
 
-        public void PlaySound(string audioName, Transform spawnTransform, float customVolume = -1f)
+        public AudioSourceWrapper PlaySound(string audioName, Transform spawnTransform, float customVolume = -1f)
         {
             var config = FindAudioConfig(audioName);
             if (config == null)
-                return;
+                return null;
+
             var soundObject = SoundPool.Instance.Get();
             soundObject.transform.position = spawnTransform.position;
             float finalVolume = (customVolume >= 0f) ? customVolume : config.volume;
             soundObject.Play(config.clip, finalVolume, config.loop);
-            
+    
             activeSounds.Add(soundObject);
             StartCoroutine(WaitAndRemove(soundObject));
-            
+    
+            return soundObject; 
         }
         
         public AudioSourceWrapper PlayLoopingSound(string audioName, Transform spawnTransform, float customVolume = -1f)
@@ -126,6 +130,32 @@ namespace JellyGame.GamePlay.Audio.Core
         private void OnCubeRespawnSound(object _)
         {
             PlaySound("CubeRespawn", transform);
+        }
+        
+        public void PlayBackgroundMusic(string audioName)
+        {
+            if (_currentBackgroundMusic != null && _currentBackgroundMusic.IsPlaying() && _currentMusicName == audioName)
+            {
+                return;
+            }
+
+            StopBackgroundMusic();
+
+            _currentBackgroundMusic = PlayLoopingSound(audioName, this.transform);
+            _currentMusicName = audioName;
+        }
+        
+        public void StopBackgroundMusic()
+        {
+            if (_currentBackgroundMusic != null)
+            {
+                _currentBackgroundMusic.Reset();
+                _currentBackgroundMusic.gameObject.SetActive(false);
+                SoundPool.Instance.Return(_currentBackgroundMusic);
+        
+                _currentBackgroundMusic = null;
+                _currentMusicName = "";
+            }
         }
 
     }
