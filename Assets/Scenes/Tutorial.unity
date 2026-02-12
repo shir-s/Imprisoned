@@ -721,6 +721,7 @@ MonoBehaviour:
   inputCamera: {fileID: 601042314}
   flipModelPhysicsX: 0
   flipModelPhysicsZ: 0
+  resetTiltOnDisable: 1
 --- !u!54 &28017798
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -95725,63 +95726,6 @@ VFXRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
---- !u!1001 &289349773874169644
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -1.8596799
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 1.10727
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: -42.17775
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 5097706700323711904, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6756179185354810334, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
-      propertyPath: m_Name
-      value: SoundSystem
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 9259ce00d63a4467a9aec0ed156dba6e, type: 3}
 --- !u!1 &303635073203750025
 GameObject:
   m_ObjectHideFlags: 0
@@ -100140,7 +100084,6 @@ SceneRoots:
   - {fileID: 299743018}
   - {fileID: 309059937}
   - {fileID: 67787693}
-  - {fileID: 289349773874169644}
   - {fileID: 28017796}
   - {fileID: 624065085}
   - {fileID: 1324584212}
