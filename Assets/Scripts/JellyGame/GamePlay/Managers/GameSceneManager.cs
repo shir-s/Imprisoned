@@ -2,6 +2,7 @@
 using System.Collections;
 using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.SceneManagement;
 
 namespace JellyGame.GamePlay.Managers
@@ -84,11 +85,17 @@ namespace JellyGame.GamePlay.Managers
         [Header("Debug")]
         [SerializeField] private bool debugLogs = true;
 
-        [Header("Cheat Codes (Optional)")]
+        [Header("Cheat Codes (Keyboard Only)")]
         [SerializeField] private KeyCode gameOverKey = KeyCode.None;
         [SerializeField] private KeyCode winKey = KeyCode.None;
         [SerializeField] private KeyCode mainMenuKey = KeyCode.None;
         [SerializeField] private int mainMenuBuildIndex = 0;
+
+        [Header("Controller (Lists – multiple buttons per action)")]
+        [Tooltip("Controller buttons for Restart/GameOver (e.g. JoystickButton3 = Y). Add multiple for different platforms.")]
+        [SerializeField] private List<KeyCode> gameOverControllerKeys = new List<KeyCode>();
+        [Tooltip("Controller buttons for Main Menu (e.g. JoystickButton1 = B). Add multiple for different platforms.")]
+        [SerializeField] private List<KeyCode> mainMenuControllerKeys = new List<KeyCode>();
 
         private bool _winSequenceRunning;
 
@@ -158,15 +165,17 @@ namespace JellyGame.GamePlay.Managers
             
             
 
-            // Cheat codes
-            if (mainMenuKey != KeyCode.None && Input.GetKeyDown(mainMenuKey))
+            // Keyboard (single key) + Controller (list)
+            if ((mainMenuKey != KeyCode.None && Input.GetKeyDown(mainMenuKey)) ||
+                IsAnyControllerKeyPressed(mainMenuControllerKeys))
             {
                 if (debugLogs) Debug.Log("[GameSceneManager] Returning to Main Menu.", this);
                 Time.timeScale = 1f;
                 TransitionTo(mainMenuBuildIndex);
             }
-            
-            if (gameOverKey != KeyCode.None && Input.GetKeyDown(gameOverKey))
+
+            if ((gameOverKey != KeyCode.None && Input.GetKeyDown(gameOverKey)) ||
+                IsAnyControllerKeyPressed(gameOverControllerKeys))
             {
                 if (debugLogs) Debug.Log("[GameSceneManager] Cheat: GameOver", this);
                 EventManager.TriggerEvent(EventManager.GameEvent.GameOver);
@@ -177,6 +186,16 @@ namespace JellyGame.GamePlay.Managers
                 if (debugLogs) Debug.Log("[GameSceneManager] Cheat: Win", this);
                 EventManager.TriggerEvent(EventManager.GameEvent.GameWin);
             }
+        }
+
+        private bool IsAnyControllerKeyPressed(List<KeyCode> keys)
+        {
+            if (keys == null || keys.Count == 0) return false;
+            for (int i = 0; i < keys.Count; i++)
+            {
+                if (keys[i] != KeyCode.None && Input.GetKeyDown(keys[i])) return true;
+            }
+            return false;
         }
 
         // ===================== Preloading =====================
