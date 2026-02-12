@@ -10,7 +10,6 @@ Shader "Custom/TimeBrushBlit"
         _IsFill        ("Is Fill", Float) = 0.0
         _CornerRadius  ("Corner Radius", Range(0, 1)) = 0.2
         
-        // value to clear the texture to when we want to reset it. 
         _MaxAge        ("Max Age", Float) = 10.0
     }
 
@@ -48,20 +47,22 @@ Shader "Custom/TimeBrushBlit"
             {
                 float4 existing = tex2D(_MainTex, i.uv);
 
-                // 1. geometry check - is the pixel within the brush shape?
+                // 1. Geometry check
                 float2 halfSize = max(_BrushHalfSize.xy, float2(1e-6, 1e-6));
                 float2 rel = (i.uv - _BrushCenter.xy) / halfSize;
                 float2 d = abs(rel) - (1.0 - _CornerRadius);
                 float dist = length(max(d, 0.0));
 
-                // if were outside the brush shape, just return the existing value without modification.
                 if (dist > _CornerRadius)
                     return existing;
 
-                // 2. age check - if the existing paint is newer than the current paint, don't overwrite it.
-                // we write the "age" of the paint in the R channel, so if the existing R value is greater than the current paint time, we skip it.
-                // is it a fill? G = 1.0, is it a trail? G = 0.0
                 float isFillMarker = (_IsFill > 0.5) ? 1.0 : 0.0;
+
+                // 2. PROTECTION: Only block trail writes that are OLDER than existing fill.
+                //    - AgeTrailRange writes (currentTime - 1000) → older → BLOCKED
+                //    - Fresh trail on gray fill writes currentTime → newer → ALLOWED
+                if (existing.g > 0.5 && isFillMarker < 0.5 && _PaintTime < existing.r)
+                    return existing;
                 
                 return float4(_PaintTime, isFillMarker, 0, 1);
             }
