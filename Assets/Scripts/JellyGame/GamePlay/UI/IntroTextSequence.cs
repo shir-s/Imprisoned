@@ -1,5 +1,6 @@
 // FILEPATH: Assets/Scripts/JellyGame/UI/IntroTextSequence.cs
 using System.Collections.Generic;
+using JellyGame.GamePlay.Audio.Core;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -24,6 +25,10 @@ namespace JellyGame.UI
         [Tooltip("Each entry is a GameObject to show. Only one is active at a time. Player advances with input.")]
         [SerializeField] private List<GameObject> windows = new List<GameObject>();
 
+        [Header("Audio")]
+        [Tooltip("List of audio names (from AudioSettings) matching the order of windows above.")]
+        [SerializeField] private List<string> windowAudioNames = new List<string>();
+        
         [Header("Input")]
         [Tooltip("Keyboard key to advance to next window.")]
         [SerializeField] private KeyCode skipKey = KeyCode.E;
@@ -112,6 +117,15 @@ namespace JellyGame.UI
             {
                 EndSequence();
                 return;
+            }
+            
+            if (windowAudioNames != null && _currentIndex < windowAudioNames.Count)
+            {
+                string audioName = windowAudioNames[_currentIndex];
+                if (!string.IsNullOrEmpty(audioName))
+                {
+                    SoundManager.Instance.PlaySound(audioName, transform);
+                }
             }
 
             // Show next
