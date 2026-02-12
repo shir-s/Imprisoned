@@ -14910,6 +14910,10 @@ PrefabInstance:
       propertyPath: requiredDeaths
       value: 7
       objectReference: {fileID: 0}
+    - target: {fileID: 4552110525570330982, guid: 420c73b8795346747816b848cee568c9, type: 3}
+      propertyPath: extraObjectToActivate
+      value: 
+      objectReference: {fileID: 2437890829655878560}
     - target: {fileID: 5626465494664437696, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_Name
       value: Level finish (2)
@@ -28421,6 +28425,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 1259213360}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.45
@@ -52140,6 +52145,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -52156,6 +52162,7 @@ MonoBehaviour:
   hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
   portalParticlesRoot: {fileID: 0}
+  extraObjectToActivate: {fileID: 0}
   particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
@@ -52778,7 +52785,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.49044257, y: 0.49044257, z: -0.50937814, w: -0.50937814}
   m_LocalPosition: {x: -0.102, y: 2.3731444, z: -0.053}
-  m_LocalScale: {x: 0.99999994, y: 0.99975723, z: 0.8554084}
+  m_LocalScale: {x: 2.5, y: 2.4993932, z: 2.1385212}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 3481801202206618170}
