@@ -22907,6 +22907,13 @@ MonoBehaviour:
   - {fileID: 1910475410}
   - {fileID: 1032344072}
   - {fileID: 1239033090}
+  windowAudioNames:
+  - SP8
+  - SP7
+  - SP9
+  - SP6
+  - SP5
+  slimeAnimator: {fileID: 527337107}
   skipKey: 101
   gamepadSkipButtons: 4a0100004b010000
   skipCooldownSeconds: 0.5
@@ -44185,8 +44192,12 @@ MonoBehaviour:
   - {fileID: 382282906}
   - {fileID: 2045342108}
   - {fileID: 1619743839}
-  boolParamName: prime is attcked
-  effectDuration: 1.5
+  - {fileID: 527337107}
+  castOutParam: cast out
+  castInParam: cast in
+  castingParam: casting
+  castOutDuration: 2
+  idleDuration: 1
 --- !u!1 &1746718642
 GameObject:
   m_ObjectHideFlags: 0
