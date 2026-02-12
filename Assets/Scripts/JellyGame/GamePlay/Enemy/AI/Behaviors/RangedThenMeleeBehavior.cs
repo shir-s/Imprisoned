@@ -39,23 +39,16 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         [SerializeField] private float leadSmoothingTime = 0.15f;
         [SerializeField] private float maxLeadOffset = 2.0f;
 
-        [Header("Adaptive Range (Approach On Miss)")]
-        [Tooltip("Seconds of continuous shooting without a hit before the enemy starts approaching closer.")]
-        [SerializeField] private float missTimeBeforeApproach = 3.0f;
-
-        [Tooltip("How much the effective shoot range shrinks per second while missing (units/sec).")]
-        [SerializeField] private float rangeShrinkPerSecond = 2.0f;
-
-        [Tooltip("The minimum effective shoot range — enemy won't shrink below this distance.")]
-        [SerializeField] private float minEffectiveShootRange = 3.0f;
-
-        [Tooltip("How fast the effective range recovers back to full after a hit (units/sec). 0 = instant reset.")]
-        [SerializeField] private float rangeRecoveryPerSecond = 0f;
-
         [Tooltip("Scale down target leading at long range to reduce overshoot. " +
                  "At distances >= shootRange, lead is multiplied by this factor.")]
         [Range(0f, 1f)]
         [SerializeField] private float longRangeLeadScale = 0.4f;
+
+        [Header("Fixed-Speed Arc Selection")]
+        [Tooltip("When the target is too far for a flat/optimal arc within maxLaunchSpeed, " +
+                 "use a high (lobbed) arc instead of a low (flat) arc.\n" +
+                 "High arc is slower but clears obstacles better.")]
+        [SerializeField] private bool preferHighArcWhenSpeedCapped = false;
 
         [Header("Slow Window -> Chase & Melee")]
         [SerializeField] private float slowDurationSecondsOverride = -1f;
@@ -89,27 +82,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
         private Vector3 _lastTargetPos;
         private Vector3 _estimatedTargetVel;
 
-        // ===== Adaptive range state =====
-        /// <summary>Current effective shoot range. Shrinks on miss streaks, resets on hit.</summary>
-        private float _effectiveShootRange;
-
-        /// <summary>Time.time when the last projectile successfully hit the target.</summary>
-        private float _lastHitTime;
-
-        /// <summary>Time.time when the enemy first started shooting at the current target without landing a hit.</summary>
-        private float _shootingWithoutHitSince;
-
-        /// <summary>Total shots fired at the current target since the last hit (for debug).</summary>
-        private int _shotsSinceLastHit;
-
         private void Awake()
         {
             _nav = GetComponent<SteeringNavigator>();
             _animator = GetComponentInChildren<Animator>();
             if (_animator == null)
                 _animator = GetComponent<Animator>();
-
-            _effectiveShootRange = shootRange;
         }
 
         public bool CanActivate()
@@ -148,9 +126,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             _lastTargetPos = GetAimPosition();
             _estimatedTargetVel = Vector3.zero;
-
-            // Reset adaptive range for fresh engagement
-            ResetAdaptiveRange();
         }
 
         public void Tick(float dt)
@@ -172,7 +147,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             }
 
             UpdateTargetVelocityEstimate(dt);
-            UpdateAdaptiveRange(dt);
 
             if (_phase == Phase.ChasingDuringSlow && Time.time >= _slowWindowEndTime)
             {
@@ -189,9 +163,8 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             {
                 UpdateAttackAnimation(true);
 
-                if (distXZ > _effectiveShootRange)
+                if (distXZ > shootRange)
                 {
-                    // Move closer — either because out of base range, or adaptive range shrank
                     _nav.SetDestination(tpos);
                 }
                 else
@@ -229,69 +202,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             UpdateAttackAnimation(false);
         }
 
-        // ===================== Adaptive Range Logic =====================
-
-        /// <summary>
-        /// Reset adaptive range to full shoot range. Called on new engagement or successful hit.
-        /// </summary>
-        private void ResetAdaptiveRange()
-        {
-            _effectiveShootRange = shootRange;
-            _lastHitTime = Time.time;
-            _shootingWithoutHitSince = Time.time;
-            _shotsSinceLastHit = 0;
-        }
-
-        /// <summary>
-        /// Called when a projectile successfully hits the target.
-        /// Resets (or starts recovering) the effective shoot range.
-        /// </summary>
-        private void OnProjectileHitTarget()
-        {
-            _lastHitTime = Time.time;
-            _shootingWithoutHitSince = Time.time;
-            _shotsSinceLastHit = 0;
-
-            if (rangeRecoveryPerSecond <= 0f)
-            {
-                // Instant reset
-                _effectiveShootRange = shootRange;
-            }
-
-            if (debugLogs)
-                Debug.Log($"[RangedAdaptive] HIT! Effective range reset to {_effectiveShootRange:F1}", this);
-        }
-
-        /// <summary>
-        /// Each frame during Shooting phase: shrink range if missing too long, recover if recently hit.
-        /// </summary>
-        private void UpdateAdaptiveRange(float dt)
-        {
-            if (_phase != Phase.Shooting)
-                return;
-
-            float timeSinceHit = Time.time - _lastHitTime;
-
-            // Recovery: if we recently hit and range is below max, grow it back
-            if (rangeRecoveryPerSecond > 0f && _effectiveShootRange < shootRange && timeSinceHit < missTimeBeforeApproach)
-            {
-                _effectiveShootRange = Mathf.Min(shootRange, _effectiveShootRange + rangeRecoveryPerSecond * dt);
-                return;
-            }
-
-            // Shrink: if we've been missing for too long, start reducing effective range
-            float timeMissing = Time.time - _shootingWithoutHitSince;
-            if (timeMissing > missTimeBeforeApproach)
-            {
-                float prevRange = _effectiveShootRange;
-                _effectiveShootRange = Mathf.Max(minEffectiveShootRange, _effectiveShootRange - rangeShrinkPerSecond * dt);
-
-                if (debugLogs && !Mathf.Approximately(prevRange, _effectiveShootRange) && Time.frameCount % 30 == 0)
-                    Debug.Log($"[RangedAdaptive] Missing for {timeMissing:F1}s ({_shotsSinceLastHit} shots). " +
-                              $"Effective range: {_effectiveShootRange:F1}/{shootRange:F1}", this);
-            }
-        }
-
         // ===================== Shooting =====================
 
         private void TryShootAtTarget()
@@ -300,7 +210,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             if (Time.time < _nextShootTime) return;
 
             _nextShootTime = Time.time + Mathf.Max(0.05f, shootCooldownSeconds);
-            _shotsSinceLastHit++;
 
             Transform spawnT = muzzle != null ? muzzle : transform;
             Vector3 baseAimPos = GetAimPosition();
@@ -322,7 +231,7 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
                 finalTargetPos += lead;
             }
 
-            // 2. Physics Calculation — Flat vs Optimal
+            // 2. Physics Calculation — try flat arc first, then optimal-time arc
             Vector3 vFlat = BallisticAimSolver.SolveVelocityForTime(spawnT.position, finalTargetPos, maxTimeToTarget, gravity);
 
             Vector3 toTarget = finalTargetPos - spawnT.position;
@@ -337,18 +246,57 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             // 3. Select the best trajectory
             Vector3 finalVelocity;
+            string debugMethod = "flat";
 
             if (vFlat.magnitude <= maxLaunchSpeed)
             {
+                // Flat arc fits within speed limit — fast, direct trajectory
                 finalVelocity = vFlat;
+                debugMethod = "flat";
             }
             else if (vOptimal.magnitude <= maxLaunchSpeed)
             {
+                // Optimal (minimum-energy) arc fits — slightly higher but still within limit
                 finalVelocity = vOptimal;
+                debugMethod = "optimal";
             }
             else
             {
-                finalVelocity = vOptimal.normalized * maxLaunchSpeed;
+                // FIX: Both arcs exceed maxLaunchSpeed.
+                //
+                // OLD (broken):
+                //   finalVelocity = vOptimal.normalized * maxLaunchSpeed;
+                //   This preserves the angle from a higher-speed solution but at the capped
+                //   lower speed the projectile doesn't travel far enough -> hits the floor.
+                //
+                // NEW (correct):
+                //   Solve the classic ballistic angle equation for the fixed maxLaunchSpeed.
+                //   This finds the EXACT angle where the parabola passes through the target
+                //   at the given speed. Two solutions exist (low arc / high arc) or zero
+                //   if the target is truly out of range.
+
+                Vector3 fixedSpeedVel = BallisticAimSolver.SolveForFixedSpeed(
+                    spawnT.position, finalTargetPos, maxLaunchSpeed, gravity, preferHighArcWhenSpeedCapped);
+
+                if (fixedSpeedVel.sqrMagnitude > 0.01f)
+                {
+                    finalVelocity = fixedSpeedVel;
+                    debugMethod = "fixedSpeed";
+                }
+                else
+                {
+                    // Target is truly out of range at maxLaunchSpeed — no valid angle exists.
+                    // Fire at 45° (maximum range angle) as a best-effort attempt.
+                    Vector3 dir = xz.magnitude > 0.001f ? xz.normalized : transform.forward;
+                    float angle45 = 45f * Mathf.Deg2Rad;
+                    finalVelocity = dir * (maxLaunchSpeed * Mathf.Cos(angle45))
+                                  + Vector3.up * (maxLaunchSpeed * Mathf.Sin(angle45));
+                    debugMethod = "outOfRange_45deg";
+
+                    if (debugLogs)
+                        Debug.LogWarning($"[Ranged] Target at {x:F1}m is OUT OF RANGE at speed {maxLaunchSpeed}. " +
+                                         $"Max range ~ {(maxLaunchSpeed * maxLaunchSpeed / g):F1}m. Firing 45deg best-effort.", this);
+                }
             }
 
             // 4. Face target
@@ -360,16 +308,16 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             BallisticFireProjectile proj = Instantiate(projectilePrefab, spawnT.position, Quaternion.identity);
             proj.OnHit += HandleProjectileHit;
 
-            // Safety: Force drag to zero to ensure projectile behaves like the math says
+            // Safety: Force drag to zero so the projectile trajectory matches the math.
+            // If the prefab has any drag set in the Inspector, it would cause undershooting.
             Rigidbody projRb = proj.GetComponent<Rigidbody>();
             if (projRb != null) projRb.linearDamping = 0f;
 
             proj.Launch(finalVelocity);
 
             if (debugLogs)
-                Debug.Log($"[Ranged] Fire Speed: {finalVelocity.magnitude:F1} (Max: {maxLaunchSpeed}), " +
-                          $"EffRange: {_effectiveShootRange:F1}/{shootRange:F1}, " +
-                          $"Shots since hit: {_shotsSinceLastHit}", this);
+                Debug.Log($"[Ranged] Fired ({debugMethod}). Speed: {finalVelocity.magnitude:F1}/{maxLaunchSpeed}, " +
+                          $"Dist: {x:F1}m, Angle: {Mathf.Atan2(finalVelocity.y, flatV.magnitude) * Mathf.Rad2Deg:F1}deg", this);
         }
 
         private Vector3 GetAimPosition()
@@ -396,9 +344,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (hit.transform == _target || hit.transform.IsChildOf(_target))
             {
-                // Notify adaptive range system of the successful hit
-                OnProjectileHitTarget();
-
                 // Allow "ranged-only" mode: if set to 0, never enter melee/chase phase
                 if (Mathf.Approximately(slowDurationSecondsOverride, 0f))
                     return;
@@ -501,10 +446,6 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             _nextShootTime = 0f;
             _nextMeleeHitTime = 0f;
             _slowWindowEndTime = -1f;
-
-            // Reset adaptive range for next engagement
-            _effectiveShootRange = shootRange;
-            _shotsSinceLastHit = 0;
 
             UpdateAttackAnimation(false);
         }

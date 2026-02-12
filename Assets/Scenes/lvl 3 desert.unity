@@ -44121,8 +44121,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0, y: 3.593078, z: 2.900176}
-  m_Center: {x: -1.3766822, y: 0.00000019073487, z: 0.45008686}
+  m_Size: {x: 2.5481253, y: 5.043674, z: 2.544731}
+  m_Center: {x: -0.28386357, y: 0.72529835, z: 0.24405757}
 --- !u!4 &1743450402 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 2720277691466517151, guid: 1a2148a30d0825c43bcc0ba9a4ab0786, type: 3}
@@ -63041,6 +63041,7 @@ MonoBehaviour:
   playBackgroundMusic: 1
   nextSceneBuildIndex: 10
   useInstantTransition: 1
+  fullyPreloadNextScene: 0
   gameOverSceneBuildIndex: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
