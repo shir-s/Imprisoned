@@ -10204,6 +10204,11 @@ MonoBehaviour:
   leadMinSpeed: 0.25
   leadSmoothingTime: 0.15
   maxLeadOffset: 2
+  missTimeBeforeApproach: 2
+  rangeShrinkPerSecond: 2
+  minEffectiveShootRange: 2
+  rangeRecoveryPerSecond: 0
+  longRangeLeadScale: 0.4
   slowDurationSecondsOverride: 0
   meleeAttackRadius: 30
   damagePerHit: 0.5

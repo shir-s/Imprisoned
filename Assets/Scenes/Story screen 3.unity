@@ -45182,6 +45182,7 @@ MonoBehaviour:
   playBackgroundMusic: 1
   nextSceneBuildIndex: 4
   useInstantTransition: 1
+  fullyPreloadNextScene: 0
   gameOverSceneBuildIndex: 0
   gameOverOnVictimLayers:
     serializedVersion: 2
@@ -45229,7 +45230,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CutsceneStartTrigger
   triggers:
   - animator: {fileID: 875837211}
-    boolParameterName: start_story_2
+    boolParameterName: start_story_3
     useTriggerInsteadOfBool: 0
   waitFrames: 2
   additionalDelaySeconds: 0
