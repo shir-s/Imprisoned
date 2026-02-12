@@ -37130,6 +37130,8 @@ MonoBehaviour:
   winKey: 116
   mainMenuKey: 27
   mainMenuBuildIndex: 0
+  gameOverControllerKeys: 5001000054010000
+  mainMenuControllerKeys: 5301000056010000
 --- !u!4 &493221078
 Transform:
   m_ObjectHideFlags: 0
@@ -74846,8 +74848,8 @@ MonoBehaviour:
   teleportSlimeObjects: []
   slimeActivateDelay: 0.2
   hidePlayerAtGrabProgress: 0.7
-  releaseBoolName: release
   portalParticlesRoot: {fileID: 0}
+  extraObjectToActivate: {fileID: 0}
   particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
