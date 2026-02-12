@@ -10,139 +10,64 @@ namespace JellyGame.GamePlay.Audio.Core
     public class SoundManager : MonoSingleton<SoundManager>
     {
         [SerializeField] private AudioSettings settings;
+        
         private AudioSourceWrapper _currentBackgroundMusic;
         private string _currentMusicName;
-        //private AudioSourceWrapper _backgroundMusic;
-        
-        // private void Start()
-        // {
-        //     PlaySound("CubeRespawn", transform);
-        // }
-
-         private void OnEnable()
-         {
-             // GameEvents.Intro += OnIntro;
-             // GameEvents.GameStarted += OnGameStart;
-             // GameEvents.GameOver += EndGame;
-             EventManager.StartListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
-
-         }
-
-         private void OnDisable()
-         {
-             // GameEvents.Intro -= OnIntro;
-             // GameEvents.GameStarted -= OnGameStart;
-             // GameEvents.GameOver -= EndGame;
-             EventManager.StopListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
-
-         }
-    
-        private void EndGame()
-        {
-            StopAllSounds();
-            //PlaySound("LongBeep", transform);
-        }
-
-        private void OnIntro()
-        {
-            StopAllSounds();
-            //PlaySound("Intro", transform);
-        }
-        
-        private void OnGameStart()
-        {
-            StopAllSounds();
-            //PlaySound("BackGround", transform);
-        }
 
         private readonly HashSet<AudioSourceWrapper> activeSounds = new HashSet<AudioSourceWrapper>();
 
-        public AudioSourceWrapper PlaySound(string audioName, Transform spawnTransform, float customVolume = -1f)
+        private void OnEnable()
+        {
+             EventManager.StartListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
+        }
+
+        private void OnDisable()
+        {
+             EventManager.StopListening(EventManager.GameEvent.CubeRespawnSound, OnCubeRespawnSound);
+        }
+
+         public AudioSourceWrapper PlaySound(string audioName, Transform spawnTransform, float customVolume = -1f)
         {
             var config = FindAudioConfig(audioName);
-            if (config == null)
-                return null;
+            if (config == null) return null;
 
             var soundObject = SoundPool.Instance.Get();
             soundObject.transform.position = spawnTransform.position;
+            
             float finalVolume = (customVolume >= 0f) ? customVolume : config.volume;
             soundObject.Play(config.clip, finalVolume, config.loop);
     
             activeSounds.Add(soundObject);
+            
             StartCoroutine(WaitAndRemove(soundObject));
     
             return soundObject; 
         }
-        
-        public AudioSourceWrapper PlayLoopingSound(string audioName, Transform spawnTransform, float customVolume = -1f)
+         private AudioSourceWrapper PlayLoopingSound(string audioName, Transform spawnTransform)
         {
             var config = FindAudioConfig(audioName);
-            if (config == null)
-                return null;
+            if (config == null) return null;
 
             var soundObject = SoundPool.Instance.Get();
             soundObject.transform.position = spawnTransform.position;
 
-            float finalVolume = (customVolume >= 0f) ? customVolume : config.volume;
-            soundObject.Play(config.clip, finalVolume, true); // FORCE LOOP
+            soundObject.Play(config.clip, config.volume, true); // Force Loop
 
             activeSounds.Add(soundObject);
             return soundObject;
         }
-
-        
-        private IEnumerator WaitAndRemove(AudioSourceWrapper wrapper)
+          public void PlayBackgroundMusic(string audioName)
         {
-            while (wrapper != null && wrapper.IsPlaying())
-            {
-                yield return null;
-            }
-
-            activeSounds.Remove(wrapper);
-        }
-        
-        public void StopAllSounds()
-        {
-            foreach (var sound in activeSounds)
-            {
-                if (sound == null || sound.gameObject == null) continue;
-                sound.Reset(); 
-                sound.gameObject.SetActive(false);
-                SoundPool.Instance.Return(sound);
-            }
-
-            activeSounds.Clear();
-        }
-
-        public AudioConfig FindAudioConfig(string audioName)
-        {
-            var x = settings.audioConfigs.FirstOrDefault(config => config.name == audioName);
-            if(x!= null)
-            {
-                return x;
-            }
-            else
-            {
-                Debug.LogError($"Audio config not found for {audioName}");
-                return null;
-            }
-        }
-        
-        private void OnCubeRespawnSound(object _)
-        {
-            PlaySound("CubeRespawn", transform);
-        }
-        
-        public void PlayBackgroundMusic(string audioName)
-        {
-            if (_currentBackgroundMusic != null && _currentBackgroundMusic.IsPlaying() && _currentMusicName == audioName)
+            if (_currentBackgroundMusic != null && 
+                _currentBackgroundMusic.IsPlaying() && 
+                _currentMusicName == audioName)
             {
                 return;
             }
 
             StopBackgroundMusic();
 
-            _currentBackgroundMusic = PlayLoopingSound(audioName, this.transform);
+            _currentBackgroundMusic = PlayLoopingSound(audioName, transform);
             _currentMusicName = audioName;
         }
         
@@ -150,6 +75,11 @@ namespace JellyGame.GamePlay.Audio.Core
         {
             if (_currentBackgroundMusic != null)
             {
+                if (activeSounds.Contains(_currentBackgroundMusic))
+                {
+                    activeSounds.Remove(_currentBackgroundMusic);
+                }
+
                 _currentBackgroundMusic.Reset();
                 _currentBackgroundMusic.gameObject.SetActive(false);
                 SoundPool.Instance.Return(_currentBackgroundMusic);
@@ -159,5 +89,45 @@ namespace JellyGame.GamePlay.Audio.Core
             }
         }
 
+        public void StopAllSounds()
+        {
+            foreach (var sound in activeSounds.ToList())
+            {
+                if (sound == null) continue;
+
+                sound.Reset(); 
+                if (sound.gameObject != null) sound.gameObject.SetActive(false);
+                SoundPool.Instance.Return(sound);
+            }
+
+            activeSounds.Clear();
+            
+            _currentBackgroundMusic = null;
+            _currentMusicName = "";
+        }
+
+        private IEnumerator WaitAndRemove(AudioSourceWrapper wrapper)
+        {
+            while (wrapper != null && wrapper.IsPlaying())
+            {
+                yield return null;
+            }
+
+            if (wrapper != null)
+            {
+                activeSounds.Remove(wrapper);
+            }
+        }
+
+        public AudioConfig FindAudioConfig(string audioName)
+        {
+            if (settings == null) return null;
+            return settings.audioConfigs.FirstOrDefault(config => config.name == audioName);
+        }
+        
+        private void OnCubeRespawnSound(object _)
+        {
+            PlaySound("CubeRespawn", transform);
+        }
     }
 }
