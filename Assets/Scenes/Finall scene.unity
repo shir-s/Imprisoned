@@ -28964,53 +28964,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 842639751}
   m_Mesh: {fileID: 2861833572597238774, guid: e331f79f76fa44edc89c9daa328dcb3e, type: 3}
---- !u!1 &848138788
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 848138790}
-  - component: {fileID: 848138789}
-  m_Layer: 0
-  m_Name: LoadingScreenInitializer
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &848138789
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 848138788}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4fa9f0d7ac86be2408eafa7d633b4215, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.LoadingScreenInitializer
-  loadingScreenBuildIndex: 3
-  checkIfAlreadyLoaded: 1
-  debugLogs: 1
---- !u!4 &848138790
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 848138788}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -6.33237, y: 1.47499, z: -6.99134}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &848374999
 GameObject:
   m_ObjectHideFlags: 0
@@ -64140,6 +64093,67 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1922282676}
   m_Mesh: {fileID: -8713615545813289248, guid: e331f79f76fa44edc89c9daa328dcb3e, type: 3}
+--- !u!1001 &1922594301
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 2696543390535537477, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: loadingScreenBuildIndex
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -21.19749
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -6.88071
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2.31273
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4957642717757067911, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5409582702810622750, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
+      propertyPath: m_Name
+      value: LoadingScreenInitializer (1)
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: ed85c456f1d3b43a8921b77de51c6304, type: 3}
 --- !u!1 &1923230116
 GameObject:
   m_ObjectHideFlags: 0
@@ -65354,6 +65368,71 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1951269648}
   m_Mesh: {fileID: 9075772587276166450, guid: e331f79f76fa44edc89c9daa328dcb3e, type: 3}
+--- !u!1 &1953062382
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1953062385}
+  - component: {fileID: 1953062384}
+  m_Layer: 0
+  m_Name: SceneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1953062384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953062382}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 486243596c9431c47ac8936bffc56197, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.GameSceneManager
+  isMainMenu: 0
+  mainMenuNextScene: 4
+  playBackgroundMusic: 1
+  nextSceneBuildIndex: 0
+  useInstantTransition: 1
+  gameOverSceneBuildIndex: 1
+  gameOverOnVictimLayers:
+    serializedVersion: 2
+    m_Bits: 16777344
+  gameOverPortalDestination: 5
+  tutorialSceneBuildIndex: 5
+  winFxRoot: {fileID: 0}
+  disableWinFxRootOnStart: 1
+  stopWinFxOnStart: 1
+  winFxDelay: 0
+  pauseGameplayOnWin: 0
+  debugLogs: 1
+  gameOverKey: 114
+  winKey: 116
+  mainMenuKey: 27
+  mainMenuBuildIndex: 0
+--- !u!4 &1953062385
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953062382}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 22.02466, y: 0, z: 77.24139}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1958643324
 GameObject:
   m_ObjectHideFlags: 0
@@ -73105,4 +73184,5 @@ SceneRoots:
   - {fileID: 1562246660}
   - {fileID: 1516066445}
   - {fileID: 6892362546591190842}
-  - {fileID: 848138790}
+  - {fileID: 1953062385}
+  - {fileID: 1922594301}

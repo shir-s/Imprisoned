@@ -1498,13 +1498,29 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 965892454}
     m_Modifications:
+    - target: {fileID: 4552110525570330982, guid: 420c73b8795346747816b848cee568c9, type: 3}
+      propertyPath: winMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4552110525570330982, guid: 420c73b8795346747816b848cee568c9, type: 3}
+      propertyPath: requiredDeaths
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4552110525570330982, guid: 420c73b8795346747816b848cee568c9, type: 3}
+      propertyPath: allowedLayers.m_Bits
+      value: 128
+      objectReference: {fileID: 0}
     - target: {fileID: 5626465494664437696, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_Name
       value: Level finish (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 5626465494664437696, guid: 420c73b8795346747816b848cee568c9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6430949889134761465, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -20.075058
+      value: -20.7
       objectReference: {fileID: 0}
     - target: {fileID: 6430949889134761465, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1512,7 +1528,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6430949889134761465, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.32680702
+      value: 16.8
       objectReference: {fileID: 0}
     - target: {fileID: 6430949889134761465, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_LocalRotation.w
@@ -20193,6 +20209,11 @@ MonoBehaviour:
   - {fileID: 919132148266582520}
   chainFall: {fileID: 1567060461}
   chainFallDelay: 5
+  activateAfterChainFall:
+  - {fileID: 2038317093}
+  activateAfterChainFallDelay: 3
+  enableAfterChainFall:
+  - {fileID: 965892455}
 --- !u!114 &926447690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -37475,7 +37496,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c44961ca841cec47a575afbbfdd50e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
-  durationSeconds: 120
+  durationSeconds: 20
   startOnEnable: 1
   debugLogs: 0
 --- !u!4 &1592128410
@@ -55707,6 +55728,11 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2034627350}
   m_Mesh: {fileID: -640656668151783752, guid: e22be7a72517c4b428984d7a1f3cf9fa, type: 3}
+--- !u!1 &2038317093 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5626465494664437696, guid: 420c73b8795346747816b848cee568c9, type: 3}
+  m_PrefabInstance: {fileID: 130305532}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &2038317098 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6430949889134761465, guid: 420c73b8795346747816b848cee568c9, type: 3}
