@@ -13517,82 +13517,6 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3793594676184193298}
     m_Modifications:
-    - target: {fileID: 1404102615547647441, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: crossingRadius
-      value: 0.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: progressiveBaseUvStep
-      value: 0.01
-      objectReference: {fileID: 0}
-    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[0]'
-      value: 
-      objectReference: {fileID: 1318333005}
-    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[1]'
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: 'paintSurfaces.Array.data[2]'
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: progressiveTimeBudgetMsPerFrame
-      value: 1.5
-      objectReference: {fileID: 0}
-    - target: {fileID: 3338532106483729296, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: timeBrushBlitMaterial
-      value: 
-      objectReference: {fileID: 2100000, guid: 994dbc08558d46841864cc935a70af00, type: 2}
-    - target: {fileID: 3338532106483729296, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: timePolygonFillMaterial
-      value: 
-      objectReference: {fileID: 2100000, guid: 53f9461c8723bfa459e8a235d0980f40, type: 2}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: maxSize
-      value: 5
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: uniformScale
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: surfaceSlider
-      value: 
-      objectReference: {fileID: 1259213364}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: destroyOnDeath
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: healthImageRect
-      value: 
-      objectReference: {fileID: 1968426433}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: sizeLossPerDamage
-      value: 0.15
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: destroyDelaySeconds
-      value: 999
-      objectReference: {fileID: 0}
-    - target: {fileID: 5853046778373512491, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: healthImageDownAtMinSize
-      value: 60
-      objectReference: {fileID: 0}
-    - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: m_LocalScale.x
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: m_LocalScale.y
-      value: 2
-      objectReference: {fileID: 0}
-    - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: m_LocalScale.z
-      value: 2
-      objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3.64
@@ -13633,29 +13557,9 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 7169782407615205033, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: upSource
-      value: 
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: maxDamagePerFill
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: damagePerSquareMeter
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 7176294800365090857, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: onlyWhenAbilityActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 7436787547629168166, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_Name
       value: PlayerJelly
-      objectReference: {fileID: 0}
-    - target: {fileID: 8892700715739925041, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-      propertyPath: minStepDistance
-      value: 0.0001
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -14910,6 +14814,10 @@ PrefabInstance:
       propertyPath: requiredDeaths
       value: 7
       objectReference: {fileID: 0}
+    - target: {fileID: 4552110525570330982, guid: 420c73b8795346747816b848cee568c9, type: 3}
+      propertyPath: extraObjectToActivate
+      value: 
+      objectReference: {fileID: 2437890829655878560}
     - target: {fileID: 5626465494664437696, guid: 420c73b8795346747816b848cee568c9, type: 3}
       propertyPath: m_Name
       value: Level finish (2)
@@ -27858,17 +27766,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
   m_PrefabInstance: {fileID: 459583783}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1259213364 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 3903073942102037414, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
-  m_PrefabInstance: {fileID: 459583783}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: b4ebc3a72c79443468a608b89f18d860, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::StickySlider
 --- !u!1 &1275103463 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 4646833299039424376, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
@@ -28421,6 +28318,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdgeFollowCamera
   cam: {fileID: 1340203973}
   target: {fileID: 1259213360}
+  playerTag: DrawingCube
   snapToTargetOnStart: 1
   snapIfTargetBehindCamera: 1
   screenMargin: 0.45
@@ -52140,6 +52038,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41af5362cfb79e44082066fb1830a52e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.World.Finish.FinishTrigger
+  winMode: 0
   allowedLayers:
     serializedVersion: 2
     m_Bits: 128
@@ -52156,6 +52055,7 @@ MonoBehaviour:
   hidePlayerAtGrabProgress: 0.7
   releaseBoolName: release
   portalParticlesRoot: {fileID: 0}
+  extraObjectToActivate: {fileID: 0}
   particleFadeDuration: 2
   winFxRoot: {fileID: 0}
   winFxDelaySeconds: 0.35
@@ -52778,7 +52678,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0.49044257, y: 0.49044257, z: -0.50937814, w: -0.50937814}
   m_LocalPosition: {x: -0.102, y: 2.3731444, z: -0.053}
-  m_LocalScale: {x: 0.99999994, y: 0.99975723, z: 0.8554084}
+  m_LocalScale: {x: 2.5, y: 2.4993932, z: 2.1385212}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 3481801202206618170}

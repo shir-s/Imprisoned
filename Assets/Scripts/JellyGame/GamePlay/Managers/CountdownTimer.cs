@@ -5,15 +5,14 @@ namespace JellyGame.GamePlay.Managers
 {
     /// <summary>
     /// Countdown timer for survival-style levels (e.g. stage 3).
-    /// When time reaches 0 and the player is still alive (GameOver not triggered), fires GameWin
-    /// so GameSceneManager loads the victory screen.
+    /// When time reaches 0 and the player is still alive (GameOver not triggered), fires Explosion
+    /// so the chain/explosion sequence plays.
     /// </summary>
     public class CountdownTimer : MonoBehaviour
     {
         [Tooltip("Total countdown time in seconds (e.g. 60).")]
         [SerializeField] private float durationSeconds = 60f;
-        [SerializeField] private float cameraShakeTime = 30f;
-        
+
         [Tooltip("If true, timer starts on Enable. If false, call StartTimer() to begin.")]
         [SerializeField] private bool startOnEnable = true;
 
@@ -58,14 +57,8 @@ namespace JellyGame.GamePlay.Managers
             if (!_running || _remaining <= 0f)
                 return;
 
-            // Always use real time (unscaled) so 120 seconds = 2 real minutes, regardless of Time.timeScale
-            //_remaining -= Time.unscaledDeltaTime;
-            _remaining -= Time.deltaTime; // Using scaled time so that pausing the game also pauses the timer
-            if (_remaining <= cameraShakeTime)
-            {
-                EventManager.TriggerEvent(EventManager.GameEvent.CountdownTimerLowTime, null);
-            }
-            
+            _remaining -= Time.deltaTime;
+
             if (_remaining <= 0f)
             {
                 _remaining = 0f;
@@ -77,7 +70,7 @@ namespace JellyGame.GamePlay.Managers
                     return;
                 }
                 if (debugLogs)
-                    Debug.Log("[CountdownTimer] Time's up and player alive → GameWin.", this);
+                    Debug.Log("[CountdownTimer] Time's up and player alive -> Explosion.", this);
                 EventManager.TriggerEvent(EventManager.GameEvent.Explosion, null);
             }
         }
