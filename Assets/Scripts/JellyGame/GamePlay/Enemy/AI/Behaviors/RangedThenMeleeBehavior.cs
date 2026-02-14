@@ -3,6 +3,7 @@ using JellyGame.GamePlay.Combat;
 using JellyGame.GamePlay.Combat.Projectiles;
 using JellyGame.GamePlay.Combat.Targeting;
 using JellyGame.GamePlay.Enemy.AI.Movement;
+using JellyGame.GamePlay.Managers;
 using UnityEngine;
 
 namespace JellyGame.GamePlay.Enemy.AI.Behaviors
@@ -303,8 +304,12 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
             Vector3 flatV = new Vector3(finalVelocity.x, 0f, finalVelocity.z);
             if (flatV.sqrMagnitude > 0.001f)
                 transform.rotation = Quaternion.LookRotation(flatV.normalized, Vector3.up);
-
+            
             // 5. Fire
+            if (IsTargetSlimePrime(out IDamageable slimeDmg))
+            {
+                EventManager.TriggerEvent(EventManager.GameEvent.SlimePrimeDamaged, slimeDmg);
+            }
             BallisticFireProjectile proj = Instantiate(projectilePrefab, spawnT.position, Quaternion.identity);
             proj.OnHit += HandleProjectileHit;
 
@@ -459,6 +464,28 @@ namespace JellyGame.GamePlay.Enemy.AI.Behaviors
 
             if (debugLogs && Time.frameCount % 60 == 0)
                 Debug.Log($"[RangedThenMelee] Attack animation - {attackParam}: {isAttacking}", this);
+        }
+        
+        private bool IsTargetSlimePrime(out IDamageable dmg)
+        {
+            dmg = null;
+            if (_target == null && _targetCol == null) return false;
+
+            // Prefer IDamageable on the target hierarchy
+            dmg = (_target != null ? _target.GetComponentInParent<IDamageable>() : null)
+                  ?? (_targetCol != null ? _targetCol.GetComponentInParent<IDamageable>() : null);
+
+            // If we found a damageable, check its GameObject layer (more reliable than collider layer)
+            if (dmg is MonoBehaviour mb)
+                return mb.gameObject.layer == LayerMask.NameToLayer("SlimePrime");
+
+            // Fallback: check collider/target layer
+            if (_targetCol != null)
+                return _targetCol.gameObject.layer == LayerMask.NameToLayer("SlimePrime");
+            if (_target != null)
+                return _target.gameObject.layer == LayerMask.NameToLayer("SlimePrime");
+
+            return false;
         }
     }
 }
