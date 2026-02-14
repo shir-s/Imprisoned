@@ -42820,7 +42820,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c44961ca841cec47a575afbbfdd50e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Managers.CountdownTimer
-  durationSeconds: 10
+  durationSeconds: 120
   startOnEnable: 0
   debugLogs: 0
 --- !u!4 &1592128410
@@ -44128,7 +44128,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Player.CubeScaler
   scaleTarget: {fileID: 1743450402}
   uniformScale: 1
-  minSize: 0.2
+  minSize: 1
   maxSize: 4
   sizeLossPerDamage: 0.1
   sizeGainPerHeal: 0.1
@@ -44185,13 +44185,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5039486c8f74fcb9194873c39eb59ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PrimeHitReaction
-  targetAnimators:
-  - {fileID: 1059411824}
-  - {fileID: 616229910}
+  effectAnimators:
+  - {fileID: 1619743839}
+  - {fileID: 2045342108}
   - {fileID: 1628777171}
   - {fileID: 382282906}
-  - {fileID: 2045342108}
-  - {fileID: 1619743839}
+  - {fileID: 1059411824}
+  - {fileID: 616229910}
+  hitBoolParam: prime is attcked
+  hitDuration: 1
+  slimeAnimators:
   - {fileID: 527337107}
   castOutParam: cast out
   castInParam: cast in
