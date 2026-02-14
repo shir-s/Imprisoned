@@ -129,13 +129,20 @@ namespace JellyGame.GamePlay.Managers
 
         private void Start()
         {
-            // Override GameOver portal destination if player died in tutorial
-            if (tutorialSceneBuildIndex >= 0 && LastDeathSceneBuildIndex == tutorialSceneBuildIndex)
+            // Override GameOver portal destination if player died in tutorial.
+            // IMPORTANT: Only apply this override when we ARE in the GameOver scene.
+            // Without this check, the level itself would also see LastDeathSceneBuildIndex,
+            // override its own nextSceneBuildIndex to point at itself, and preload itself —
+            // causing a duplicate scene to load when the player wins.
+            if (IsInGameOverScene() && tutorialSceneBuildIndex >= 0 && LastDeathSceneBuildIndex == tutorialSceneBuildIndex)
             {
                 if (gameOverPortalDestination >= 0)
                     gameOverPortalDestination = tutorialSceneBuildIndex;
 
                 nextSceneBuildIndex = tutorialSceneBuildIndex;
+
+                // Consume the death info so it doesn't affect subsequent scenes
+                LastDeathSceneBuildIndex = -1;
 
                 if (debugLogs)
                     Debug.Log($"[GameSceneManager] Player died in Tutorial (scene {tutorialSceneBuildIndex}) -> portal returns to Tutorial.", this);
