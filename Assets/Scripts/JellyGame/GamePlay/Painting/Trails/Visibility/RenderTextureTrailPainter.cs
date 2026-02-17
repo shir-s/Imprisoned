@@ -139,6 +139,7 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
                 return;
 
             var rt = _currentSurface.PaintRT;
+            var timeRT = _currentSurface.PaintTimeRT;
             if (rt == null)
                 return;
 
@@ -151,12 +152,20 @@ namespace JellyGame.GamePlay.Painting.Trails.Visibility
 
             UpdatePaintColor();
             
+            float currentTime = _currentSurface.GetCurrentTime();
+            
             // set geometry properties
             brushBlitMaterial.SetVector("_BrushCenter", new Vector4(uvCenter.x, uvCenter.y, 0, 0));
             brushBlitMaterial.SetVector("_BrushHalfSize", new Vector4(halfSizeUV.x, halfSizeUV.y, 0, 0));
             
             // set type to trail
             brushBlitMaterial.SetFloat(PaintTypeId, 0f);
+            
+            // set time properties for trail protection
+            brushBlitMaterial.SetTexture("_TimeTex", timeRT);
+            brushBlitMaterial.SetFloat("_PaintTime", currentTime);
+            brushBlitMaterial.SetFloat("_MaxAge", trailProtectionMaxAge);
+            brushBlitMaterial.SetFloat("_CornerRadius", cornerRadius);
             
             //blit logic
             EnsureTemp(rt, ref _tempRT);

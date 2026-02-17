@@ -5607,7 +5607,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: c23809d86d66f410abf4a9568e401a01, type: 2}
     - target: {fileID: 4064249708650425741, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 20
       objectReference: {fileID: 0}
     - target: {fileID: 4232330331474949678, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
@@ -5819,7 +5819,7 @@ PrefabInstance:
       objectReference: {fileID: 2100000, guid: c23809d86d66f410abf4a9568e401a01, type: 2}
     - target: {fileID: 9045869852228360896, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 20
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects:
@@ -5901,15 +5901,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 9045869852228360896, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1457333559}
-    - targetCorrespondingSourceObject: {fileID: 9045869852228360896, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1457333561}
     - targetCorrespondingSourceObject: {fileID: 4064249708650425741, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1029577481}
-    - targetCorrespondingSourceObject: {fileID: 4064249708650425741, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 1029577483}
     - targetCorrespondingSourceObject: {fileID: 7198473457830614759, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 38331901}
@@ -13505,6 +13499,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3793594676184193298}
     m_Modifications:
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: paintSurfaces.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: 'paintSurfaces.Array.data[0]'
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 6309118692845414369, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3.64
@@ -13760,6 +13762,7 @@ MonoBehaviour:
   playBackgroundMusic: 1
   nextSceneBuildIndex: 8
   useInstantTransition: 1
+  fullyPreloadNextScene: 0
   gameOverSceneBuildIndex: 1
   gameOverOnVictimLayers:
     serializedVersion: 2
@@ -21650,29 +21653,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 43.122845, y: 14.228031, z: 41.20104}
   m_Center: {x: 0, y: -6.716194, z: 0}
---- !u!114 &1029577483
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1029577477}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 30
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!1 &1030556347 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 897969776699009942, guid: d850e6803252745f68e68bd947f87a4a, type: 3}
@@ -28852,7 +28832,7 @@ MonoBehaviour:
   enableTimeAging: 1
   paintTimeTexProperty: _PaintTimeTex
   currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 10
+  maxAgeSeconds: 30
   swapXZ: 0
   invertU: 1
   invertV: 1
@@ -30089,29 +30069,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 44.984715, y: 10.517983, z: 38.71191}
   m_Center: {x: 0, y: -4.8611703, z: 0}
---- !u!114 &1457333561
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1457333555}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 30
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!1001 &1463201178
 PrefabInstance:
   m_ObjectHideFlags: 0

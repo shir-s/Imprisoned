@@ -13284,6 +13284,18 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 965892454}
     m_Modifications:
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: paintSurfaces.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: 'paintSurfaces.Array.data[0]'
+      value: 
+      objectReference: {fileID: 640071956}
+    - target: {fileID: 3168310633648749511, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
+      propertyPath: 'paintSurfaces.Array.data[1]'
+      value: 
+      objectReference: {fileID: 640071956}
     - target: {fileID: 3903073942102037414, guid: c8467aca3bb844ad1bd97ee079fcb3ae, type: 3}
       propertyPath: gravityForce
       value: 350
@@ -44185,13 +44197,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a5039486c8f74fcb9194873c39eb59ab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PrimeHitReaction
-  targetAnimators:
-  - {fileID: 1059411824}
-  - {fileID: 616229910}
+  effectAnimators:
+  - {fileID: 1619743839}
+  - {fileID: 2045342108}
   - {fileID: 1628777171}
   - {fileID: 382282906}
-  - {fileID: 2045342108}
-  - {fileID: 1619743839}
+  - {fileID: 1059411824}
+  - {fileID: 616229910}
+  hitBoolParam: prime is attcked
+  hitDuration: 1.5
+  slimeAnimators:
   - {fileID: 527337107}
   castOutParam: cast out
   castInParam: cast in
