@@ -14,7 +14,7 @@ namespace JellyGame.GamePlay.Managers
     /// NEW ARCHITECTURE:
     /// - On Start(), preloads the next scene in the background.
     /// - On cutscene end (auto-skip) or manual skip, calls LoadingManager.TransitionToScene().
-    /// - No need to manage scene activation/deactivation — LoadingManager handles everything.
+    /// - No need to manage scene activation/deactivation â€” LoadingManager handles everything.
     /// - Cutscenes naturally don't start until the scene is activated (allowSceneActivation pattern),
     ///   so visual scripting, Timeline, and animations only begin when the player sees the scene.
     /// </summary>
@@ -24,8 +24,8 @@ namespace JellyGame.GamePlay.Managers
         [Header("Next Scene")]
         [Tooltip("Build index of the scene to load when cutscene ends.\n" +
                  "Examples:\n" +
-                 "- Cutscene 1 → Level 2\n" +
-                 "- Cutscene 2 → Level 3")]
+                 "- Cutscene 1 â†’ Level 2\n" +
+                 "- Cutscene 2 â†’ Level 3")]
         [SerializeField] private int nextSceneBuildIndex = -1;
 
         [Header("Skip Input")]
@@ -204,6 +204,14 @@ namespace JellyGame.GamePlay.Managers
                 return;
 
             _transitionTriggered = true;
+
+            // IMMEDIATELY disable the camera to prevent a flash of the cutscene's first frame.
+            // When the Timeline/Animator stops, animated properties (camera position/rotation)
+            // snap back to their default values for one frame before the transition neutralizes
+            // the scene. Disabling the camera prevents that frame from rendering.
+            UnityEngine.Camera mainCam = UnityEngine.Camera.main;
+            if (mainCam != null)
+                mainCam.enabled = false;
 
             // Stop auto-skip coroutine if running
             if (_autoSkipCoroutine != null)
