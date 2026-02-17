@@ -45146,7 +45146,6 @@ GameObject:
   - component: {fileID: 180576648858185959}
   - component: {fileID: 7391263446224577626}
   - component: {fileID: 7391263446224577627}
-  - component: {fileID: 7391263446224577628}
   m_Layer: 0
   m_Name: floor_prime
   m_TagString: Untagged
@@ -48221,29 +48220,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 11.187708, y: 13.3101635, z: 16.120913}
   m_Center: {x: -0.00000095367426, y: -6.538121, z: -6.4331814e-16}
---- !u!114 &7391263446224577628
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 788931151733036244}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 2d96cf3318b1174488da534be065ffac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::JellyGame.GamePlay.Map.Surfaces.SimplePaintSurface
-  textureSize: 1024
-  clearColor: {r: 0, g: 0, b: 0, a: 0}
-  paintTexProperty: _PaintTex
-  enableTimeAging: 1
-  paintTimeTexProperty: _PaintTimeTex
-  currentTimeProperty: _CurrentTime
-  maxAgeSeconds: 10
-  swapXZ: 0
-  invertU: 1
-  invertV: 1
-  debugTime: 0
 --- !u!1 &7504956811414746770
 GameObject:
   m_ObjectHideFlags: 0
@@ -48445,8 +48421,8 @@ MonoBehaviour:
   useStrokeEdgeInnerOuter: 1
   fillUsesOuterPolygon: 1
   progressiveTimeBudgetMsPerFrame: 1.2
-  progressiveMaxTotalSamples: 160000
-  progressiveBaseUvStep: 0.01
+  progressiveMaxTotalSamples: 100000
+  progressiveBaseUvStep: 0.02
   progressiveRingCount: 50
   progressiveDynamicQuality: 1
   progressiveDynamicStepMaxMultiplier: 2
